@@ -1,6 +1,8 @@
 const router = require('express').Router();
 const profileController = require('../controllers/auth/profileController');
+const avatarController = require('../controllers/auth/avatarController');
 const authMiddleware = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 router.use(authMiddleware);
 
@@ -35,6 +37,9 @@ router.use(authMiddleware);
  *                   type: string
  *                   format: date-time
  *                   example: "2024-01-10T12:45:32.000Z"
+ *                 avatar:
+ *                   type: string
+ *                   example: "https://example.com/uploads/avatars/64f1c2a9b8d2e1a3c4f5d678.webp"
  *       401:
  *         description: Unauthorized - Missing or invalid token
  *       500:
@@ -42,6 +47,90 @@ router.use(authMiddleware);
  */
 
 router.get('/', profileController.getProfile);
+
+/**
+ * @openapi
+ * /users/profile/avatar:
+ *   post:
+ *     summary: Upload or update authenticated user's avatar
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 avatarUrl:
+ *                   type: string
+ */
+router.post('/avatar', upload.single('avatar'), avatarController.uploadAvatar);
+
+/**
+ * @openapi
+ * /users/profile/avatar:
+ *   get:
+ *     summary: Retrieve authenticated user's avatar image
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns the avatar image (binary)
+ *         content:
+ *           image/webp:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/svg+xml:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+router.get('/avatar', avatarController.getAvatar);
+
+/**
+ * @openapi
+ * /users/profile/avatar/{id}:
+ *   get:
+ *     summary: Retrieve avatar image for a given user id
+ *     tags:
+ *       - Profile
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Returns the avatar image (binary)
+ *         content:
+ *           image/webp:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/svg+xml:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+router.get('/avatar/:id', avatarController.getAvatar);
 
 /**
  * @openapi

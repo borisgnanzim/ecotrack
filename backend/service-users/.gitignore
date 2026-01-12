@@ -1,3 +1,5 @@
 node_modules
 /prisma/client
 .env
+# Uploaded user avatars
+uploads/

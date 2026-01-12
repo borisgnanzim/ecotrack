@@ -13,14 +13,18 @@ exports.getProfile = async (req, res, next) => {
         if(!user) {
             return res.status(404).json({message: 'Utilisateur non trouvé'});
         }
+        const host = req.get('host');
+        const protocol = req.protocol;
+        const avatarPath = user.avatar ? `${protocol}://${host}${user.avatar}` : `${protocol}://${host}/uploads/defaults/default_avatar.svg`;
         const profileData = {
             name: user.name,
             address: user.address,
             username: user.username,
             email: user.email,
-            role: user.role
+            role: user.role,
+            avatar: avatarPath
         };
-        res.status(200).json({user : profileData , message : "User Profile return succefully"})
+        res.status(200).json({ user: profileData, message: "User Profile returned successfully" })
 
     } catch(err) {
         res.status(401).json({ message: 'Invalid token', error: err.message });

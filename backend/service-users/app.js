@@ -23,9 +23,14 @@ app.get('/test', (req, res) => {
 });
 
 
+const path = require('path');
 app.use('/auth', authRoutes);
 app.use('/users/profile', profileRoutes);
 app.use('/users', userRoutes);
 app.use('/notifications', notificationRoutes);
+
+// Serve uploaded assets (avatars)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 module.exports = app;

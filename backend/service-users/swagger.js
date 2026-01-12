@@ -48,12 +48,22 @@ const options = {
           },
           required: ['email','password']
         },
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            username: { type: 'string' },
+            email: { type: 'string' },
+            role: { type: 'string' },
+            avatar: { type: 'string' }
+          }
+        },
         AuthResponse: {
           type: 'object',
           properties: {
             token: { type: 'string' },
             message: { type: 'string' },
-            user: { type: 'object' }
+            user: { $ref: '#/components/schemas/User' }
           }
         }
       }
