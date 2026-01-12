@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  citizen
+  agent
+  manager
+  admin
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+  error
+}
+
+model User {
+  id           String         @id @default(uuid())
+  username     String
+  name         String?
+  email        String         @unique
+  password     String
+  role         Role           @default(citizen)
+  points       Int            @default(0)
+  address      String?
+  badges       String[]
+  createdAt    DateTime       @default(now())
+  notifications Notification[]
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String?
+  roleTarget Role?
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User?            @relation(fields: [userId], references: [id])
+}
