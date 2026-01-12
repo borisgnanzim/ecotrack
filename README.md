@@ -62,7 +62,7 @@ npm run dev
 Les services exposent souvent Swagger UI. Pour `service-users` :
 
 ```
-http://localhost:3000/api-docs
+http://localhost:3002/api-docs
 ```
 
 (adaptez le port selon la configuration dans `.env`).
