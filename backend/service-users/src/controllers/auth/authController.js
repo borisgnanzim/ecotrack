@@ -29,6 +29,7 @@ exports.login = async (req, res, next) => {
 exports.registerCitizen = async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
+        console.log('On a ceci : ', username)
         const user = await User.create({ username, email, password });
 
         // send welcome notification asynchronously (best-effort)
