@@ -33,7 +33,7 @@ export default function LoginPage() {
       // Stockage du token (simple pour l’instant)
       localStorage.setItem("token", res.data.token);
 
-      router.push("/dashboard");
+      router.push("/signalement");
     } catch (err) {
       setError("Email ou mot de passe incorrect");
     } finally {
