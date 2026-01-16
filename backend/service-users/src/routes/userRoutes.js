@@ -4,7 +4,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
 router.use(authMiddleware);
-router.use(roleMiddleware(['citizen', 'admin']));
+router.use(roleMiddleware(['admin']));
 
 /**
  * @openapi
