@@ -1,7 +1,7 @@
 module.exports = async (prisma) => {
   // Find some users to attach notifications to
-  const alice = await prisma.user.findUnique({ where: { email: 'alice@mail.com' } });
-  const bob = await prisma.user.findUnique({ where: { email: 'bob@mail.com' } });
+  const alice = await prisma.user.findUnique({ where: { email: 'alice@mail.com' }, include: { roles: true } });
+  const bob = await prisma.user.findUnique({ where: { email: 'bob@mail.com' }, include: { roles: true } });
 
   await prisma.notification.createMany({
     data: [

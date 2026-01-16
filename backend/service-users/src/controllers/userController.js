@@ -6,7 +6,7 @@ exports.getAllUsers = async (req, res, next) => {
     try {
        const users =  await User.find();
         res.status(200).json(users);
-    } catch (error){
+    } catch (error) {
         res.status(500).json({message: error.message});
     }
 }
@@ -54,6 +54,4 @@ exports.deleteUser = async (req, res, next) => {
     }
 };
 
-exports.getProfile = async (req, res, next) => {
 
-}

@@ -54,7 +54,16 @@ const options = {
             id: { type: 'string' },
             username: { type: 'string' },
             email: { type: 'string' },
-            role: { type: 'string' },
+            roles: { 
+              type: 'array',
+              items: { 
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' }
+                }
+              }
+            },
             avatar: { type: 'string' }
           }
         },

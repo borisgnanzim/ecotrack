@@ -1,8 +1,10 @@
 const router = require('express').Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
 
 router.use(authMiddleware);
+router.use(roleMiddleware(['citizen', 'admin']));
 
 /**
  * @openapi

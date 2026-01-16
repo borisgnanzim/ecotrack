@@ -21,7 +21,7 @@ exports.getProfile = async (req, res, next) => {
             address: user.address,
             username: user.username,
             email: user.email,
-            role: user.role,
+            roles: user.roles.map(r => r.name),
             avatar: avatarPath
         };
         res.status(200).json({ user: profileData, message: "User Profile returned successfully" })

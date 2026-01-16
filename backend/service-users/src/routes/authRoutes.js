@@ -26,7 +26,7 @@ const authController = require('../controllers/auth/authController');
  *                 value:
  *                   token: "eyJhbGci..."
  *                   message: "Logged in successfully"
- *                   user: { id: "...", username: "alice123", role: "citizen" }
+ *                   user: { id: "...", username: "alice123", roles: ["citizen"] }
  */
 router.post('/login', authController.login);
 

@@ -14,12 +14,12 @@ module.exports = {
     return prisma.user.findMany();
   },
   findById: async (id) => {
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({ where: { id }, include: { roles: true } });
     return attachCompare(user);
   },
   findOne: async (query) => {
     // expecting query like { email }
-    const user = await prisma.user.findUnique({ where: { email: query.email } });
+    const user = await prisma.user.findUnique({ where: { email: query.email }, include: { roles: true } });
     return attachCompare(user);
   },
   create: async (data) => {
@@ -45,5 +45,45 @@ module.exports = {
   insertMany: async (users) => {
     const data = await Promise.all(users.map(async (u) => ({ ...u, password: await bcrypt.hash(u.password, 10) })));
     return prisma.user.createMany({ data });
+  },
+
+  addRole: async (userId, roleName) => {
+    const role = await prisma.role.findUnique({ where: { name: roleName } });
+    if (!role) throw new Error(`Role ${roleName} not found`);
+    
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: { connect: { id: role.id } }
+      },
+      include: { roles: true }
+    });
+  },
+
+  removeRole: async (userId, roleName) => {
+    const role = await prisma.role.findUnique({ where: { name: roleName } });
+    if (!role) throw new Error(`Role ${roleName} not found`);
+    
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: { disconnect: { id: role.id } }
+      },
+      include: { roles: true }
+    });
+  },
+
+  updateRoles: async (userId, roleNames) => {
+    const roles = await prisma.role.findMany({
+      where: { name: { in: roleNames } }
+    });
+    
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: { set: roles.map(r => ({ id: r.id })) }
+      },
+      include: { roles: true }
+    });
   }
 }; 

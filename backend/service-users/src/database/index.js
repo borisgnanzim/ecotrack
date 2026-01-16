@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { prisma } = require("../config/postgres");
+const roleSeeder = require("./seeders/roleSeeder");
 const userSeeder = require("./seeders/userSeeder");
 const notificationSeeder = require("./seeders/notificationSeeder");
 
@@ -7,6 +8,7 @@ async function runSeeders() {
   await prisma.$connect();
   console.log("DB connected");
 
+  await roleSeeder(prisma);
   await userSeeder(prisma);
   await notificationSeeder(prisma);
 
