@@ -76,7 +76,8 @@ model FillHistory {
 
 ▶️ Lancer le projet
 npm install
-npx prisma migrate dev
+attention le prisma est en V6 .
+npm install @prisma6.19.2
 npx prisma generate
 npm run dev
 
@@ -145,3 +146,10 @@ Utilisé pour :
 
 WebSocket vs Socket.IO
 WebSocket
+
+###exemple de .en
+
+DATABASE_URL="postgresql://postgres:Passwords@localhost:5433/ecotrack?schema=public"
+PORT=3000
+USERNAME=postgres
+BASE=ecotrack
