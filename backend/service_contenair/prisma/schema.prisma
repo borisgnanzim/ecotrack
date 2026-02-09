@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model conteneur {
+  id_conteneur   Int           @id @default(autoincrement())
+  type_Dechet    String
+  Statut         String?
+  id_Zone        String
+  capacite_i     Int?
+  code_conteneur Int           @unique
+
+  latitude       Float?
+  longitude      Float?
+  photo_url      String?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  fillHistory    FillHistory[]
+}
+
+model FillHistory {
+  id             Int        @id @default(autoincrement())
+  niveau         Int
+  recordedAt     DateTime   @default(now())
+  
+
+  conteneurId    Int
+  conteneur      conteneur  @relation(fields: [conteneurId], references: [id_conteneur], onDelete: Cascade)
+}
