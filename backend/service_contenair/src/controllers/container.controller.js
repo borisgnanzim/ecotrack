@@ -1,3 +1,4 @@
+// src/controllers/container.controller.js
 import { PrismaClient } from "@prisma/client";
 import { stat } from "fs";
 
@@ -191,7 +192,7 @@ export const getFillHistory = async (req, res) => {
   try {
     const history = await prisma.fillHistory.findMany({
       where: { conteneurId },
-      orderBy: { recordedAt : "desc" },
+      orderBy: { recordedAt : "asc" },
     });
 
     res.json(history);
