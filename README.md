@@ -5,6 +5,22 @@
 
 ---
 
+## Architecture
+
+### Frontend
+- **ecotrack-front** — application citoyenne (signalement, participation)  
+  → `http://localhost:3000`
+- **ecotrack-admin** — application de gestion et d’administration des conteneurs  
+  → `http://localhost:3001`
+
+### Backend
+- **service-users** — gestion des utilisateurs et de l’authentification  
+  → `http://localhost:3002`
+- **service-containers** — gestion des conteneurs, statistiques et historiques de remplissage  
+  → `http://localhost:3003`
+
+---
+
 ## Services inclus
 - `backend/service-users` — Service de gestion des utilisateurs et notifications (JWT, Prisma/Postgres). Voir `backend/service-users/README.md` pour la documentation détaillée.
 
