@@ -1,92 +1,124 @@
-const jwt = require('jsonwebtoken');
-const Notification = require('../models/Notification');
-const User = require('../models/User');
+const { CreateNotificationDTO, ValidationError } = require('../dto');
+const notificationService = require('../services/notificationService');
+const authService = require('../services/authService');
 
-const secret_key = process.env.JWT_SECRET || 'your_secret_key';
-
-function getUserFromToken(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    const e = new Error('No token provided'); e.status = 401; throw e;
-  }
-  const token = authHeader.split(' ')[1];
+/**
+ * Récupérer toutes les notifications de l'utilisateur connecté
+ * GET /notifications
+ */
+exports.getNotifications = async (req, res, next) => {
   try {
-    return jwt.verify(token, secret_key);
-  } catch (err) {
-    const e = new Error('Invalid token'); e.status = 401; throw e;
-  }
-}
-
-exports.getNotifications = async (req, res) => {
-  try {
-    const decoded = getUserFromToken(req);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
-
-    const notifications = await Notification.findByUserId(user.id);
-    res.status(200).json({ notifications: notifications, message: 'Notifications retrieved successfully' });
-  } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
-  }
-};
-
-exports.markAsRead = async (req, res) => {
-  try {
-    const decoded = getUserFromToken(req);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
-
-    const id = req.params.id;
-    const notif = await Notification.findById(id);
-    if (!notif) return res.status(404).json({ message: 'Notification non trouvée' });
-
-    // Permission: only owner can mark as read
-    if (!notif.userId || notif.userId !== user.id) {
-      return res.status(403).json({ message: 'Accès refusé' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const error = new ValidationError({ token: 'Token requis' });
+      error.statusCode = 401;
+      throw error;
     }
 
-    const updated = await Notification.findByIdAndUpdate(id, { isRead: true });
-    res.status(200).json(updated);
+    const token = authHeader.split(' ')[1];
+    const decoded = authService.verifyToken(token);
+
+    const notifications = await notificationService.getNotifications(decoded.id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Notifications récupérées avec succès',
+      data: notifications
+    });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.deleteNotification = async (req, res) => {
+/**
+ * Marquer une notification comme lue
+ * PUT /notifications/:id/read
+ */
+exports.markAsRead = async (req, res, next) => {
   try {
-    const decoded = getUserFromToken(req);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
-
-    const id = req.params.id;
-    const notif = await Notification.findById(id);
-    if (!notif) return res.status(404).json({ message: 'Notification non trouvée' });
-
-    // Permission: only owner can delete
-    if (!notif.userId || notif.userId !== user.id) {
-      return res.status(403).json({ message: 'Accès refusé' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const error = new ValidationError({ token: 'Token requis' });
+      error.statusCode = 401;
+      throw error;
     }
 
-    await Notification.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Notification supprimée' });
+    const token = authHeader.split(' ')[1];
+    const decoded = authService.verifyToken(token);
+
+    const updated = await notificationService.markAsRead(req.params.id, decoded.id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Notification marquée comme lue',
+      data: updated
+    });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.createNotification = async (req, res) => {
+/**
+ * Supprimer une notification
+ * DELETE /notifications/:id
+ */
+exports.deleteNotification = async (req, res, next) => {
   try {
-    const decoded = getUserFromToken(req);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const error = new ValidationError({ token: 'Token requis' });
+      error.statusCode = 401;
+      throw error;
+    }
 
-    const data = req.body || {};
-    // If no userId provided, assign to the connected user
-    if (!data.userId) data.userId = user.id;
+    const token = authHeader.split(' ')[1];
+    const decoded = authService.verifyToken(token);
 
-    const created = await Notification.create(data);
-    res.status(201).json(created);
+    const result = await notificationService.deleteNotification(req.params.id, decoded.id);
+    
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
   } catch (err) {
-    res.status(err.status || 500).json({ message: err.message });
+    next(err);
+  }
+};
+
+/**
+ * Créer une notification
+ * POST /notifications
+ */
+exports.createNotification = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const error = new ValidationError({ token: 'Token requis' });
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = authService.verifyToken(token);
+
+    // Valider les données avec le DTO
+    const createNotificationDTO = new CreateNotificationDTO(req.body);
+    createNotificationDTO.validate();
+
+    // Si pas d'userId fourni, utiliser l'utilisateur connecté
+    const notificationData = createNotificationDTO.toJSON();
+    if (!notificationData.userId) {
+      notificationData.userId = decoded.id;
+    }
+
+    const created = await notificationService.createNotification(notificationData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Notification créée avec succès',
+      data: created
+    });
+  } catch (err) {
+    next(err);
   }
 };

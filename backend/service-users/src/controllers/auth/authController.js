@@ -1,58 +1,62 @@
-const jwt = require('jsonwebtoken');
+const { LoginDTO, RegisterDTO, ValidationError } = require('../../dto');
+const authService = require('../../services/authService');
+const notificationService = require('../../services/notificationService');
 const User = require('../../models/User');
 
-const secret_key = process.env.JWT_SECRET || 'your_secret_key';
-const notificationService = require('../../services/notificationService');
-// login user
+/**
+ * Authentifier un utilisateur
+ * POST /auth/login
+ */
 exports.login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Mot de passe incorrect' });
-        }
-        // Générer un token JWT avec les rôles
-        const roleNames = user.roles.map(r => r.name);
-        const token = jwt.sign({ id: user.id, roles: roleNames }, secret_key, { expiresIn: '1h' });
+        // Valider les données avec le DTO
+        const loginDTO = new LoginDTO(req.body);
+        loginDTO.validate();
 
-        res.status(200).json({ token, message: 'Logged in successfully', user_roles: roleNames, user_id: user.id, username: user.username });
+        // Utiliser le service pour la logique métier
+        const result = await authService.login(loginDTO.email, loginDTO.password);
 
+        res.status(200).json({
+            success: true,
+            message: 'Authentification réussie',
+            token: result.token,
+            user: result.user,
+            roles: result.roles
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
-}
+};
 
-// register citizen
+/**
+ * Enregistrer un nouvel utilisateur (citoyen)
+ * POST /auth/register
+ */
 exports.registerCitizen = async (req, res, next) => {
     try {
-        const { username, email, password } = req.body;
-        console.log('On a ceci : ', username)
-        const user = await User.create({ username, email, password });
-        
-        // Assigner le rôle "citizen" par défaut
-        const { prisma } = require('../../config/postgres');
-        const citizenRole = await prisma.role.findUnique({ where: { name: 'citizen' } });
-        if (citizenRole) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { roles: { connect: { id: citizenRole.id } } }
-          });
-        }
+        // Valider les données avec le DTO
+        const registerDTO = new RegisterDTO(req.body);
+        registerDTO.validate();
 
-        // Récupérer l'utilisateur avec ses rôles
-        const userWithRoles = await User.findById(user.id);
-        const roleNames = userWithRoles.roles.map(r => r.name);
+        // Utiliser le service pour la logique métier
+        const result = await authService.registerCitizen(
+            registerDTO.username,
+            registerDTO.email,
+            registerDTO.password
+        );
 
-        // send welcome notification asynchronously (best-effort)
-        notificationService.sendWelcomeNotification(userWithRoles).catch(err => console.error('Welcome notification failed:', err.message || err));
+        // Envoyer une notification de bienvenue (asynchrone)
+        notificationService.sendWelcomeNotification(result.user)
+            .catch(err => console.error('Notification échouée:', err.message || err));
 
-        const token = jwt.sign({ id: userWithRoles.id, roles: roleNames }, secret_key, { expiresIn: '1h' });
-        res.status(201).json({ message: 'Citizen registered successfully', user: userWithRoles, token });
+        res.status(201).json({
+            success: true,
+            message: 'Inscription réussie',
+            token: result.token,
+            user: result.user,
+            roles: result.roles
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        next(error);
     }
-}
+};
