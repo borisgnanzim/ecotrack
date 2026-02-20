@@ -74,7 +74,7 @@ model FillHistory {
   conteneur   conteneur @relation(fields: [conteneurId], references: [id_conteneur])
 }
 
-▶️ Lancer le projet
+Lancer le projet
 npm install
 attention le prisma est en V6 .
 npm install prisma@6.19.2
@@ -123,10 +123,47 @@ Exemple
   },
   "totalCapacity": 0,
   "averageFillLevel": null
+
+  ---
+
+  ## Seeding / Peupler la base (1 000 et 10 000 conteneurs)
+
+  Ce dépôt contient un seeder performant : `prisma/seed.js`. Il permet d'insérer par lots un grand nombre
+  de `conteneur` pour les tests (script accepte `--count=` ou via npm scripts `seed:1000` / `seed:10000`).
+
+  Prérequis
+  - Avoir `DATABASE_URL` configurée dans `backend/service-containers/.env` ou en variable d'environnement.
+  - Avoir exécuté les migrations et généré le client Prisma.
+
+  Commandes recommandées (depuis `backend/service-containers`):
+  ```bash
+  npm install
+  npx prisma generate
+  # appliquer les migrations (dev ou deploy selon le cas)
+  npx prisma migrate dev
+
+  # seed 1000
+  npm run seed:1000
+
+  # seed 10000
+  npm run seed:10000
+  ```
+
+  Alternatives
+  - Si tu préfères intégrer avec la commande Prisma `db seed`, ajoute dans `package.json` :
+    ```json
+    "prisma": { "seed": "node prisma/seed.js" }
+    ```
+    puis exécute `npx prisma db seed`.
+
+  Notes et bonnes pratiques
+  - Le seeder utilise `createMany` par batch pour de meilleures performances et `skipDuplicates: true`.
+  - Pour très gros volumes (10k+), surveille l'utilisation mémoire et I/O de la base.
+  - Tu peux ajuster la taille des batches dans `prisma/seed.js` si nécessaire.
 }
 Historique de remplissage
 
-➕ Ajouter un niveau
+Ajouter un niveau
 /containers/:id/fill-history
 
 JSON
@@ -134,7 +171,7 @@ JSON
   "niveau": 70
 }
 
-📄 Lire l’historique
+Lire l’historique
 GET
 /containers/:id/fill-history
 

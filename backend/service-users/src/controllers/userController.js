@@ -1,56 +1,97 @@
-const User = require('../models/User');
+const { UpdateUserDTO, CreateUserDTO, ValidationError } = require('../dto');
+const userService = require('../services/userService');
 
-// get users
-
+/**
+ * Récupérer tous les utilisateurs
+ * GET /users
+ */
 exports.getAllUsers = async (req, res, next) => {
     try {
-       const users =  await User.find();
-        res.status(200).json(users);
+        const users = await userService.getAllUsers();
+        res.status(200).json({
+            success: true,
+            data: users
+        });
     } catch (error) {
-        res.status(500).json({message: error.message});
+        next(error);
     }
-}
+};
 
-// get user by id
+/**
+ * Récupérer un utilisateur par ID
+ * GET /users/:id
+ */
 exports.getUserById = async (req, res, next) => {
     try {
-       const user =  await User.findById(req.params.id);
-        if(!user) {
-            return res.status(404).json({message: 'Utilisateur non trouvé'});
-        }
-        res.status(200).json(user);
-    } catch (error){
-        res.status(500).json({message: error.message});
+        const user = await userService.getUserById(req.params.id);
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (error) {
+        next(error);
     }
 };
 
-// update user
+/**
+ * Créer un nouvel utilisateur (Admin)
+ * POST /users
+ */
+exports.createUser = async (req, res, next) => {
+    try {
+        // Valider les données avec le DTO
+        const createUserDTO = new CreateUserDTO(req.body);
+        createUserDTO.validate();
+
+        // Utiliser le service pour la logique métier
+        const user = await userService.createUser(createUserDTO.toJSON());
+        
+        res.status(201).json({
+            success: true,
+            message: 'Utilisateur créé avec succès',
+            data: user
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Mettre à jour un utilisateur
+ * PUT /users/:id
+ */
 exports.updateUser = async (req, res, next) => {
     try {
-        let user = await User.findById(req.params.id);
-        if(!user) {
-            return  res.status(404).json({message: 'Utilisateur non trouvé'});
-        }
-        user = await User.findByIdAndUpdate(req.params.id, req.body, {new: true});
-        res.status(200).json(user);
+        // Valider les données avec le DTO
+        const updateUserDTO = new UpdateUserDTO(req.body);
+        updateUserDTO.validate();
 
-    } catch (error){
-        res.status(500).json({message: error.message});
+        // Utiliser le service pour la logique métier
+        const user = await userService.updateUser(req.params.id, updateUserDTO.toJSON());
+        
+        res.status(200).json({
+            success: true,
+            message: 'Utilisateur mis à jour avec succès',
+            data: user
+        });
+    } catch (error) {
+        next(error);
     }
 };
 
-// delete user
-
+/**
+ * Supprimer un utilisateur
+ * DELETE /users/:id
+ */
 exports.deleteUser = async (req, res, next) => {
     try {
-        const user = await User.findById(req.params.id);
-        if(!user) {
-            return res.status(404).json({message: 'Utilisateur non trouvé'});
-        }
-        await User.findByIdAndDelete(req.params.id);
-        res.status(200).json({message: 'Utilisateur supprimé'});
-    } catch (error){
-        res.status(500).json({message: error.message});
+        const result = await userService.deleteUser(req.params.id);
+        res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        next(error);
     }
 };
 

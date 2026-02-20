@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed:1000": "node prisma/seed.js --count=1000",
+    "seed:10000": "node prisma/seed.js --count=10000"
   },
   "keywords": [],
   "author": "",

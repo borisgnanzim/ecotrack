@@ -1,14 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const User = require('../../models/User');
+const { ValidationError } = require('../../dto');
+const profileService = require('../../services/profileService');
 
-exports.uploadAvatar = async (req, res) => {
+/**
+ * Uploader un avatar pour l'utilisateur connecté
+ * POST /users/profile/avatar
+ */
+exports.uploadAvatar = async (req, res, next) => {
   try {
     const userId = req.user && req.user.id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    if (!userId) {
+      const error = new ValidationError({ user: 'Utilisateur non authentifié' });
+      error.statusCode = 401;
+      throw error;
+    }
 
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!req.file) {
+      const error = new ValidationError({ file: 'Aucun fichier uploadé' });
+      error.statusCode = 400;
+      throw error;
+    }
 
     const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -16,30 +29,41 @@ exports.uploadAvatar = async (req, res) => {
     const filename = `${userId}.webp`;
     const filepath = path.join(uploadsDir, filename);
 
-    // Resize and convert to webp
+    // Redimensionner et convertir en webp
     await sharp(req.file.buffer)
       .resize(256, 256)
       .webp({ quality: 80 })
       .toFile(filepath);
 
-    // update user avatar url (store relative path, return absolute URL)
+    // Mettre à jour l'avatar de l'utilisateur via le service
     const avatarUrl = `/uploads/avatars/${filename}`;
-    const fullAvatarUrl = `${req.protocol}://${req.get('host')}${avatarUrl}`;
-    await User.findByIdAndUpdate(userId, { avatar: avatarUrl });
+    await profileService.updateAvatar(userId, avatarUrl);
 
-    res.status(200).json({ avatarUrl: fullAvatarUrl });
+    const fullAvatarUrl = `${req.protocol}://${req.get('host')}${avatarUrl}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar uploadé avec succès',
+      data: { avatarUrl: fullAvatarUrl }
+    });
   } catch (err) {
-    console.error('Avatar upload error:', err);
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-// Serve avatar image for authenticated user or by user id
-exports.getAvatar = async (req, res) => {
+/**
+ * Récupérer l'avatar d'un utilisateur
+ * GET /users/avatar/:id
+ */
+exports.getAvatar = async (req, res, next) => {
   try {
-    // Prefer path param id, fall back to authenticated user id
+    // Récupérer l'ID desde les params ou depuis l'utilisateur authentifié
     const userId = req.params.id || (req.user && req.user.id);
-    if (!userId) return res.status(400).json({ message: 'Missing user id' });
+    if (!userId) {
+      const error = new ValidationError({ id: 'ID utilisateur manquant' });
+      error.statusCode = 400;
+      throw error;
+    }
 
     const avatarsDir = path.join(process.cwd(), 'uploads', 'avatars');
     const filename = `${userId}.webp`;
@@ -52,11 +76,10 @@ exports.getAvatar = async (req, res) => {
       fileToSend = path.join(process.cwd(), 'uploads', 'defaults', 'default_avatar.svg');
     }
 
-    // Set cache headers and serve inline
+    // Ajouter les headers de cache et servir le fichier
     res.set('Cache-Control', 'public, max-age=86400');
     res.sendFile(fileToSend);
   } catch (err) {
-    console.error('Avatar retrieval error:', err);
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };

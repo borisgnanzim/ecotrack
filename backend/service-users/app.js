@@ -6,6 +6,7 @@ const authMiddleware = require('./src/middleware/authMiddleware');
 const authRoutes = require('./src/routes/authRoutes');
 const profileRoutes = require('./src/routes/profileRoutes');  
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const errorMiddleware = require('./src/middleware/errorMiddleware');
 
 const app = express();
 
@@ -33,4 +34,8 @@ app.use('/notifications', notificationRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Middleware d'erreur
+app.use(errorMiddleware);
+
 module.exports = app;
