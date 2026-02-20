@@ -1,27 +1,55 @@
-
+import http from "http";
 import app from "./app.js";
-import { createServer } from "http";
 import { Server } from "socket.io";
+import prisma from "./prisma/client.js";
+import { initializeContainerSockets } from "./sockets/container.socket.js";
 
+const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || "development";
 
-// const PORT = 3000;
-const PORT = process.env.PORT || 3000;
-const httpServer = createServer(app);
-
-const io = new Server(httpServer, {
-  cors: { origin: "*" },
+const httpServer = http.createServer(app);
+export const io = new Server(httpServer, {
+  cors: { origin: process.env.CORS_ORIGIN || "*" },
+  transports: ["websocket", "polling"],
 });
 
-io.on("connection", (socket) => {
-  console.log("Nouvelle connexion WebSocket :", socket.id);
+// Initialiser les sockets
+initializeContainerSockets();
 
-  socket.on("disconnect", () => {
-    console.log("Déconnexion WebSocket :", socket.id);
-  });
+const startServer = async () => {
+  try {
+    // Connexion à la DB
+    await prisma.$connect();
+    console.log(`✅ Database connectée (${NODE_ENV})`);
+
+    // Démarrer le serveur HTTP
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`💡 WebSocket disponible`);
+      if (NODE_ENV === "development") {
+        console.log(`🔗 http://localhost:${PORT}`);
+      }
+    });
+  } catch (error) {
+    console.error("❌ Erreur au démarrage:", error.message);
+    process.exit(1);
+  }
+};
+
+// Graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Arrêt du serveur...");
+  try {
+    await prisma.$disconnect();
+    console.log("✅ DB déconnectée");
+    httpServer.close(() => {
+      console.log("✅ Serveur arrêté");
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error("❌ Erreur lors de l'arrêt:", error);
+    process.exit(1);
+  }
 });
 
-app.set("io", io);
-
-httpServer.listen(PORT, () => {
-  console.log(`Service Containers avec WebSocket sur http://localhost:${PORT}`);
-});
+startServer();

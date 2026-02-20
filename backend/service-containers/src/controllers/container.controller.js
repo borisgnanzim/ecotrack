@@ -1,203 +1,120 @@
 // src/controllers/container.controller.js
-import { PrismaClient } from "@prisma/client";
-import { stat } from "fs";
+import ContainerService from '../services/container.service.js';
+import FillHistoryService from '../services/fillhistory.service.js';
+import { CreateContainerDTO, UpdateContainerDTO,ContainerIdDTO } from '../dtos/container.dto.js';
 
-const prisma = new PrismaClient();
+class ContainerController {
+  async getById(req, res, next) {
+    try {
+      const {id} = ContainerIdDTO.parse({id: +req.params.id});
+      const container = await ContainerService.getContainerById(id);
+      res.json(container);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-// Utils – Haversine
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const toRad = (v) => (v * Math.PI) / 180;
+  async getAll(req, res, next) {
+    try {
+      const containers = await ContainerService.getAllContainers();
+      res.json(containers);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  async create(req, res, next) {
+    try {
+      const data= CreateContainerDTO.parse(req.body);
+      const container = await ContainerService.createContainer(data);
+      res.status(201).json(container);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+  async update(req, res, next) {
+    try {
+      const {id} = ContainerIdDTO.parse({id: +req.params.id});
+      const data= UpdateContainerDTO.parse(req.body);
+      const container = await ContainerService.updateContainer(id, data);
+      res.json(container);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  async delete(req, res, next) {
+    try {
+      await ContainerService.deleteContainer(+req.params.id);
+      res.json({ message: 'Conteneur supprimé' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getStats(req, res, next) {
+    try {
+      const stats = await ContainerService.getStats();
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getFillHistory(req, res, next) {
+    try {
+      const history = await FillHistoryService.getFillHistory(+req.params.id);
+      res.json(history);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addFillHistory(req, res, next) {
+    try {
+      const newEntry = await FillHistoryService.addFillHistory(+req.params.id, req.body);
+      res.status(201).json(newEntry);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getNearbyContainers(req, res, next) {
+    try {
+      const containers = await ContainerService.getNearbyContainers(req.query);
+      res.json(containers);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async uploadPhoto(req, res, next) {
+    try {
+      const result = await ContainerService.uploadPhoto(+req.params.id, req.file);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async search(req, res, next) {
+    try {
+      const filters = {
+        type_Dechet: req.query.type_Dechet,
+        id_Zone: req.query.id_Zone,
+        Statut: req.query.Statut,
+        code_conteneur: req.query.code_conteneur ? parseInt(req.query.code_conteneur) : undefined,
+      };
+      // Supprimer les filtres undefined
+      Object.keys(filters).forEach(key => filters[key] === undefined && delete filters[key]);
+      
+      const results = await ContainerService.searchContainers(filters);
+      res.json(results);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
-export const createContainer = async (req, res) => {
-  try {
-    const conteneur = await prisma.conteneur.create({
-      data: req.body,
-    });
-    res.status(201).json(conteneur);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-};
-
-export const getAllContainers = async (req, res) => {
-  const conteneurs = await prisma.conteneur.findMany();
-  res.json(conteneurs);
-};
-
-export const getContainerById = async (req, res) => {
-  const id = Number(req.params.id); // <- IMPORTANT
-  if (isNaN(id) || id <= 0) {
-
- 
-    return res.status(400).json({ error: "id invalide" });
- }
-  try {
-    const cont = await prisma.conteneur.findUnique({
-      where: { id_conteneur: id },
-    });
-    if (!cont) return res.status(404).json({ error: "Conteneur non trouvé" });
-    res.json(cont);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-
-export const updateContainer = async (req, res) => {
-  try {
-    const cont = await prisma.conteneur.update({
-      where: { id_conteneur: Number(req.params.id) },
-      data: req.body,
-    });
-
-    // Émettre l’événement WebSocket
-    const io = req.app.get("io");
-    io.emit("container_updated", cont);
-
-    res.json(cont);
-  } catch (error) {
-    res.status(500).json({ error: "Impossible de mettre à jour le conteneur" });
-  }
-};
-
-export const getStats = async (req, res) => {
-  try {
-    const conteneurs = await prisma.conteneur.findMany();
-
-    const total = conteneurs.length;
-    const parType = {};
-    const statusCount = {};
-    let totalCapacity = 0;
-    let totalFillLevel = 0; // si tu as un champ fill_level
-
-    conteneurs.forEach((c) => {
-      // par type
-      parType[c.type_Dechet] = (parType[c.type_Dechet] || 0) + 1;
-
-      // par statut
-      if (c.Statut) statusCount[c.Statut] = (statusCount[c.Statut] || 0) + 1;
-
-      // capacité
-      if (c.capacité_i) totalCapacity += c.capacité_i;
-
-      // fill_level si existant
-      if (c.fill_level) totalFillLevel += c.fill_level;
-    });
-
-    res.json({
-      total,
-      parType,
-      statusCount,
-      totalCapacity,
-      averageFillLevel:
-        totalFillLevel && total > 0 ? totalFillLevel / total : null,
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Impossible de calculer les statistiques" });
-  }
-};
-
-
-export const deleteContainer = async (req, res) => {
-  await prisma.conteneur.delete({
-    where: { id_conteneur: Number(req.params.id) },
-  });
-  res.json({
-    status: "success",
-    message: "Supprimé"
-});
-
-};
-
-export const getNearbyContainers = async (req, res) => {
-  const { lat, lng, radius } = req.query;
-
-  const conteneurs = await prisma.conteneur.findMany();
-
-  const result = conteneurs.filter((c) => {
-    if (!c.latitude || !c.longitude) return false;
-    return (
-      haversine(
-        Number(lat),
-        Number(lng),
-        c.latitude,
-        c.longitude
-      ) <= Number(radius)
-    );
-  });
-
-  res.json(result);
-};
-
-export const uploadPhoto = async (req, res) => {
-  const cont = await prisma.conteneur.update({
-    where: { id_conteneur: Number(req.params.id) },
-    data: { photo_url: `/uploads/${req.file.filename}` },
-  });
-  res.json(cont);
-};
-
-// POST /containers/:id/fill-history
-export const addFillHistory = async (req, res) => {
-  const conteneurId = parseInt(req.params.id);
-  const { niveau } = req.body;
-
-  if (isNaN(conteneurId) || niveau == null) {
-    return res.status(400).json({ error: "Données invalides" });
-  }
-
-  try {
-    // vérifier que le conteneur existe
-    const conteneur = await prisma.conteneur.findUnique({
-      where: { id_conteneur: conteneurId },
-    });
-
-    if (!conteneur) {
-      return res.status(404).json({ error: "Conteneur introuvable" });
-    }
-
-    const history = await prisma.fillHistory.create({
-      data: {
-        conteneurId,
-        niveau,
-      },
-    });
-
-    res.status(201).json(history);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-};
-export const getFillHistory = async (req, res) => {
-  const conteneurId = parseInt(req.params.id);
-
-  if (isNaN(conteneurId)) {
-    return res.status(400).json({ error: "ID invalide" });
-  }
-
-  try {
-    const history = await prisma.fillHistory.findMany({
-      where: { conteneurId },
-      orderBy: { recordedAt : "asc" },
-    });
-
-    res.json(history);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-};
+export default new ContainerController();

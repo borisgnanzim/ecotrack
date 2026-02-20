@@ -77,7 +77,7 @@ model FillHistory {
 ▶️ Lancer le projet
 npm install
 attention le prisma est en V6 .
-npm install @prisma6.19.2
+npm install prisma@6.19.2
 npx prisma generate
 npx prisma migrate dev --name init
 npm run dev
