@@ -3,6 +3,14 @@
 ## Vue d'Ensemble
 EcoTrack utilise Swagger/OpenAPI pour documenter automatiquement ses endpoints API. Chaque service backend expose une interface Swagger UI pour tester et explorer les APIs.
 
+## 🚀 Caching Redis
+Le **API Gateway** utilise **Redis** pour cacher les données fréquemment demandées, réduisant la charge de **~80%**. Consultez [CACHING.md](../backend/service-api-gateway/CACHING.md) pour plus de détails.
+
+**Routes avec cache** :
+- `GET /containers` - Cache 30 min (données stables)
+- `GET /users/profile` - Cache 10 min
+- `GET /notifications` - Cache 5 min (temps réel)
+
 ## API Gateway (Point d'Entrée)
 
 ### Service API Gateway
