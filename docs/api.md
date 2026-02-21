@@ -3,7 +3,25 @@
 ## Vue d'Ensemble
 EcoTrack utilise Swagger/OpenAPI pour documenter automatiquement ses endpoints API. Chaque service backend expose une interface Swagger UI pour tester et explorer les APIs.
 
-## Services et URLs Swagger
+## API Gateway (Point d'Entrée)
+
+### Service API Gateway
+- **URL Swagger** : `http://localhost:3000/api-docs`
+- **URL Racine** : `http://localhost:3000`
+- **Description** : Passerelle centrale qui proxy tous les endpoints vers les microservices
+- **Guide complet** : Consultez [Gateway Usage](gateway-usage.md)
+
+### Endpoints Principaux du Gateway
+- `GET /` - Description et liste des services
+- `GET /health` - Vérifier l'état du gateway
+- `/auth/*` - Proxy vers service-users
+- `/users/*` - Proxy vers service-users
+- `/notifications/*` - Proxy vers service-users
+- `/containers/*` - Proxy vers service-containers
+
+---
+
+## Services Microservices Documentés
 
 ### Service API Gateway
 - **URL Swagger** : `http://localhost:3000/api-docs`
@@ -35,11 +53,15 @@ EcoTrack utilise Swagger/OpenAPI pour documenter automatiquement ses endpoints A
   - `GET /fullhistory` - Historique remplissage
   - `WebSocket /` - Notifications temps réel
 
+---
+
 ## Authentification API
 Toutes les requêtes nécessitant une authentification doivent inclure :
 ```
 Authorization: Bearer <jwt_token>
 ```
+
+Le token JWT s'obtient via `POST /auth/login` sur le gateway.
 
 ## Formats de Données
 - **Content-Type** : `application/json`
