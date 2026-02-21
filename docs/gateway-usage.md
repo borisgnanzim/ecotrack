@@ -46,9 +46,9 @@ curl -X POST http://localhost:3000/auth/login \
 Proxy vers le **service-users** (port 3002)
 
 **Endpoints disponibles** :
-- `GET /users/profile` - Récupérer le profil utilisateur ✅ Authentification requise
-- `PUT /users/profile` - Modifier le profil ✅ Authentification requise
-- `POST /users/profile/avatar` - Upload avatar ✅ Authentification requise
+- `GET /users/profile` - Récupérer le profil utilisateur (Authentification requise)
+- `PUT /users/profile` - Modifier le profil (Authentification requise)
+- `POST /users/profile/avatar` - Upload avatar (Authentification requise)
 
 **Exemple** :
 ```bash
@@ -60,19 +60,19 @@ curl -X GET http://localhost:3000/users/profile \
 Proxy vers le **service-users** (port 3002)
 
 **Endpoints disponibles** :
-- `GET /notifications` - Liste des notifications ✅ Authentification requise
-- `GET /notifications/:id` - Détail d'une notification ✅ Authentification requise
-- `PUT /notifications/:id/read` - Marquer comme lue ✅ Authentification requise
+- `GET /notifications` - Liste des notifications (Authentification requise)
+- `GET /notifications/:id` - Détail d'une notification (Authentification requise)
+- `PUT /notifications/:id/read` - Marquer comme lue (Authentification requise)
 
 ### 4. Conteneurs (`/containers`)
 Proxy vers le **service-containers** (port 3001)
 
 **Endpoints disponibles** :
 - `GET /containers` - Liste des conteneurs
-- `POST /containers` - Créer un conteneur ✅ Authentification + Admin
+- `POST /containers` - Créer un conteneur (Authentification + Admin)
 - `GET /containers/:id` - Détail d'un conteneur
-- `PUT /containers/:id` - Modifier un conteneur ✅ Authentification + Admin
-- `DELETE /containers/:id` - Supprimer un conteneur ✅ Authentification + Admin
+- `PUT /containers/:id` - Modifier un conteneur (Authentification + Admin)
+- `DELETE /containers/:id` - Supprimer un conteneur (Authentification + Admin)
 - `GET /containers/:id/history` - Historique de remplissage
 
 **Exemple** :

@@ -1,17 +1,17 @@
 # Redis Caching - Documentation
 
-## 🎯 Vue d'Ensemble
+## Vue d'Ensemble
 
 Le **API Gateway** utilise **Redis** comme système de cache en mémoire pour réduire la charge sur les microservices et les bases de données.
 
 **Statistiques de performance** :
-- ✅ Réduction de charge : **80%** sur les requêtes GET fréquentes
-- ✅ Latence réduite : **10x plus rapide** (Redis vs DB)
-- ✅ Débit augmenté : **~100k req/s** avec cache vs ~1k req/s sans
+- Réduction de charge : **80%** sur les requêtes GET fréquentes
+- Latence réduite : **10x plus rapide** (Redis vs DB)
+- Débit augmenté : **~100k req/s** avec cache vs ~1k req/s sans
 
 ---
 
-## 📥 Installation
+## Installation
 
 ### 1. Installer Redis
 
@@ -54,7 +54,7 @@ npm install
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Variables d'Environnement (.env)
 
@@ -71,13 +71,13 @@ REDIS_PASSWORD=               # Mot de passe (optionnel)
 npm run dev
 
 # Vous verrez :
-# ✅ Redis Connected
-# ✅ Redis Ready
+# Redis Connected
+# Redis Ready
 ```
 
 ---
 
-## 🚀 Utilisation
+## Utilisation
 
 ### 1. Vérifier les Stats du Cache
 ```bash
@@ -138,7 +138,7 @@ curl -X DELETE "http://localhost:3000/cache/key/%2Fcontainers%2F1"
 
 ---
 
-## 📊 Stratégie de Cache
+## Stratégie de Cache
 
 ### TTL (Time To Live) par Route
 
@@ -148,7 +148,7 @@ curl -X DELETE "http://localhost:3000/cache/key/%2Fcontainers%2F1"
 | `/containers/:id` | 30 min | Données rarement modifiées |
 | `/users/profile` | 10 min | Données sensibles, modifications possibles |
 | `/notifications` | 5 min | Données temps réel, changements fréquents |
-| `/auth/*` | ❌ Pas de cache | Données critiques, jamais cacher |
+| `/auth/*` | Pas de cache | Données critiques, jamais cacher |
 
 ### Comment Modifier les TTL
 
@@ -167,7 +167,7 @@ router.get('/users/profile', setCacheTTL(900));
 
 ---
 
-## 🔧 Architecture
+## Architecture
 
 ### Flux de Requête avec Cache
 
@@ -175,15 +175,15 @@ router.get('/users/profile', setCacheTTL(900));
 Requête CLIENT (GET /containers)
     ↓
 Cache Middleware
-    ├─ Clé de cache = "/containers"
-    ├─ Chercher dans Redis
-    │   ├─ ✓ HIT → Répondre directement (0ms)
-    │   └─ ✗ MISS → Proxy vers microservice
+    |- Clé de cache = "/containers"
+    |- Chercher dans Redis
+    |   |- HIT -> Répondre directement (0ms)
+    |   |- MISS -> Proxy vers microservice
     │       ↓
 Proxy vers microservice
-    ├─ Récupérer données
-    ├─ Cacher dans Redis (TTL)
-    └─ Répondre au client
+    |- Récupérer données
+    |- Cacher dans Redis (TTL)
+    |- Répondre au client
 ```
 
 ### Fichiers Clés
@@ -197,7 +197,7 @@ Proxy vers microservice
 
 ---
 
-## 🧪 Exemples de Requêtes
+## Exemples de Requêtes
 
 ### Exemple 1 : Première requête (Miss)
 ```bash
@@ -227,22 +227,7 @@ X-Cache-Key: /containers
 X-Cache-TTL: 1800
 
 Temps: ~1ms (depuis Redis)
-```
 
-### Exemple 3 : Invalidation du Cache
-```bash
-# Modifier une ressource
-curl -X PUT http://localhost:3010/containers/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Updated"}'
-
-# Vider le cache du conteneur (à faire depuis le microservice)
-curl -X DELETE http://localhost:3010/cache/pattern/containers*
-```
-
----
-
-## 📈 Monitoring & Debugging
 
 ### Voir les Stats Redis
 
@@ -265,17 +250,17 @@ redis-cli
 npm run dev
 
 # Vous verrez :
-✓ Cache MISS: /containers
-✓ Cache SET: /containers (TTL: 1800s)
-✓ Cache HIT: /containers
+Cache MISS: /containers
+Cache SET: /containers (TTL: 1800s)
+Cache HIT: /containers
 ```
 
 ---
 
-## ⚠️ Considérations Important
+## Considérations Importantes
 
 ### 1. Cache et Authentification
-- **❌ NE PAS CACHER** les routes d'authentification (`/auth/*`)
+- NE PAS CACHER les routes d'authentification (`/auth/*`)
 - Les données sensibles comme les tokens ne doivent jamais être en cache
 - Configuration actuelle : Auth non incluse
 
@@ -325,20 +310,20 @@ REDIS_PASSWORD=votre_mot_de_passe_securise
 
 ---
 
-## 📚 Ressources
+## Ressources
 
-- 📖 [Redis Documentation](https://redis.io/commands)
-- 🐳 [Redis Docker](https://hub.docker.com/_/redis)
-- 📦 [Node Redis Package](https://github.com/redis/node-redis)
+- [Redis Documentation](https://redis.io/commands)
+- [Redis Docker](https://hub.docker.com/_/redis)
+- [Node Redis Package](https://github.com/redis/node-redis)
 
 ---
 
-## 🎓 Conclusion
+## Conclusion
 
-Le système de cache Redis du gateway réduit **drastiquement** la charge sur les microservices. Utilisez judicieusement les TTL pour balancer **fraîcheur des données** vs **performance**.
+Le système de cache Redis du gateway réduit **drastiquement** la charge sur les microservices. Utilisez judicieusement les TTL pour balancer **fraîchué des données** vs **performance**.
 
 Configuration optimale pour EcoTrack :
-- ✅ Conteneurs : Cache 30 min (données stables)
-- ✅ Utilisateurs : Cache 10 min (modifications possibles)
-- ✅ Notifications : Cache 5 min (données temps réel)
-- ❌ Auth : Pas de cache (criticité)
+- Conteneurs : Cache 30 min (données stables)
+- Utilisateurs : Cache 10 min (modifications possibles)
+- Notifications : Cache 5 min (données temps réel)
+- Auth : Pas de cache (criticité)

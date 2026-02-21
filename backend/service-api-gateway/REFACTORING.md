@@ -1,12 +1,12 @@
 # API Gateway - Restructuration MVC
 
-## ✅ Refactorisation Complétée
+## Refactorisation Complétée
 
 Le **API Gateway** a été restructuré avec une **architecture MVC professionnelle**, séparant clairement les responsabilités en couches : routes, contrôleurs, services, et middlewares.
 
 ---
 
-## 📁 Nouvelle Structure
+## Nouvelle Structure
 
 ```
 service-api-gateway/
@@ -35,7 +35,7 @@ service-api-gateway/
 
 ---
 
-## 🎯 Avantages de la Restructuration
+## Avantages de la Restructuration
 
 | Aspect | Avant | Après |
 |--------|-------|-------|
@@ -156,7 +156,7 @@ routes/index.js (dispatcher)
 
 ---
 
-## 🚀 Démarrage
+## Démarrage
 
 ### Mode Développement
 ```bash
@@ -212,7 +212,7 @@ router.use(newRoutes);
 
 ---
 
-## 🧪 Test des Endpoints
+## Test des Endpoints
 
 ### Route Racine
 ```bash
@@ -248,7 +248,7 @@ curl -X POST http://localhost:3010/auth/login \
 
 ---
 
-## 📊 Comparaison Avant/Après
+## Comparaison Avant/Après
 
 ### Avant (Monolithe)
 ```javascript
@@ -277,16 +277,16 @@ app.use(errorHandler);         // Simple !
 
 ---
 
-## 🔐 Sécurité
+## Sécurité
 
-- ✅ Rate limiting (100 req/15min par IP)
-- ✅ Error handling centralisé (pas de data sensible exposée)
-- ✅ Validation des proxies avec gestion des erreurs 503/504
-- ✅ Logging structuré des erreurs
+- Rate limiting (100 req/15min par IP)
+- Error handling centralisé (pas de data sensible exposée)
+- Validation des proxies avec gestion des erreurs 503/504
+- Logging structuré des erreurs
 
 ---
 
-## 📖 Documentation Supplémentaire
+## Documentation Supplémentaire
 
 Consultez [ARCHITECTURE.md](./ARCHITECTURE.md) pour :
 - Diagramme détaillé du flux
@@ -296,7 +296,7 @@ Consultez [ARCHITECTURE.md](./ARCHITECTURE.md) pour :
 
 ---
 
-## ✨ Points Clés
+## Points Clés
 
 1. **app.js épuré** - Contient juste l'orchestration, pas de logique métier
 2. **Services centralisés** - `gateway.service.js` contient toute la logique réutilisable
@@ -307,8 +307,8 @@ Consultez [ARCHITECTURE.md](./ARCHITECTURE.md) pour :
 
 ---
 
-## 🎓 Conclusion
+## Conclusion
 
 Le **API Gateway** est maintenant structuré professionnellement selon les standards MVC de Node.js/Express. Le code est **maintenable**, **testable**, **évolutif** et suit les **bonnes pratiques** de l'industrie.
 
-Prêt pour la production ! 🚀
+Prêt pour la production!

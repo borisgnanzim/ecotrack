@@ -44,17 +44,17 @@ class CacheService {
       });
 
       this.client.on('connect', () => {
-        console.log('✅ Redis Connected');
+        console.log('Redis Connected');
         this.isConnected = true;
       });
 
       this.client.on('ready', () => {
-        console.log('✅ Redis Ready');
+        console.log('Redis Ready');
         this.isConnected = true;
       });
 
       this.client.on('end', () => {
-        console.log('⚠️  Redis Disconnected');
+        console.log('Redis Disconnected');
         this.isConnected = false;
       });
 
