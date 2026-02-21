@@ -1,0 +1,26 @@
+{
+  "name": "ecotrack",
+  "version": "1.0.0",
+  "description": "EcoTrack - Backend microservices and frontend apps monorepo",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "install:backend": "cd backend/service-users && npm install && npm run prisma:generate && cd ../.. && cd backend/service-containers && npm install && npm run prisma:generate",
+    "install:frontend": "cd front/ecotrack-front && npm install && cd ../.. && cd front/ecotrack-admin && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "concurrently \"cd backend/service-users && npm run dev\" \"cd backend/service-containers && npm run dev\"",
+    "dev:frontend": "concurrently \"cd front/ecotrack-front && npm run dev\" \"cd front/ecotrack-admin && npm run dev\"",
+    "dev:service-users": "cd backend/service-users && npm run dev",
+    "dev:service-containers": "cd backend/service-containers && npm run dev",
+    "dev:service-api-gateway": "cd backend/service-api-gateway && npm run dev",
+    "dev:ecotrack-front": "cd front/ecotrack-front && npm run dev",
+    "dev:ecotrack-admin": "cd front/ecotrack-admin && npm run dev",
+    "build:backend": "cd backend/service-users && npm run build && cd ../.. && cd backend/service-containers && npm run build",
+    "build:frontend": "cd front/ecotrack-front && npm run build && cd ../.. && cd front/ecotrack-admin && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "seed": "cd backend/service-users && npm run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
