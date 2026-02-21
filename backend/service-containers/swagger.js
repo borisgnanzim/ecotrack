@@ -2,7 +2,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
 const options = {
-  definition: {
+  swaggerDefinition: {
     openapi: "3.0.0",
     info: {
       title: "EcoTrack Containers Service API",
@@ -66,7 +66,7 @@ const options = {
       }
     }
   },
-  apis: ["./src/routes/*.js"],
+  apis: ["src/routes/container.routes.js"],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
