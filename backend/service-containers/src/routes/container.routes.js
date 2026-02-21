@@ -28,8 +28,56 @@ const upload = multer({ storage });
    Routes Containers
 ========================= */
 
-// CRUDauthMiddleware, validate(CreateContainerDTO), containerController.create);
+/**
+ * @swagger
+ * tags:
+ *   name: Containers
+ *   description: Gestion des conteneurs
+ */
+
+
+// CRUD
+/**
+ * @swagger
+ * /containers:
+ *   get:
+ *     summary: Lister tous les conteneurs
+ *     tags: [Containers]
+ *     responses:
+ *       200:
+ *         description: Liste des conteneurs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Conteneur'
+ */
 router.get('/', containerController.getAll);
+
+/**
+ * @swagger
+ * /containers:
+ *   post:
+ *     summary: Créer un conteneur (auth requis)
+ *     tags: [Containers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConteneurCreate'
+ *     responses:
+ *       201:
+ *         description: Conteneur créé
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conteneur'
+ */
+router.post('/', authMiddleware, validate(CreateContainerDTO), containerController.create);
 router.get('/stats', containerController.getStats);
 router.get('/search', containerController.search);
 router.get('/:id', containerController.getById);

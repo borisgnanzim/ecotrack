@@ -4,6 +4,7 @@ import errorHandler from "./middlewares/error.middleware.js";
 import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
+import { swaggerUi, swaggerSpec } from "../swagger.js";
 
 const app = express();
 
@@ -32,6 +33,9 @@ app.get("/health", (req, res) => {
 
 // ===== API Routes =====
 app.use("/containers", containerRoutes);
+
+// ===== Swagger UI =====
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ===== 404 Handler =====
 app.use((req, res) => {
