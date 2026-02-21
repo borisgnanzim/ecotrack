@@ -1,33 +1,42 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const rateLimit = require('express-rate-limit');
+const { swaggerUi, swaggerSpec } = require('./swagger');
+const { applyRateLimit } = require('./src/middlewares/rate-limit.middleware');
+const { errorHandler, notFoundHandler } = require('./src/middlewares/error.middleware');
+const routes = require('./src/routes');
 
 const app = express();
 
+// ===========================
+// Middlewares Globaux
+// ===========================
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Configuration du rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limite à 100 requêtes par IP par fenêtre
-  message: 'Trop de requêtes depuis cette IP, réessayez plus tard.',
-  standardHeaders: true, // Retourne les headers rate limit (RFC 6585)
-  legacyHeaders: false, // Désactive les headers X-RateLimit
-});
+// ===========================
+// Documentation Swagger
+// ===========================
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'EcoTrack API Gateway',
+  swaggerOptions: {
+    url: 'http://localhost:3000/api-docs'
+  }
+}));
 
-// Appliquer le rate limiting à toutes les routes
-app.use(limiter);
+// ===========================
+// Rate Limiting (sauf /health et /api-docs)
+// ===========================
+app.use(applyRateLimit);
 
-// Proxy vers service-users
-app.use('/auth', createProxyMiddleware({ target: process.env.USERS_SERVICE_URL, changeOrigin: true }));
-app.use('/users', createProxyMiddleware({ target: process.env.USERS_SERVICE_URL, changeOrigin: true }));
-app.use('/notifications', createProxyMiddleware({ target: process.env.USERS_SERVICE_URL, changeOrigin: true }));
+// ===========================
+// Routes
+// ===========================
+app.use(routes);
 
-// Proxy vers service-containers
-app.use('/containers', createProxyMiddleware({ target: process.env.CONTAINERS_SERVICE_URL, changeOrigin: true }));
-
-// Route de santé pour vérifier l'API Gateway
-app.get('/health', (req, res) => {
-  res.json({ status: 'API Gateway is running' });
-});
+// ===========================
+// Error Handling
+// ===========================
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 module.exports = app;
