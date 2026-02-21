@@ -1,7 +1,7 @@
 # EcoTrack — Monorepo
 
 ## Description
-**EcoTrack** est un ensemble de microservices pour la gestion d'actions écologiques (utilisateurs, notifications, etc.). Ce dépôt contient plusieurs services (backend, éventuellement frontend) et de la documentation pour les lancer en local.
+**EcoTrack** est un ensemble de microservices pour la gestion d'actions écologiques (utilisateurs, notifications, conteneurs, etc.). Ce dépôt contient plusieurs services backend (avec clustering PM2), des applications frontend, et de la documentation pour les lancer en local ou en production.
 
 ---
 
@@ -10,19 +10,25 @@
 ### Frontend
 - **ecotrack-front** — application citoyenne (signalement, participation)  
   → `http://localhost:3000`
-- **ecotrack-admin** — application de gestion et d’administration des conteneurs  
+- **ecotrack-admin** — application de gestion et d'administration des conteneurs  
   → `http://localhost:3001`
 
-### Backend
-- **service-users** — gestion des utilisateurs et de l’authentification  
-  → `http://localhost:3002`
-- **service-containers** — gestion des conteneurs, statistiques et historiques de remplissage  
-  → `http://localhost:3003`
+### Backend (Microservices)
+- **service-api-gateway** — Passerelle API pour router les requêtes vers les services internes  
+  → `http://localhost:3000` (clusterisé avec PM2)
+- **service-users** — Gestion des utilisateurs, authentification JWT, notifications  
+  → `http://localhost:3002` (clusterisé avec PM2)
+- **service-containers** — Gestion des conteneurs, statistiques et historiques de remplissage  
+  → `http://localhost:3001` (clusterisé avec PM2)
+
+Chaque service backend utilise **PM2 en mode cluster** pour une meilleure performance (multi-cœurs CPU).
 
 ---
 
-## Services inclus
-- `backend/service-users` — Service de gestion des utilisateurs et notifications (JWT, Prisma/Postgres). Voir `backend/service-users/README.md` pour la documentation détaillée.
+## Services Inclus
+- `backend/service-api-gateway` — Passerelle API (Express, proxy vers autres services).
+- `backend/service-users` — Service utilisateurs (Prisma/Postgres, JWT, notifications). Voir `backend/service-users/README.md`.
+- `backend/service-containers` — Service conteneurs (Prisma/Postgres, WebSockets pour temps réel). Voir `backend/service-containers/README.md`.
 
 > D'autres services peuvent être ajoutés dans le dossier `backend/`.
 
@@ -30,72 +36,130 @@
 
 ## Prérequis 🌐
 - Node.js (>= 18 recommandé)
-- PostgreSQL
-- npm
-- (Optionnel) MongoDB si des services l'utilisent
+- PostgreSQL (pour les bases de données)
+- npm ou yarn
+- PM2 (installé globalement : `npm install -g pm2`)
+- (Optionnel) MongoDB si des services l'utilisent encore
 
 ---
 
-## Quickstart — Lancer un service
-1. Se placer dans le dossier du service :
+## Quickstart — Lancer les Services
 
+### 1. Cloner et installer les dépendances globales
+```bash
+git clone <url-du-repo>
+cd ecotrack
+npm install -g pm2  # Pour le clustering
+```
+
+### 2. Configuration des variables d'environnement
+Chaque service backend utilise un fichier `.env` pour les configurations importantes (ports, bases de données, etc.). Copiez les exemples :
+
+- Pour `service-api-gateway` :
+  ```bash
+  cp backend/service-api-gateway/.env.example backend/service-api-gateway/.env
+  ```
+  Adaptez `PORT=3000`, `USERS_SERVICE_URL=http://localhost:3002`, `CONTAINERS_SERVICE_URL=http://localhost:3001`.
+
+- Pour `service-users` :
+  ```bash
+  cp backend/service-users/.env.example backend/service-users/.env
+  ```
+  Adaptez `PORT=3002`, `DATABASE_URL=postgresql://...`, `JWT_SECRET=...`.
+
+- Pour `service-containers` :
+  ```bash
+  cp backend/service-containers/.env.example backend/service-containers/.env
+  ```
+  Adaptez `PORT=3001`, `DATABASE_URL=postgresql://...`.
+
+### 3. Préparer les bases de données
+Pour les services utilisant Prisma :
 ```bash
 cd backend/service-users
-```
+npm run prisma:generate
+npm run prisma:migrate
 
-2. Installer les dépendances :
-
-```bash
-npm install
-```
-
-3. Configurer les variables d'environnement : créez un fichier `.env` (ou `.env.local`) dans le dossier du service. Exemple :
-
-```env
-PORT=3000
-DATABASE_URL=postgresql://user:password@localhost:5432/ecotrack
-JWT_SECRET=une_clef_secrete
-MONGO_URI=mongodb://localhost:27017
-DB_NAME=ecotrack_db
-```
-
-4. Générer Prisma et appliquer les migrations :
-
-```bash
+cd ../service-containers
 npm run prisma:generate
 npm run prisma:migrate
 ```
 
-5. Lancer le service en dev :
+### 4. Lancer les services avec PM2 (recommandé pour la performance)
+PM2 lance chaque service en mode cluster (multi-instances pour utiliser tous les cœurs CPU).
 
+- **En développement** :
+  ```bash
+  cd backend/service-api-gateway
+  npm run pm2:start
+
+  cd ../service-users
+  npm run pm2:start
+
+  cd ../service-containers
+  npm run pm2:start
+  ```
+
+- **En production** :
+  ```bash
+  cd backend/service-api-gateway
+  npm run pm2:start:prod
+
+  # Répétez pour les autres services
+  ```
+
+- **Vérifier et gérer** :
+  ```bash
+  pm2 list  # Liste des processus
+  pm2 logs  # Logs en temps réel
+  pm2 monit  # Interface de monitoring
+  pm2 stop all  # Arrêter tous
+  ```
+
+### 5. Lancer les frontends (optionnel)
 ```bash
-npm run dev
+cd front/ecotrack-front
+npm install
+npm run dev  # → http://localhost:3000
+
+cd ../ecotrack-admin
+npm install
+npm run dev  # → http://localhost:3001
 ```
 
 ---
 
 ## Documentation API
-Les services exposent souvent Swagger UI. Pour `service-users` :
-
-```
-http://localhost:3002/api-docs
-```
-
-(adaptez le port selon la configuration dans `.env`).
+Les services exposent Swagger UI pour tester les endpoints :
+- **service-users** : `http://localhost:3002/api-docs`
+- **service-containers** : `http://localhost:3001/api-docs` (ajustez selon `.env`)
 
 ---
 
-## Bonnes pratiques
-- Isoler les variables d'environnement par service.
-- Exécuter les migrations Prisma après modification du schéma.
-- Documenter chaque service dans son propre `README.md`.
+## Bonnes Pratiques
+- **Variables d'environnement** : Tout dans `.env` (ports, secrets, URLs). Ne commitez jamais `.env` (utilisez `.env.example`).
+- **Clustering PM2** : Utilisez PM2 pour la production/dev afin de bénéficier du multi-cœur.
+- **Migrations Prisma** : Appliquez après modification du schéma (`npm run prisma:migrate`).
+- **Logs** : PM2 stocke les logs dans `logs/` par service.
+- **Tests** : Lancez `npm test` dans chaque service.
+- **Sécurité** : Changez `JWT_SECRET` en production.
 
 ---
 
 ## Contribuer
-1. Fork / branch
-2. Ajouter des tests et documentation
-3. Ouvrir une Pull Request
+1. Fork / créez une branche
+2. Ajoutez des tests et documentation
+3. Ouvrez une Pull Request
+4. Respectez les conventions : PM2 pour le déploiement, `.env` pour les configs
+
+---
+
+## Documentation
+Consultez le dossier `docs/` pour une documentation détaillée :
+- **[Architecture](docs/architecture.md)** : Structure technique et composants
+- **[API](docs/api.md)** : Endpoints et utilisation des APIs
+- **[Sécurité](docs/security.md)** : Mesures de protection implémentées
+- **[Performance](docs/performance.md)** : Optimisations et benchmarks
 
 
 
