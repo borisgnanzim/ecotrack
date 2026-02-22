@@ -16,14 +16,14 @@ async function startServer() {
     // Démarrer le serveur
     app.listen(PORT, () => {
       console.log(`
-API Gateway is Running
-  Port: ${PORT}
-  Environment: ${process.env.NODE_ENV || 'development'}
-  Redis Cache: ${cacheService.isConnected ? 'Enabled' : 'Disabled'}
-  Swagger UI: http://localhost:${PORT}/api-docs
-  Health Check: http://localhost:${PORT}/health
-  Cache Stats: http://localhost:${PORT}/cache/stats
-      `);
+        API Gateway is Running
+          Port: ${PORT}
+          Environment: ${process.env.NODE_ENV || 'development'}
+          Redis Cache: ${cacheService.isConnected ? 'Enabled' : 'Disabled'}
+          Swagger UI: http://localhost:${PORT}/api-docs
+          Health Check: http://localhost:${PORT}/health
+          Cache Stats: http://localhost:${PORT}/cache/stats
+              `);
     });
 
     // Gestion graceful shutdown

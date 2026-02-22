@@ -33,9 +33,7 @@ app.use(applyRateLimit);
 // ===========================
 app.use(routes);
 
-// ===========================
 // Error Handling
-// ===========================
 app.use(notFoundHandler);
 app.use(errorHandler);
 

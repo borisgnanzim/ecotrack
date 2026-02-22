@@ -13,23 +13,16 @@ const options = {
         Cette gateway proxy les requêtes vers les services appropriés en appliquant un rate limiting global et des mesures de sécurité.
         
         ## Services Proxysés
-        - **Authentification & Utilisateurs** : Service Users (port 3002) - [Documentation détaillée](http://localhost:3002/api-docs)
-        - **Gestion des Conteneurs** : Service Containers (port 3001) - [Documentation détaillée](http://localhost:3001/api-docs)
+        - **Authentification & Utilisateurs** : Service Users - [Documentation détaillée](${process.env.USERS_SERVICE_URL}/api-docs)
+        - **Gestion des Conteneurs** : Service Containers - [Documentation détaillée](${process.env.CONTAINERS_SERVICE_URL}/api-docs)
         
         ## Authentification
         Utilisez un token JWT obtenu via \`POST /auth/login\`. Incluez-le dans l'en-tête autorisation : \`Authorization: Bearer <token>\`
       `,
-      contact: {
-        name: 'Équipe EcoTrack',
-        email: 'contact@ecotrack.com'
-      },
-      license: {
-        name: 'MIT'
-      }
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: `http://localhost:${process.env.PORT || 3000}`,
         description: 'Environnement de développement'
       },
       {
