@@ -1,5 +1,24 @@
-const Validator = require('../Validator');
+const { z } = require('zod');
 const ValidationError = require('../ValidationError');
+
+/**
+ * Schéma Zod pour la création d'une notification
+ */
+const createNotificationSchema = z.object({
+  userId: z.union([z.string(), z.number()]).optional(),
+  title: z.string()
+    .min(1, 'Titre requis')
+    .max(200, 'Titre trop long (max 200 caractères)')
+    .trim(),
+  message: z.string()
+    .min(1, 'Message requis')
+    .max(1000, 'Message trop long (max 1000 caractères)')
+    .trim(),
+  type: z.enum(['info', 'warning', 'error', 'success'], {
+    errorMap: () => ({ message: 'Type invalide (doit être: info, warning, error, success)' })
+  }).default('info'),
+  isRead: z.boolean().default(false)
+});
 
 /**
  * DTO pour la création d'une notification
@@ -9,7 +28,7 @@ class CreateNotificationDTO {
     this.userId = data?.userId || undefined;
     this.title = data?.title ? data.title.trim() : '';
     this.message = data?.message ? data.message.trim() : '';
-    this.type = data?.type?.trim() || 'info'; // 'info', 'warning', 'error', 'success'
+    this.type = data?.type?.trim() || 'info';
     this.isRead = data?.isRead || false;
   }
 
@@ -18,33 +37,44 @@ class CreateNotificationDTO {
    * @throws {ValidationError} Si les données ne sont pas valides
    */
   validate() {
-    const errors = {};
+    try {
+      const validatedData = createNotificationSchema.parse({
+        ...(this.userId !== undefined && { userId: this.userId }),
+        title: this.title,
+        message: this.message,
+        type: this.type,
+        isRead: this.isRead
+      });
 
-    // Validation title (optionnel mais recommandé)
-    if (Validator.isEmpty(this.title)) {
-      errors.title = 'Titre requis';
-    } else if (!Validator.maxLength(this.title, 200)) {
-      errors.title = 'Titre trop long (max 200 caractères)';
+      // Met à jour les propriétés avec les données validées
+      this.userId = validatedData.userId;
+      this.title = validatedData.title;
+      this.message = validatedData.message;
+      this.type = validatedData.type;
+      this.isRead = validatedData.isRead;
+
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw ValidationError.fromZodError(error);
+      }
+      throw error;
     }
+  }
 
-    // Validation message (requis)
-    if (Validator.isEmpty(this.message)) {
-      errors.message = 'Message requis';
-    } else if (!Validator.maxLength(this.message, 1000)) {
-      errors.message = 'Message trop long (max 1000 caractères)';
-    }
+  /**
+   * Valide sans lancer d'erreur (retourne le résultat)
+   */
+  safeValidate() {
+    const dataToValidate = {
+      title: this.title,
+      message: this.message,
+      type: this.type,
+      isRead: this.isRead
+    };
+    if (this.userId !== undefined) dataToValidate.userId = this.userId;
 
-    // Validation type
-    const validTypes = ['info', 'warning', 'error', 'success'];
-    if (!validTypes.includes(this.type)) {
-      errors.type = `Type invalide (doit être: ${validTypes.join(', ')})`;
-    }
-
-    if (Object.keys(errors).length > 0) {
-      throw new ValidationError(errors);
-    }
-
-    return true;
+    return createNotificationSchema.safeParse(dataToValidate);
   }
 
   /**
@@ -59,6 +89,13 @@ class CreateNotificationDTO {
     };
     if (this.userId !== undefined) data.userId = this.userId;
     return data;
+  }
+
+  /**
+   * Getter pour le schéma Zod
+   */
+  static get schema() {
+    return createNotificationSchema;
   }
 }
 

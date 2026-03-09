@@ -1,68 +1,88 @@
-const Validator = require('../Validator');
+const { z } = require('zod');
 const ValidationError = require('../ValidationError');
+
+/**
+ * Schéma Zod pour la mise à jour d'un utilisateur
+ * Tous les champs sont optionnels
+ */
+const updateUserSchema = z.object({
+  username: z.string()
+    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
+    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
+    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
+    .optional(),
+  email: z.string().email('Email invalide').trim().optional(),
+  name: z.string()
+    .max(100, 'Nom trop long (max 100 caractères)')
+    .optional(),
+  address: z.string()
+    .max(200, 'Adresse trop longue (max 200 caractères)')
+    .optional(),
+  phone: z.string()
+    .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Numéro de téléphone invalide')
+    .optional()
+}).refine((data) => {
+  // Au moins un champ doit être fourni
+  return Object.values(data).some(value => value !== undefined);
+}, {
+  message: 'Au moins un champ doit être fourni pour la mise à jour'
+});
 
 /**
  * DTO pour la mise à jour d'un utilisateur
  */
 class UpdateUserDTO {
   constructor(data) {
-    this.username = data?.username ? data.username.trim() : undefined;
-    this.email = data?.email ? data.email.trim() : undefined;
-    this.name = data?.name ? data.name.trim() : undefined;
-    this.address = data?.address ? data.address.trim() : undefined;
-    this.phone = data?.phone ? data.phone.trim() : undefined;
+    this.username = data?.username !== undefined ? data.username.trim() : undefined;
+    this.email = data?.email !== undefined ? data.email.trim() : undefined;
+    this.name = data?.name !== undefined ? data.name.trim() : undefined;
+    this.address = data?.address !== undefined ? data.address.trim() : undefined;
+    this.phone = data?.phone !== undefined ? data.phone.trim() : undefined;
   }
 
   /**
    * Valide les données d'entrée
-   * Les champs sont optionnels, seuls les champs fournis sont validés
    * @throws {ValidationError} Si les données ne sont pas valides
    */
   validate() {
-    const errors = {};
+    try {
+      const dataToValidate = {};
+      if (this.username !== undefined) dataToValidate.username = this.username;
+      if (this.email !== undefined) dataToValidate.email = this.email;
+      if (this.name !== undefined) dataToValidate.name = this.name;
+      if (this.address !== undefined) dataToValidate.address = this.address;
+      if (this.phone !== undefined) dataToValidate.phone = this.phone;
 
-    // Validation username (optionnel)
-    if (this.username !== undefined && !Validator.isEmpty(this.username)) {
-      if (!Validator.isUsername(this.username)) {
-        errors.username = 'Nom d\'utilisateur invalide (minimum 3 caractères, sans espaces)';
-      } else if (!Validator.maxLength(this.username, 50)) {
-        errors.username = 'Nom d\'utilisateur trop long (max 50 caractères)';
+      const validatedData = updateUserSchema.parse(dataToValidate);
+
+      // Met à jour les propriétés avec les données validées
+      this.username = validatedData.username;
+      this.email = validatedData.email;
+      this.name = validatedData.name;
+      this.address = validatedData.address;
+      this.phone = validatedData.phone;
+
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw ValidationError.fromZodError(error);
       }
+      throw error;
     }
+  }
 
-    // Validation email (optionnel)
-    if (this.email !== undefined && !Validator.isEmpty(this.email)) {
-      if (!Validator.isEmail(this.email)) {
-        errors.email = 'Email invalide';
-      }
-    }
+  /**
+   * Valide sans lancer d'erreur (retourne le résultat)
+   */
+  safeValidate() {
+    const dataToValidate = {};
+    if (this.username !== undefined) dataToValidate.username = this.username;
+    if (this.email !== undefined) dataToValidate.email = this.email;
+    if (this.name !== undefined) dataToValidate.name = this.name;
+    if (this.address !== undefined) dataToValidate.address = this.address;
+    if (this.phone !== undefined) dataToValidate.phone = this.phone;
 
-    // Validation name (optionnel)
-    if (this.name !== undefined && !Validator.isEmpty(this.name)) {
-      if (!Validator.maxLength(this.name, 100)) {
-        errors.name = 'Nom trop long (max 100 caractères)';
-      }
-    }
-
-    // Validation address (optionnel)
-    if (this.address !== undefined && !Validator.isEmpty(this.address)) {
-      if (!Validator.maxLength(this.address, 200)) {
-        errors.address = 'Adresse trop longue (max 200 caractères)';
-      }
-    }
-
-    // Validation phone (optionnel)
-    if (this.phone !== undefined && !Validator.isEmpty(this.phone)) {
-      if (!Validator.isPhoneNumber(this.phone)) {
-        errors.phone = 'Numéro de téléphone invalide';
-      }
-    }
-
-    if (Object.keys(errors).length > 0) {
-      throw new ValidationError(errors);
-    }
-
-    return true;
+    return updateUserSchema.safeParse(dataToValidate);
   }
 
   /**
@@ -76,6 +96,13 @@ class UpdateUserDTO {
     if (this.address !== undefined) data.address = this.address;
     if (this.phone !== undefined) data.phone = this.phone;
     return data;
+  }
+
+  /**
+   * Getter pour le schéma Zod
+   */
+  static get schema() {
+    return updateUserSchema;
   }
 }
 

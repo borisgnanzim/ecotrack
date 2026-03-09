@@ -1,5 +1,13 @@
-const Validator = require('../Validator');
+const { z } = require('zod');
 const ValidationError = require('../ValidationError');
+
+/**
+ * Schéma Zod pour la connexion utilisateur
+ */
+const loginSchema = z.object({
+  email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
+  password: z.string().min(6, 'Mot de passe invalide (minimum 6 caractères)')
+});
 
 /**
  * DTO pour la connexion utilisateur
@@ -15,27 +23,33 @@ class LoginDTO {
    * @throws {ValidationError} Si les données ne sont pas valides
    */
   validate() {
-    const errors = {};
+    try {
+      const validatedData = loginSchema.parse({
+        email: this.email,
+        password: this.password
+      });
 
-    // Validation email
-    if (Validator.isEmpty(this.email)) {
-      errors.email = 'Email est requis';
-    } else if (!Validator.isEmail(this.email)) {
-      errors.email = 'Email invalide';
+      // Met à jour les propriétés avec les données validées
+      this.email = validatedData.email;
+      this.password = validatedData.password;
+
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw ValidationError.fromZodError(error);
+      }
+      throw error;
     }
+  }
 
-    // Validation password
-    if (Validator.isEmpty(this.password)) {
-      errors.password = 'Mot de passe est requis';
-    } else if (!Validator.isPassword(this.password)) {
-      errors.password = 'Mot de passe invalide (minimum 6 caractères)';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      throw new ValidationError(errors);
-    }
-
-    return true;
+  /**
+   * Valide sans lancer d'erreur (retourne le résultat)
+   */
+  safeValidate() {
+    return loginSchema.safeParse({
+      email: this.email,
+      password: this.password
+    });
   }
 
   /**
@@ -46,6 +60,13 @@ class LoginDTO {
       email: this.email,
       password: this.password
     };
+  }
+
+  /**
+   * Getter pour le schéma Zod
+   */
+  static get schema() {
+    return loginSchema;
   }
 }
 

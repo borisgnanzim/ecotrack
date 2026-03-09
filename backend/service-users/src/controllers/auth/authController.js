@@ -1,4 +1,4 @@
-const { LoginDTO, RegisterDTO, ValidationError } = require('../../dto');
+const { loginSchema, registerSchema, validateWithZod } = require('../../dto');
 const authService = require('../../services/authService');
 const notificationService = require('../../services/notificationService');
 const User = require('../../models/User');
@@ -9,12 +9,11 @@ const User = require('../../models/User');
  */
 exports.login = async (req, res, next) => {
     try {
-        // Valider les données avec le DTO
-        const loginDTO = new LoginDTO(req.body);
-        loginDTO.validate();
+        // Valider les données avec Zod
+        const validatedData = validateWithZod(loginSchema, req.body);
 
         // Utiliser le service pour la logique métier
-        const result = await authService.login(loginDTO.email, loginDTO.password);
+        const result = await authService.login(validatedData.email, validatedData.password);
 
         res.status(200).json({
             success: true,
@@ -34,15 +33,14 @@ exports.login = async (req, res, next) => {
  */
 exports.registerCitizen = async (req, res, next) => {
     try {
-        // Valider les données avec le DTO
-        const registerDTO = new RegisterDTO(req.body);
-        registerDTO.validate();
+        // Valider les données avec Zod
+        const validatedData = validateWithZod(registerSchema, req.body);
 
         // Utiliser le service pour la logique métier
         const result = await authService.registerCitizen(
-            registerDTO.username,
-            registerDTO.email,
-            registerDTO.password
+            validatedData.username,
+            validatedData.email,
+            validatedData.password
         );
 
         // Envoyer une notification de bienvenue (asynchrone)

@@ -1,5 +1,29 @@
-const Validator = require('../Validator');
+const { z } = require('zod');
 const ValidationError = require('../ValidationError');
+
+/**
+ * Schéma Zod pour la création d'un utilisateur (Admin)
+ */
+const createUserSchema = z.object({
+  username: z.string()
+    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
+    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
+    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
+    .trim(),
+  email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
+  password: z.string()
+    .min(6, 'Mot de passe invalide (minimum 6 caractères)')
+    .max(100, 'Mot de passe trop long (max 100 caractères)'),
+  name: z.string()
+    .max(100, 'Nom trop long (max 100 caractères)')
+    .optional(),
+  address: z.string()
+    .max(200, 'Adresse trop longue (max 200 caractères)')
+    .optional(),
+  phone: z.string()
+    .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Numéro de téléphone invalide')
+    .optional()
+});
 
 /**
  * DTO pour la création d'un utilisateur (Admin)
@@ -9,9 +33,9 @@ class CreateUserDTO {
     this.username = data?.username?.trim() || '';
     this.email = data?.email?.trim() || '';
     this.password = data?.password || '';
-    this.name = data?.name ? data.name.trim() : undefined;
-    this.address = data?.address ? data.address.trim() : undefined;
-    this.phone = data?.phone ? data.phone.trim() : undefined;
+    this.name = data?.name !== undefined ? data.name.trim() : undefined;
+    this.address = data?.address !== undefined ? data.address.trim() : undefined;
+    this.phone = data?.phone !== undefined ? data.phone.trim() : undefined;
   }
 
   /**
@@ -19,59 +43,47 @@ class CreateUserDTO {
    * @throws {ValidationError} Si les données ne sont pas valides
    */
   validate() {
-    const errors = {};
+    try {
+      const validatedData = createUserSchema.parse({
+        username: this.username,
+        email: this.email,
+        password: this.password,
+        ...(this.name !== undefined && { name: this.name }),
+        ...(this.address !== undefined && { address: this.address }),
+        ...(this.phone !== undefined && { phone: this.phone })
+      });
 
-    // Validation username
-    if (Validator.isEmpty(this.username)) {
-      errors.username = 'Nom d\'utilisateur est requis';
-    } else if (!Validator.isUsername(this.username)) {
-      errors.username = 'Nom d\'utilisateur invalide (minimum 3 caractères, sans espaces)';
-    } else if (!Validator.maxLength(this.username, 50)) {
-      errors.username = 'Nom d\'utilisateur trop long (max 50 caractères)';
-    }
+      // Met à jour les propriétés avec les données validées
+      this.username = validatedData.username;
+      this.email = validatedData.email;
+      this.password = validatedData.password;
+      this.name = validatedData.name;
+      this.address = validatedData.address;
+      this.phone = validatedData.phone;
 
-    // Validation email
-    if (Validator.isEmpty(this.email)) {
-      errors.email = 'Email est requis';
-    } else if (!Validator.isEmail(this.email)) {
-      errors.email = 'Email invalide';
-    }
-
-    // Validation password
-    if (Validator.isEmpty(this.password)) {
-      errors.password = 'Mot de passe est requis';
-    } else if (!Validator.isPassword(this.password)) {
-      errors.password = 'Mot de passe invalide (minimum 6 caractères)';
-    } else if (!Validator.maxLength(this.password, 100)) {
-      errors.password = 'Mot de passe trop long (max 100 caractères)';
-    }
-
-    // Validation name (optionnel)
-    if (this.name !== undefined && !Validator.isEmpty(this.name)) {
-      if (!Validator.maxLength(this.name, 100)) {
-        errors.name = 'Nom trop long (max 100 caractères)';
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw ValidationError.fromZodError(error);
       }
+      throw error;
     }
+  }
 
-    // Validation address (optionnel)
-    if (this.address !== undefined && !Validator.isEmpty(this.address)) {
-      if (!Validator.maxLength(this.address, 200)) {
-        errors.address = 'Adresse trop longue (max 200 caractères)';
-      }
-    }
+  /**
+   * Valide sans lancer d'erreur (retourne le résultat)
+   */
+  safeValidate() {
+    const dataToValidate = {
+      username: this.username,
+      email: this.email,
+      password: this.password
+    };
+    if (this.name !== undefined) dataToValidate.name = this.name;
+    if (this.address !== undefined) dataToValidate.address = this.address;
+    if (this.phone !== undefined) dataToValidate.phone = this.phone;
 
-    // Validation phone (optionnel)
-    if (this.phone !== undefined && !Validator.isEmpty(this.phone)) {
-      if (!Validator.isPhoneNumber(this.phone)) {
-        errors.phone = 'Numéro de téléphone invalide';
-      }
-    }
-
-    if (Object.keys(errors).length > 0) {
-      throw new ValidationError(errors);
-    }
-
-    return true;
+    return createUserSchema.safeParse(dataToValidate);
   }
 
   /**
@@ -87,6 +99,13 @@ class CreateUserDTO {
     if (this.address !== undefined) data.address = this.address;
     if (this.phone !== undefined) data.phone = this.phone;
     return data;
+  }
+
+  /**
+   * Getter pour le schéma Zod
+   */
+  static get schema() {
+    return createUserSchema;
   }
 }
 

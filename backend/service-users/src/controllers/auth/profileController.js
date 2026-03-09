@@ -1,4 +1,4 @@
-const { GetProfileDTO, UpdateProfileDTO, ValidationError } = require('../../dto');
+const { updateProfileSchema, validateWithZod, ValidationError } = require('../../dto');
 const profileService = require('../../services/profileService');
 const authService = require('../../services/authService');
 
@@ -48,12 +48,11 @@ exports.updateProfile = async (req, res, next) => {
         const token = authHeader.split(" ")[1];
         const decoder = authService.verifyToken(token);
 
-        // Valider les données avec le DTO
-        const updateProfileDTO = new UpdateProfileDTO(req.body);
-        updateProfileDTO.validate();
+        // Valider les données avec Zod
+        const validatedData = validateWithZod(updateProfileSchema, req.body);
 
         // Utiliser le service pour la logique métier
-        const updatedUser = await profileService.updateProfile(decoder.id, updateProfileDTO.toJSON());
+        const updatedUser = await profileService.updateProfile(decoder.id, validatedData);
 
         res.status(200).json({
             success: true,

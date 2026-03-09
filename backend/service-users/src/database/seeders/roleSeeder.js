@@ -15,9 +15,9 @@ const roleSeeder = async (prisma) => {
       await prisma.role.create({
         data: role
       });
-      console.log(`✓ Rôle ${role.name} créé`);
+      console.log(`Rôle ${role.name} créé`);
     } else {
-      console.log(`ℹ Rôle ${role.name} existe déjà`);
+      console.log(`Rôle ${role.name} existe déjà`);
     }
   }
 };

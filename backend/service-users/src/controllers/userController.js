@@ -1,4 +1,4 @@
-const { UpdateUserDTO, CreateUserDTO, ValidationError } = require('../dto');
+const { createUserSchema, updateUserSchema, validateWithZod } = require('../dto');
 const userService = require('../services/userService');
 
 /**
@@ -39,13 +39,12 @@ exports.getUserById = async (req, res, next) => {
  */
 exports.createUser = async (req, res, next) => {
     try {
-        // Valider les données avec le DTO
-        const createUserDTO = new CreateUserDTO(req.body);
-        createUserDTO.validate();
+        // Valider les données avec Zod
+        const validatedData = validateWithZod(createUserSchema, req.body);
 
         // Utiliser le service pour la logique métier
-        const user = await userService.createUser(createUserDTO.toJSON());
-        
+        const user = await userService.createUser(validatedData);
+
         res.status(201).json({
             success: true,
             message: 'Utilisateur créé avec succès',
@@ -62,13 +61,12 @@ exports.createUser = async (req, res, next) => {
  */
 exports.updateUser = async (req, res, next) => {
     try {
-        // Valider les données avec le DTO
-        const updateUserDTO = new UpdateUserDTO(req.body);
-        updateUserDTO.validate();
+        // Valider les données avec Zod
+        const validatedData = validateWithZod(updateUserSchema, req.body);
 
         // Utiliser le service pour la logique métier
-        const user = await userService.updateUser(req.params.id, updateUserDTO.toJSON());
-        
+        const user = await userService.updateUser(req.params.id, validatedData);
+
         res.status(200).json({
             success: true,
             message: 'Utilisateur mis à jour avec succès',

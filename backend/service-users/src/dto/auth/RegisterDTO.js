@@ -1,5 +1,24 @@
-const Validator = require('../Validator');
+const { z } = require('zod');
 const ValidationError = require('../ValidationError');
+
+/**
+ * Schéma Zod pour l'inscription utilisateur
+ */
+const registerSchema = z.object({
+  username: z.string()
+    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
+    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
+    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
+    .trim(),
+  email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
+  password: z.string()
+    .min(6, 'Mot de passe invalide (minimum 6 caractères)')
+    .max(100, 'Mot de passe trop long (max 100 caractères)'),
+  passwordConfirm: z.string()
+}).refine((data) => data.password === data.passwordConfirm, {
+  message: 'Les mots de passe ne correspondent pas',
+  path: ['passwordConfirm']
+});
 
 /**
  * DTO pour l'inscription utilisateur
@@ -17,43 +36,38 @@ class RegisterDTO {
    * @throws {ValidationError} Si les données ne sont pas valides
    */
   validate() {
-    const errors = {};
+    try {
+      const validatedData = registerSchema.parse({
+        username: this.username,
+        email: this.email,
+        password: this.password,
+        passwordConfirm: this.passwordConfirm
+      });
 
-    // Validation username
-    if (Validator.isEmpty(this.username)) {
-      errors.username = 'Nom d\'utilisateur est requis';
-    } else if (!Validator.isUsername(this.username)) {
-      errors.username = 'Nom d\'utilisateur invalide (minimum 3 caractères, sans espaces)';
-    } else if (!Validator.maxLength(this.username, 50)) {
-      errors.username = 'Nom d\'utilisateur trop long (max 50 caractères)';
+      // Met à jour les propriétés avec les données validées
+      this.username = validatedData.username;
+      this.email = validatedData.email;
+      this.password = validatedData.password;
+
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw ValidationError.fromZodError(error);
+      }
+      throw error;
     }
+  }
 
-    // Validation email
-    if (Validator.isEmpty(this.email)) {
-      errors.email = 'Email est requis';
-    } else if (!Validator.isEmail(this.email)) {
-      errors.email = 'Email invalide';
-    }
-
-    // Validation password
-    if (Validator.isEmpty(this.password)) {
-      errors.password = 'Mot de passe est requis';
-    } else if (!Validator.isPassword(this.password)) {
-      errors.password = 'Mot de passe invalide (minimum 6 caractères)';
-    } else if (!Validator.maxLength(this.password, 100)) {
-      errors.password = 'Mot de passe trop long (max 100 caractères)';
-    }
-
-    // Validation passwordConfirm
-    if (this.password !== this.passwordConfirm) {
-      errors.passwordConfirm = 'Les mots de passe ne correspondent pas';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      throw new ValidationError(errors);
-    }
-
-    return true;
+  /**
+   * Valide sans lancer d'erreur (retourne le résultat)
+   */
+  safeValidate() {
+    return registerSchema.safeParse({
+      username: this.username,
+      email: this.email,
+      password: this.password,
+      passwordConfirm: this.passwordConfirm
+    });
   }
 
   /**
@@ -65,6 +79,13 @@ class RegisterDTO {
       email: this.email,
       password: this.password
     };
+  }
+
+  /**
+   * Getter pour le schéma Zod
+   */
+  static get schema() {
+    return registerSchema;
   }
 }
 

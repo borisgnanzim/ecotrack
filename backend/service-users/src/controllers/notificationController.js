@@ -1,4 +1,4 @@
-const { CreateNotificationDTO, ValidationError } = require('../dto');
+const { createNotificationSchema, validateWithZod, ValidationError } = require('../dto');
 const notificationService = require('../services/notificationService');
 const authService = require('../services/authService');
 
@@ -101,18 +101,17 @@ exports.createNotification = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = authService.verifyToken(token);
 
-    // Valider les données avec le DTO
-    const createNotificationDTO = new CreateNotificationDTO(req.body);
-    createNotificationDTO.validate();
+    // Valider les données avec Zod
+    const validatedData = validateWithZod(createNotificationSchema, req.body);
 
     // Si pas d'userId fourni, utiliser l'utilisateur connecté
-    const notificationData = createNotificationDTO.toJSON();
+    const notificationData = { ...validatedData };
     if (!notificationData.userId) {
       notificationData.userId = decoded.id;
     }
 
     const created = await notificationService.createNotification(notificationData);
-    
+
     res.status(201).json({
       success: true,
       message: 'Notification créée avec succès',
