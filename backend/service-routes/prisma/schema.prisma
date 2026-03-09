@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Route {
+  id             String   @id @default(uuid())
+  date           DateTime
+  agent_id       Int?
+  status         String   @default("planned")
+  total_distance Float?
+  estimated_time Int?
+
+  steps          RouteStep[]
+
+  created_at     DateTime @default(now())
+}
+
+model RouteStep {
+  id                     String  @id @default(uuid())
+  route_id               String
+  container_id           Int
+  step_order             Int
+  distance_from_previous Float?
+
+  route Route @relation(fields: [route_id], references: [id])
+}
