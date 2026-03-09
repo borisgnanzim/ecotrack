@@ -68,6 +68,31 @@ router.use('/notifications', createProxyMiddleware({
   }
 }));
 
+
+/**
+ * Forward vers la documentation Swagger du service Users
+ * GET /docs/service-users -> http://localhost:3011/api-docs
+ */
+router.use(
+  '/docs/service-users',
+  createProxyMiddleware({
+    target: PROXY_CONFIG.users.url,
+    changeOrigin: true,
+    /* preserve subpaths for assets */
+    pathRewrite: {
+      '^/*': '/api-docs/',
+    },
+    onError: (err, req, res) => {
+      console.error('Proxy Error - Users API Docs:', err);
+      res.status(503).json({
+        error: 'Documentation Service Users indisponible',
+        statusCode: 503,
+        timestamp: new Date().toISOString(),
+      });
+    },
+  })
+);
+
 /**
  * Forward vers le service Containers
  * GET /containers, POST /containers, GET /containers/:id, etc.

@@ -20,13 +20,15 @@ router.use(documentationRoutes);
 router.use(cacheRoutes);
 
 // ===========================
-// Cache middleware (pour GET)
+// Routes proxy (sans cache)
+// ===========================
+router.use(proxyRoutes);
+
+// ===========================
+// Cache middleware (pour GET des routes API)
 // ===========================
 router.use(cacheMiddleware);
 
-// ===========================
-// Routes proxy with cache
-// ===========================
 // Cache des conteneurs (données qui changent rarement)
 router.get('/containers', setCacheTTL(1800)); // 30 min
 router.get('/containers/:id', setCacheTTL(1800));
@@ -36,8 +38,5 @@ router.get('/users/profile', setCacheTTL(600)); // 10 min
 
 // Cache des notifications (cache court, données temps réel)
 router.get('/notifications', setCacheTTL(300)); // 5 min
-
-// Appliquer les routes proxy
-router.use(proxyRoutes);
 
 module.exports = router;

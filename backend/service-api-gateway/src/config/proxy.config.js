@@ -7,7 +7,7 @@ const PROXY_CONFIG = {
   users: {
     url: process.env.USERS_SERVICE_URL || 'http://localhost:3002',
     description: 'Service de gestion des utilisateurs et authentification',
-    routes: ['/auth', '/users', '/notifications']
+    routes: ['/auth', '/users', '/notifications','/api-docs']
   },
   containers: {
     url: process.env.CONTAINERS_SERVICE_URL || 'http://localhost:3001',

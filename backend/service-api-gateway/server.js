@@ -9,9 +9,14 @@ const PORT = process.env.PORT || 3000;
  */
 async function startServer() {
   try {
-    // Initialiser Redis
+    // Initialiser Redis (optionnel)
     console.log('Initializing Redis Cache...');
-    await cacheService.connect();
+    try {
+      await cacheService.connect();
+      console.log('Redis connected successfully.');
+    } catch (cacheError) {
+      console.warn('Redis connection failed, running without cache:', cacheError.message);
+    }
 
     // Démarrer le serveur
     app.listen(PORT, () => {
@@ -29,7 +34,9 @@ async function startServer() {
     // Gestion graceful shutdown
     process.on('SIGINT', async () => {
       console.log('\nShutting down gracefully...');
-      await cacheService.disconnect();
+      if (cacheService.isConnected) {
+        await cacheService.disconnect();
+      }
       process.exit(0);
     });
 
