@@ -31,36 +31,72 @@ const upload = multer({ storage });
 /**
  * @swagger
  * tags:
- *   name: Containers
- *   description: Gestion des conteneurs
+ *   - name: Containers
+ *     description: Gestion CRUD des conteneurs
+ *   - name: Search & Stats
+ *     description: Recherche, géolocalisation et statistiques
+ *   - name: Fill History
+ *     description: Historique de remplissage
+ *   - name: Photos
+ *     description: Upload et gestion des photos
  */
 
-
-// CRUD
 /**
  * @swagger
  * /containers:
  *   get:
  *     summary: Lister tous les conteneurs
  *     tags: [Containers]
+ *     description: |
+ *       Récupère la liste complète de tous les conteneurs avec pagination.
+ *       
+ *       **Authentification** : Non requise
+ *       **Rate Limit** : 100 requêtes/minute
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Numéro de page
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           maximum: 100
+ *         description: Nombre d'éléments par page
  *     responses:
  *       200:
- *         description: Liste des conteneurs
+ *         description: ✅ Liste des conteneurs récupérée
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Conteneur'
- */
-router.get('/', containerController.getAll);
-
-/**
- * @swagger
- * /containers:
+ *             example:
+ *               - id_conteneur: 1
+ *                 type_Dechet: plastique
+ *                 Statut: normal
+ *                 capacite_i: 100
+ *                 latitude: 14.6937
+ *                 longitude: -16.4441
+ *                 createdAt: "2026-03-01T08:00:00Z"
+ *       500:
+ *         description: ❌ Erreur serveur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *   post:
- *     summary: Créer un conteneur (auth requis)
+ *     summary: Créer un nouveau conteneur
  *     tags: [Containers]
+ *     description: |
+ *       Crée un conteneur de déchets.
+ *       
+ *       **Authentification** : JWT requise
+ *       **Rôles autorisés** : admin, moderator
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -69,26 +105,446 @@ router.get('/', containerController.getAll);
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/ConteneurCreate'
+ *           example:
+ *             type_Dechet: plastique
+ *             Statut: normal
+ *             id_Zone: zoneB
+ *             capacite_i: 100
+ *             code_conteneur: 1005
+ *             latitude: 14.6937
+ *             longitude: -16.4441
  *     responses:
  *       201:
- *         description: Conteneur créé
+ *         description: ✅ Conteneur créé avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Conteneur'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       409:
+ *         description: ❌ code_conteneur existe déjà
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
+router.get('/', containerController.getAll);
 router.post('/', authMiddleware, validate(CreateContainerDTO), containerController.create);
+
+/**
+ * @swagger
+ * /containers/stats:
+ *   get:
+ *     summary: Statistiques globales
+ *     tags: [Search & Stats]
+ *     description: |
+ *       Récupère les statistiques d'agrégation sur tous les conteneurs.
+ *       
+ *       Inclut :
+ *       - Total conteneurs
+ *       - Distribution par statut
+ *       - Distribution par type de déchet
+ *       - Niveau moyen de remplissage
+ *       - Distribution par zone
+ *       
+ *       **Authentification** : Non requise
+ *     responses:
+ *       200:
+ *         description: ✅ Statistiques récupérées
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Statistics'
+ */
 router.get('/stats', containerController.getStats);
+
+/**
+ * @swagger
+ * /containers/search:
+ *   get:
+ *     summary: Recherche flexible avec filtres
+ *     tags: [Search & Stats]
+ *     description: |
+ *       Effectue une recherche sur les conteneurs avec filtres combinables.
+ *       
+ *       Exemples :
+ *       - \`/search?type=plastique\`
+ *       - \`/search?zone=zoneB&status=plein\`
+ *       - \`/search?fill_min=50&fill_max=80\`
+ *       
+ *       **Authentification** : Non requise
+ *     parameters:
+ *       - name: type
+ *         in: query
+ *         schema:
+ *           type: string
+ *           enum: [plastique, papier, verre, compost]
+ *         description: Filtrer par type de déchet
+ *       - name: zone
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filtrer par zone
+ *         example: zoneB
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *           enum: [normal, plein, en_maintenance, desactive]
+ *         description: Filtrer par statut
+ *       - name: fill_min
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 100
+ *         description: Niveau de remplissage minimum (%)
+ *       - name: fill_max
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 100
+ *         description: Niveau de remplissage maximum (%)
+ *     responses:
+ *       200:
+ *         description: ✅ Résultats de la recherche
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Conteneur'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
 router.get('/search', containerController.search);
+
+/**
+ * @swagger
+ * /containers/nearby:
+ *   get:
+ *     summary: Conteneurs à proximité (géolocalisation)
+ *     tags: [Search & Stats]
+ *     description: |
+ *       Recherche les conteneurs situés à proximité d'une coordonnée GPS.
+ *       
+ *       Utilise l'extension PostgreSQL **earthdistance** pour calculs précis.
+ *       
+ *       **Authentification** : Non requise
+ *     parameters:
+ *       - name: lat
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: number
+ *           format: double
+ *           minimum: -90
+ *           maximum: 90
+ *         description: Latitude de référence
+ *         example: 14.6937
+ *       - name: longitude
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: number
+ *           format: double
+ *           minimum: -180
+ *           maximum: 180
+ *         description: Longitude de référence
+ *         example: -16.4441
+ *       - name: radius
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 5
+ *         description: Rayon de recherche en km
+ *     responses:
+ *       200:
+ *         description: ✅ Conteneurs trouvés
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 allOf:
+ *                   - $ref: '#/components/schemas/Conteneur'
+ *                   - type: object
+ *                     properties:
+ *                       distance_km:
+ *                         type: number
+ *                         description: Distance en km
+ *                         example: 0.3
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
+router.get('/nearby', containerController.getNearbyContainers);
+
+
+/**
+ * @swagger
+ * /containers/{id}:
+ *   get:
+ *     summary: Obtenir un conteneur par ID
+ *     tags: [Containers]
+ *     description: |
+ *       Récupère les détails complets d'un conteneur spécifique.
+ *       
+ *       **Authentification** : Non requise
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID du conteneur
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: ✅ Conteneur trouvé
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conteneur'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id', containerController.getById);
+
+/**
+ * @swagger
+ * /containers/{id}:
+ *   put:
+ *     summary: Mettre à jour un conteneur
+ *     tags: [Containers]
+ *     description: |
+ *       Modifie les propriétés d'un conteneur existant.
+ *       
+ *       **Authentification** : JWT requise
+ *       **Rôles autorisés** : admin, moderator
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConteneurUpdate'
+ *           example:
+ *             type_Dechet: papier
+ *             Statut: plein
+ *             capacite_i: 120
+ *     responses:
+ *       200:
+ *         description: ✅ Conteneur mis à jour
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Conteneur'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.put('/:id', authMiddleware, validate(UpdateContainerDTO), containerController.update);
+
+/**
+ * @swagger
+ * /containers/{id}:
+ *   delete:
+ *     summary: Supprimer un conteneur
+ *     tags: [Containers]
+ *     description: |
+ *       Supprime un conteneur et son historique associé (cascade).
+ *       
+ *       **Authentification** : JWT requise
+ *       **Rôles autorisés** : admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     responses:
+ *       204:
+ *         description: ✅ Conteneur supprimé (pas de contenu)
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.delete('/:id', authMiddleware, containerController.delete);
 
-// Historique de remplissage
+/**
+ * @swagger
+ * /containers/{id}/fill-history:
+ *   post:
+ *     summary: Enregistrer un relevé de remplissage
+ *     tags: [Fill History]
+ *     description: |
+ *       Ajoute un nouveau relevé de niveau de remplissage pour un conteneur.
+ *       
+ *       **Authentification** : JWT requise
+ *       **Rôles autorisés** : admin, technician, citizen
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FillHistoryCreate'
+ *           example:
+ *             niveau: 75
+ *     responses:
+ *       201:
+ *         description: ✅ Relevé enregistré
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FillHistory'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.post('/:id/fill-history', authMiddleware, validate(createFillHistoryDTO), containerController.addFillHistory);
+
+/**
+ * @swagger
+ * /containers/{id}/fill-history:
+ *   get:
+ *     summary: Récupérer l'historique de remplissage
+ *     tags: [Fill History]
+ *     description: |
+ *       Récupère l'historique complet des relevés de remplissage pour un conteneur.
+ *       
+ *       **Authentification** : Non requise (voir note sécurité)
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *       - name: days
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Nombre de jours à inclure (rétroactivement)
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *           maximum: 1000
+ *         description: Nombre maximum de relevés à retourner
+ *     responses:
+ *       200:
+ *         description: ✅ Historique récupéré
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/FillHistory'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id/fill-history', containerController.getFillHistory);
 
-// Photo
+/**
+ * @swagger
+ * /containers/{id}/photo:
+ *   post:
+ *     summary: Uploader une photo de conteneur
+ *     tags: [Photos]
+ *     description: |
+ *       Permet l'upload d'une image de conteneur (JPG, PNG, WebP).
+ *       
+ *       L'image est redimensionnée et optimisée au format WebP.
+ *       La taille maximale est contrôlée par \`MAX_PHOTO_SIZE_MB\` (.env).
+ *       
+ *       **Authentification** : JWT requise
+ *       **Rôles autorisés** : admin, moderator
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image du conteneur (JPG, PNG, WebP)
+ *             required:
+ *               - photo
+ *     responses:
+ *       200:
+ *         description: ✅ Photo uploadée avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 photo_url:
+ *                   type: string
+ *                   description: URL relative de la photo uploadée
+ *                   example: /uploads/conteneur-1709955930123.webp
+ *                 conteneurId:
+ *                   type: integer
+ *                   example: 1
+ *                 uploadedAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: ❌ Fichier manquant ou format invalide
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       413:
+ *         description: ❌ Fichier trop volumineux
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.post(
   '/:id/photo',
   authMiddleware,

@@ -6,7 +6,11 @@
 
 const PROXY_CONFIG = require('../config/proxy.config');
 
+const port = process.env.PORT || 3000;
+
 class GatewayService {
+
+  
   /**
    * Récupère la configuration complète du gateway
    */
@@ -16,9 +20,9 @@ class GatewayService {
       version: '1.0.0',
       description: 'Passerelle API principale pour tous les microservices EcoTrack',
       endpoints: {
-        documentation: 'http://localhost:3000/api-docs',
-        health: 'http://localhost:3000/health',
-        root: 'http://localhost:3000'
+        documentation: `http://localhost:${port}/api-docs`,
+        health: `http://localhost:${port}/health`,
+        root: `http://localhost:${port}`
       },
       services: this.getServicesInfo()
     };
@@ -33,7 +37,7 @@ class GatewayService {
     Object.entries(PROXY_CONFIG).forEach(([key, config]) => {
       services[key] = {
         description: config.description,
-        baseUrl: `http://localhost:3000${config.routes[0]}`,
+        baseUrl: `http://localhost:${port}${config.routes[0]}`,
         targetUrl: config.url,
         routes: config.routes,
         docs: this.getServiceDocUrl(key)
@@ -48,8 +52,8 @@ class GatewayService {
    */
   getServiceDocUrl(serviceName) {
     const docPorts = {
-      users: 3002,
-      containers: 3001
+      users: `${process.env.USERS_SERVICE_PORT || 3011}`,
+      containers: `${process.env.CONTAINERS_SERVICE_PORT || 3012}`
     };
     return `http://localhost:${docPorts[serviceName]}/api-docs`;
   }
