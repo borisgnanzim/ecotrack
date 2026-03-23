@@ -104,7 +104,7 @@ const options = {
       }
     }
   },
-  apis: [] // Pas de fichiers routes à scanner (le gateway est un proxy)
+  apis: ['./src/routes/**/*.js'] // Pas de fichiers routes à scanner (le gateway est un proxy)
 };
 
 const swaggerSpec = swaggerJsdoc(options);

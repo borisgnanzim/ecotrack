@@ -25,6 +25,7 @@
     "helmet": "^8.1.0",
     "http-proxy-middleware": "^2.0.9",
     "ioredis": "^5.9.3",
+    "jsonwebtoken": "^9.0.3",
     "redis": "^4.6.13",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0"

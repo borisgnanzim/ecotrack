@@ -7,10 +7,50 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const router = express.Router();
 const PROXY_CONFIG = require('../config/proxy.config');
+const auth = require('../middlewares/auth.middleware');
+
 
 /**
- * Forward vers le service Users (Authentification)
- * POST /auth/login, POST /auth/register, etc.
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Connecter un utilisateur
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *     responses:
+ *       200:
+ *         description: Connexion réussie
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       401:
+ *         description: Identifiants incorrects
+ *
+ * /auth/register:
+ *   post:
+ *     summary: Inscrire un nouvel utilisateur
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *     responses:
+ *       201:
+ *         description: Inscription réussie
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Données d'entrée invalides
  */
 router.use('/auth', createProxyMiddleware({
   target: PROXY_CONFIG.users.url,
@@ -29,10 +69,49 @@ router.use('/auth', createProxyMiddleware({
 }));
 
 /**
- * Forward vers le service Users (Gestion Utilisateurs)
- * GET /users/profile, PUT /users/profile, etc.
+ * @swagger
+ * /users/profile:
+ *   get:
+ *     summary: Récupérer le profil de l'utilisateur connecté
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profil de l'utilisateur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Non autorisé
+ *   put:
+ *     summary: Mettre à jour le profil de l'utilisateur connecté
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstname: { type: 'string' }
+ *               lastname: { type: 'string' }
+ *     responses:
+ *       200:
+ *         description: Profil mis à jour
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Données d'entrée invalides
+ *       401:
+ *         description: Non autorisé
  */
-router.use('/users', createProxyMiddleware({
+router.use('/users', auth, createProxyMiddleware({
   target: PROXY_CONFIG.users.url,
   changeOrigin: true,
   pathRewrite: {
@@ -49,10 +128,40 @@ router.use('/users', createProxyMiddleware({
 }));
 
 /**
- * Forward vers le service Users (Notifications)
- * GET /notifications, PUT /notifications/:id/read, etc.
+ * @swagger
+ * /notifications:
+ *   get:
+ *     summary: Récupérer les notifications de l'utilisateur
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des notifications
+ *       401:
+ *         description: Non autorisé
+ *
+ * /notifications/{id}/read:
+ *   put:
+ *     summary: Marquer une notification comme lue
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Notification marquée comme lue
+ *       401:
+ *         description: Non autorisé
+ *       404:
+ *         description: Notification non trouvée
  */
-router.use('/notifications', createProxyMiddleware({
+router.use('/notifications', auth, createProxyMiddleware({
   target: PROXY_CONFIG.users.url,
   changeOrigin: true,
   pathRewrite: {
@@ -94,10 +203,72 @@ router.use(
 );
 
 /**
- * Forward vers le service Containers
- * GET /containers, POST /containers, GET /containers/:id, etc.
+ * @swagger
+ * /containers:
+ *   get:
+ *     summary: Récupérer la liste des conteneurs
+ *     tags: [Containers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des conteneurs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Container'
+ *       401:
+ *         description: Non autorisé
+ *   post:
+ *     summary: Créer un nouveau conteneur
+ *     tags: [Containers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Container'
+ *     responses:
+ *       201:
+ *         description: Conteneur créé
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Container'
+ *       400:
+ *         description: Données d'entrée invalides
+ *       401:
+ *         description: Non autorisé
+ *
+ * /containers/{id}:
+ *   get:
+ *     summary: Récupérer les détails d'un conteneur
+ *     tags: [Containers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Détails du conteneur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Container'
+ *       401:
+ *         description: Non autorisé
+ *       404:
+ *         description: Conteneur non trouvé
  */
-router.use('/containers', createProxyMiddleware({
+router.use('/containers', auth, createProxyMiddleware({
   target: PROXY_CONFIG.containers.url,
   changeOrigin: true,
   pathRewrite: {

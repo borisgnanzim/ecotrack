@@ -1,8 +1,10 @@
+nbr_workers = process.env.CLUSTER_WORKERS || 2;
+
 module.exports = {
   apps: [{
     name: 'ecotrack-api-gateway',
     script: 'server.js',
-    instances: 'max',
+    instances: nbr_workers,
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'development'
