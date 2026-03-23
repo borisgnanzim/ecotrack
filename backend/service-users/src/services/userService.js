@@ -11,6 +11,15 @@ class UserService {
   }
 
   /**
+   * Récupérer tous les utilisateurs avec pagination
+   * @param {object} options - { page, limit }
+   * @returns {Promise<Array>}
+   */
+  async getAllUsersWithPagination(options) {
+    return await User.findPaginated(options);
+  }
+
+  /**
    * Récupérer un utilisateur par ID
    * @param {string} id
    * @returns {Promise<object>}

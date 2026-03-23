@@ -24,6 +24,34 @@ router.get('/', userController.getAllUsers);
 
 /**
  * @openapi
+ * /users/with-pagination:
+ *   get:
+ *     summary: Récupère la liste des utilisateurs avec pagination
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Numéro de page par défaut 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Nombre d'utilisateurs par page par défaut 10
+ *     responses:
+ *       200:
+ *         description: Liste des utilisateurs avec pagination
+ */
+router.get('/with-pagination', userController.getAllUsersWithPagination);
+
+/**
+ * @openapi
  * /users/{id}:
  *  get:    
  *    summary: Récupère un utilisateur par son ID

@@ -64,6 +64,22 @@ class NotificationService {
 
     return await Notification.findByUserId(userId);
   }
+  /** 
+   * Récupérer toutes les notifications d'un utilisateur avec pagination
+   * @param {object} options - { page, limit }
+   * @param {string} userId
+   * @returns {Promise<Array>}
+   */
+  async getNotificationsWithPagination(userId, options) {
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new ValidationError({ userId: 'Utilisateur non trouvé' });
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return await Notification.findByUserIdPaginated(userId, options);
+  }
 
   /**
    * Créer une notification

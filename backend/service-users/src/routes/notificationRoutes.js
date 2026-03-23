@@ -34,6 +34,50 @@ router.use(authMiddleware);
  */
 router.get('/', notificationController.getNotifications);
 
+
+/**
+ * @openapi
+ * /notifications/with-pagination:
+ *   get:
+ *     summary: Get authenticated user's notifications with pagination
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of notifications per page
+ *     responses:
+ *       200:
+ *         description: List of notifications with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Notification'
+ *                 total:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/with-pagination', notificationController.getNotificationsWithPagination);
+
 /**
  * @openapi
  * /notifications/{id}/read:

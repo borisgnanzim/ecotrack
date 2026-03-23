@@ -31,6 +31,39 @@ exports.getNotifications = async (req, res, next) => {
 };
 
 /**
+ * Récupérer les notifications de l'utilisateur connecté avec pagination
+ * GET /notifications?page=1&limit=10
+ */
+
+exports.getNotificationsWithPagination = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      const error = new ValidationError({ token: 'Token requis' });
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = authService.verifyToken(token);
+
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    const result = await notificationService.getNotifications(decoded.id, { page, limit });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Notifications récupérées avec succès',
+      ...result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
  * Marquer une notification comme lue
  * PUT /notifications/:id/read
  */

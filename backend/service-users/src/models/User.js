@@ -13,6 +13,28 @@ module.exports = {
   find: async () => {
     return prisma.user.findMany();
   },
+  findPaginated: async (options) => {
+    const { page = 1, limit = 10 } = options;
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const [data, total] = await prisma.$transaction([
+      prisma.user.findMany({
+        skip,
+        take,
+        include: { roles: true }
+      }),
+      prisma.user.count()
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  },
   findById: async (id) => {
     const user = await prisma.user.findUnique({ where: { id }, include: { roles: true } });
     return attachCompare(user);
