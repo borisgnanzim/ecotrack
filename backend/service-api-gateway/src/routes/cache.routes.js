@@ -46,14 +46,14 @@ router.delete('/cache', cacheController.clearCache.bind(cacheController));
  *   delete:
  *     summary: Vider le cache par pattern
  *     tags: [Cache]
- *     description: Supprime les éléments du cache qui matchent un pattern (ex: containers:*)
+ *     description: Supprime les éléments du cache qui matchent un pattern (containers:*)
  *     parameters:
  *       - in: path
  *         name: pattern
  *         required: true
  *         schema:
  *           type: string
- *         description: Pattern Redis (ex: containers:*, users:*)
+ *         description: Pattern Redis ( containers:*, users:*)
  *     responses:
  *       200:
  *         description: Cache pattern supprimé

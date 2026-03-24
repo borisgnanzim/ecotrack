@@ -284,4 +284,42 @@ router.use('/containers', auth, createProxyMiddleware({
   }
 }));
 
+/**
+ * @swagger
+ * /routes:
+ *   get:
+ *     summary: Récupérer la liste des routes
+ *     tags: [Routes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des routes
+  *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Route'
+ *       401:
+ *         description: Non autorisé
+ */
+
+router.use('/routes', auth, createProxyMiddleware({
+  target: PROXY_CONFIG.routes.url,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/routes': '/routes'
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy Error - Routes Service:', err);
+    res.status(503).json({
+      error: 'Service Routes indisponible',
+      statusCode: 503,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+
 module.exports = router;
