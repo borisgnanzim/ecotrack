@@ -11,15 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-<<<<<<< HEAD
-// app.use("/api", routes); 
-
-app.use(routes);
-const PORT = process.env.PORT || 3013;
-
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./swagger/swagger");
-=======
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -31,7 +22,6 @@ app.get("/health", (req, res) => {
 
 app.use("/routes", routes);
 app.use("/api/routes", routes);
->>>>>>> 4beda22 (feat optimisation)
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
