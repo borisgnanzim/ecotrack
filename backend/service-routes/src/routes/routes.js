@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/routesController");
 
-router.post("/routes", controller.createRoute);
-router.get("/routes", controller.getRoutes);
-router.get("/routes/:id", controller.getRoute);
-router.put("/routes/:id", controller.updateRoute);
-router.delete("/routes/:id", controller.deleteRoute);
+router.post("/", controller.createRoute);
+router.get("/", controller.getRoutes);
+router.get("/:id", controller.getRoute);
+router.put("/:id", controller.updateRoute);
+router.delete("/:id", controller.deleteRoute);
 
-router.put("/routes/:id/assign", controller.assignAgent);
-router.get("/routes/agent/:agentId", controller.getAgentRoutes);
+router.put("/:id/assign", controller.assignAgent);
+router.get("/agent/:agentId", controller.getAgentRoutes);
 
 module.exports = router;
