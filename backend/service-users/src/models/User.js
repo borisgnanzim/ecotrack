@@ -107,5 +107,14 @@ module.exports = {
       },
       include: { roles: true }
     });
+  },
+  findByRole: async (roleName) => {
+    const role = await prisma.role.findUnique({ where: { name: roleName } });
+    if (!role) throw new Error(`Role ${roleName} not found`);
+    
+    return prisma.user.findMany({
+      where: { roles: { some: { id: role.id } } },
+      include: { roles: true }
+    });
   }
 }; 

@@ -1,14 +1,19 @@
 require('dotenv').config();
 const { connectDb } = require('./src/config/postgres');
+const { initializeKafka, setupKafkaShutdown } = require('./kafka/init.js');
 const app = require('./app');
 
 const port = process.env.PORT || 3000;
 
 async function startServer() {
   try {
+    // Initialiser Kafka
+    await initializeKafka();
+    setupKafkaShutdown();
+
     await connectDb(); // Wait DB connection before listening
     app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
+      console.log(`✅ Service Users running on port ${port}`);
     });
   } catch (err) {
     console.error('Impossible de démarrer le serveur, la connexion à la BD a échoué.', err);

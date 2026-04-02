@@ -104,4 +104,28 @@ router.put('/:id',  userController.updateUser);
  */
 router.delete('/:id', userController.deleteUser);
 
+/**
+ * @openapi
+ * /users/role/{roleName}:
+ *   get:
+ *     summary: Récupère les utilisateurs par rôle
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: roleName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nom du rôle
+ *     responses:
+ *       200:
+ *         description: Liste des utilisateurs par rôle
+ */
+
+router.get('/role/:roleName', userController.getUsersByRole);
+
+
 module.exports = router;

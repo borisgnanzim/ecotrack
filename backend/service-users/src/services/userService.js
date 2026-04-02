@@ -130,6 +130,22 @@ class UserService {
   async updateRoles(userId, roleNames) {
     return await User.updateRoles(userId, roleNames);
   }
+
+  
+  /**
+   * Récupérer les utilisateurs par rôle
+   * @param {string} roleName
+   * @returns {Promise<Array>}
+   */
+  
+  async getUsersByRole(roleName) {
+    if (!roleName) {
+      const error = new ValidationError({ role: 'Le nom du rôle est requis' });
+      error.statusCode = 400;
+      throw error;
+    }
+    return await User.findByRole(roleName);
+  }
 }
 
 module.exports = new UserService();

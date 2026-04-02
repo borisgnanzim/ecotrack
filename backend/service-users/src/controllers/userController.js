@@ -111,4 +111,20 @@ exports.deleteUser = async (req, res, next) => {
     }
 };
 
+/**
+ * Récupérer les utilisateurs par rôle
+ * GET /users/role/:roleName
+ */
+exports.getUsersByRole = async (req, res, next) => {
+    try {
+        const users = await userService.getUsersByRole(req.params.roleName);
+        res.status(200).json({
+            success: true,
+            data: users
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 

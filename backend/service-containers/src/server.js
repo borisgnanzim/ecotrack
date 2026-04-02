@@ -3,6 +3,7 @@ import app from "./app.js";
 import { Server } from "socket.io";
 import prisma from "./prisma/client.js";
 import { initializeContainerSockets } from "./sockets/container.socket.js";
+import { initializeKafka, setupKafkaShutdown } from "../kafka/init.js";
 
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -18,6 +19,10 @@ initializeContainerSockets();
 
 const startServer = async () => {
   try {
+    // Initialiser Kafka
+    await initializeKafka();
+    setupKafkaShutdown();
+
     // Connexion à la DB
     await prisma.$connect();
     console.log(`✅ Database connectée (${NODE_ENV})`);
