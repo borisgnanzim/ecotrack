@@ -1,46 +1,35 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { initializeKafka, setupKafkaShutdown } = require("../kafka/init.js");
-const { initializeRoutesSubscriber } = require("../kafka/subscribers/routeSubscriber.js");
 
 const routes = require("./routes/routes.js");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./swagger/swagger");
+const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// app.use("/api", routes); 
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "service-routes",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
 
-app.use(routes);
-const PORT = process.env.PORT || 3013;
-
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./swagger/swagger");
+app.use("/routes", routes);
+app.use("/api/routes", routes);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-const server = app.listen(PORT, async () => {
-  try {
-    // Initialiser Kafka
-    await initializeKafka();
-    await initializeRoutesSubscriber();
-    setupKafkaShutdown();
-
-    console.log(`🚀 Routes service running on port ${PORT}`);
-  } catch (error) {
-    console.error('❌ Erreur au démarrage:', error.message);
-    process.exit(1);
-  }
+app.listen(PORT, () => {
+  console.log(`Routes service running on port ${PORT}`);
 });
 
-// Gestion des erreurs non interceptées
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason);
-  process.exit(1);
-});
+app.use(errorHandler);
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
+module.exports = app;
