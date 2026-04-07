@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { nearestNeighbor, twoOpt, distance } = require("../services/routeOptimizer");
 
 exports.createRoute = async (req, res) => {
   try {
@@ -134,6 +135,177 @@ exports.assignAgent = async (req, res) => {
     });
 
     res.json(route);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.optimizeRoute = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const route = await prisma.route.findUnique({
+      where: { id },
+      include: { steps: { include: { container: true } } },
+    });
+
+    if (!route) {
+      return res.status(404).json({ error: "Route non trouvée" });
+    }
+
+    const routeContainerIds = Array.isArray(route.containers_list) && route.containers_list.length > 0
+      ? route.containers_list
+      : route.steps.map((step) => step.container_id);
+
+    const criticalContainers = await prisma.container.findMany({
+      where: {
+        fill_level: {
+          gt: 80,
+        },
+      },
+    });
+
+    const criticalIds = criticalContainers.map((container) => container.id_conteneur);
+    const allContainerIds = Array.from(new Set([...routeContainerIds, ...criticalIds]));
+
+    if (!allContainerIds || allContainerIds.length === 0) {
+      return res.status(400).json({ error: "Aucun conteneur à optimiser" });
+    }
+
+    const containers = await prisma.container.findMany({
+      where: {
+        id_conteneur: { in: allContainerIds },
+      },
+    });
+
+    if (!containers || containers.length === 0) {
+      return res.status(400).json({ error: "Conteneurs introuvables pour cette route" });
+    }
+
+    const containerMap = new Map(containers.map((container) => [container.id_conteneur, container]));
+    const points = allContainerIds
+      .map((containerId) => containerMap.get(containerId))
+      .filter(Boolean)
+      .map((container) => ({
+        id: container.id_conteneur,
+        latitude: container.latitude ?? 0,
+        longitude: container.longitude ?? 0,
+        fill_level: container.fill_level ?? 0,
+      }));
+
+    if (points.length < 2) {
+      return res.status(200).json({ message: "Pas assez de points pour optimiser", route });
+    }
+
+    const initialRoute = nearestNeighbor(points);
+    const optimizedRoute = twoOpt(initialRoute);
+
+    const stepData = optimizedRoute.map((point, index) => ({
+      container_id: point.id,
+      step_order: index + 1,
+      distance_from_previous:
+        index === 0 ? null : parseFloat(distance(optimizedRoute[index - 1], point).toFixed(2)),
+    }));
+
+    const totalDistance = optimizedRoute.reduce((sum, point, index) => {
+      if (index === 0) return 0;
+      return sum + distance(optimizedRoute[index - 1], point);
+    }, 0);
+
+    const estimatedTime = Math.max(5, optimizedRoute.length * 5);
+
+    await prisma.routeStep.deleteMany({
+      where: { route_id: id },
+    });
+
+    await prisma.route.update({
+      where: { id },
+      data: {
+        total_distance: parseFloat(totalDistance.toFixed(2)),
+        estimated_time: estimatedTime,
+        containers_list: allContainerIds,
+        steps: {
+          create: stepData,
+        },
+      },
+    });
+
+    const updatedRoute = await prisma.route.findUnique({
+      where: { id },
+      include: {
+        steps: { include: { container: true } },
+        agent: true,
+      },
+    });
+
+    res.json({
+      route: updatedRoute,
+      critical_containers_added: criticalIds.some((cid) => !routeContainerIds.includes(cid)),
+      added_critical_containers: criticalIds.filter((cid) => !routeContainerIds.includes(cid)),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getRouteMap = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const route = await prisma.route.findUnique({
+      where: { id },
+      include: {
+        steps: { include: { container: true } },
+        agent: true,
+      },
+    });
+
+    if (!route) {
+      return res.status(404).json({ error: "Route non trouvée" });
+    }
+
+    const orderedSteps = [...route.steps].sort((a, b) => a.step_order - b.step_order);
+    const features = orderedSteps
+      .filter((step) => step.container && step.container.latitude != null && step.container.longitude != null)
+      .map((step) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [step.container.longitude, step.container.latitude],
+        },
+        properties: {
+          step_order: step.step_order,
+          container_id: step.container.id_conteneur,
+          fill_level: step.container.fill_level,
+          address: step.container.id_Zone,
+          status: route.status,
+        },
+      }));
+
+    const lineCoordinates = features.map((feature) => feature.geometry.coordinates);
+
+    const geojson = {
+      type: "FeatureCollection",
+      features: [
+        ...features,
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: lineCoordinates,
+          },
+          properties: {
+            route_id: route.id,
+            agent_id: route.agent_id,
+            status: route.status,
+            total_distance: route.total_distance,
+            estimated_time: route.estimated_time,
+          },
+        },
+      ],
+    };
+
+    res.json(geojson);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
