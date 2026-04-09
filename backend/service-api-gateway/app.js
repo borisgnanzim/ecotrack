@@ -6,7 +6,7 @@ const routes = require('./src/routes');
 const helmet = require('helmet');
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3010;
 
 const app = express();
 // use of helmet for security headers
@@ -30,7 +30,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'EcoTrack API Gateway',
   swaggerOptions: {
-    url: 'http://localhost:3000/api-docs'
+    url: 'http://localhost:3010/api-docs'
   }
 }));
 

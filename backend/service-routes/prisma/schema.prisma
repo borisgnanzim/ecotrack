@@ -7,66 +7,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String
+  name      String?
+  email     String   @unique
+  password  String
+  points    Int      @default(0)
+  address   String?
+  avatar    String?
+  badges    String[]
+  createdAt DateTime @default(now())
+}
+
+model Container {
+  id_conteneur    Int      @id @default(autoincrement())
+  type_Dechet     String
+  Statut          String?
+  id_Zone         String
+  capacite_i      Int?
+  code_containers Int      @unique
+  latitude        Float?
+  longitude       Float?
+  photo_url       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  fill_level      Int?     @default(0)
+}
+
+model Route {
+  id              String      @id @default(uuid())
+  date            DateTime
+  agent_id        Int?
+  total_distance  Float?
+  estimated_time  Int?
+  created_at      DateTime    @default(now())
+  containers_list Int[]       @default([])
+  status          RouteStatus @default(planned)
+  steps           RouteStep[]
+}
+
+model RouteStep {
+  id                     String @id @default(uuid())
+  route_id               String
+  container_id           Int
+  step_order             Int
+  distance_from_previous Float?
+  route                  Route  @relation(fields: [route_id], references: [id])
+}
+
 enum RouteStatus {
   planned
   in_progress
   completed
   cancelled
-}
-
-model User {
-  id            Int            @id @default(autoincrement())
-  username      String
-  name          String?
-  email         String         @unique
-  password      String
-  points        Int            @default(0)
-  address       String?
-  avatar        String?
-  badges        String[]
-  createdAt     DateTime       @default(now())
-  routes        Route[]
-}
-
-model Container {
-  id_conteneur    Int           @id @default(autoincrement())
-  type_Dechet     String
-  Statut          String?
-  id_Zone         String
-  capacite_i      Int?
-  code_containers Int           @unique
-
-  latitude        Float?
-  longitude       Float?
-  photo_url       String?
-
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  fill_level      Int?          @default(0)
-  steps           RouteStep[]
-}
-
-model Route {
-  id              String       @id @default(uuid())
-  date            DateTime
-  agent_id        Int?
-  agent           User?        @relation(fields: [agent_id], references: [id])
-  status          RouteStatus  @default(planned)
-  containers_list Int[]        @default([])
-  total_distance  Float?
-  estimated_time  Int?
-
-  steps           RouteStep[]
-  created_at      DateTime     @default(now())
-}
-
-model RouteStep {
-  id                     String    @id @default(uuid())
-  route_id               String
-  route                  Route     @relation(fields: [route_id], references: [id])
-  container_id           Int
-  container              Container @relation(fields: [container_id], references: [id_conteneur])
-  step_order             Int
-  distance_from_previous Float?
 }

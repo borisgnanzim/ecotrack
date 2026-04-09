@@ -2,7 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const cacheService = require('./src/services/cache.service');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3010;
 
 /**
  * Initialiser Redis et démarrer le serveur
