@@ -26,9 +26,9 @@ app.use("/api/routes", routes);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.listen(PORT, () => {
-  console.log(`Routes service running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Routes service running on port ${PORT}`);
+// });
 
 app.use(errorHandler);
 
