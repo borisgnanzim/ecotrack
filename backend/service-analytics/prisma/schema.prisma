@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== MODÈLES ANALYTICS ====================
+
+// Métriques agrégées par conteneur
+model ContainerMetrics {
+  id              Int       @id @default(autoincrement())
+  container_id    Int
+  date            DateTime  @default(now()) @db.Date
+  avg_fill_level  Float     @default(0)
+  max_fill_level  Int       @default(0)
+  min_fill_level  Int       @default(0)
+  collection_count Int      @default(0)
+  total_weight    Float     @default(0)
+  createdAt       DateTime  @default(now())
+
+  @@unique([container_id, date])
+  @@index([date])
+  @@index([container_id])
+}
+
+// Métriques agrégées par zone
+model ZoneMetrics {
+  id              Int       @id @default(autoincrement())
+  zone_id         String
+  date            DateTime  @default(now()) @db.Date
+  total_containers Int      @default(0)
+  critical_count  Int       @default(0)
+  avg_fill_level  Float     @default(0)
+  collection_count Int      @default(0)
+  total_weight    Float     @default(0)
+  createdAt       DateTime  @default(now())
+
+  @@unique([zone_id, date])
+  @@index([date])
+  @@index([zone_id])
+}
+
+// Métriques agrégées par agent
+model AgentMetrics {
+  id              Int       @id @default(autoincrement())
+  agent_id        Int
+  date            DateTime  @default(now()) @db.Date
+  routes_completed Int      @default(0)
+  routes_planned  Int       @default(0)
+  containers_collected Int @default(0)
+  total_distance  Float    @default(0)
+  total_time      Int      @default(0)
+  avg_fill_level  Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([agent_id, date])
+  @@index([date])
+  @@index([agent_id])
+}
+
+// Métriques quotidiennes globales
+model DailyMetrics {
+  id                      Int       @id @default(autoincrement())
+  date                    DateTime  @unique @db.Date
+  total_containers        Int       @default(0)
+  critical_containers     Int       @default(0)
+  total_collections       Int       @default(0)
+  total_weight            Float     @default(0)
+  active_routes           Int       @default(0)
+  completed_routes        Int       @default(0)
+  active_agents           Int       @default(0)
+  signalements_today      Int       @default(0)
+  avg_fill_level          Float     @default(0)
+  createdAt               DateTime  @default(now())
+
+  @@index([date])
+}
+
+// Historique des prédictions de remplissage
+model FillPrediction {
+  id              Int       @id @default(autoincrement())
+  container_id    Int
+  predicted_date  DateTime  @db.Date
+  predicted_fill  Int
+  actual_fill     Int?
+  weather_factor  Float     @default(0)
+  confidence      Float     @default(0)
+  model_version   String    @default("v1")
+  createdAt       DateTime  @default(now())
+
+  @@unique([container_id, predicted_date])
+  @@index([predicted_date])
+  @@index([container_id])
+}
+
+// Anomalies détectées
+model Anomaly {
+  id              Int       @id @default(autoincrement())
+  type            AnomalyType
+  severity        AnomalySeverity
+  container_id    Int?
+  sensor_id       String?
+  description     String
+  details         Json?
+  is_resolved     Boolean   @default(false)
+  resolved_at     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([type])
+  @@index([severity])
+  @@index([is_resolved])
+  @@index([createdAt])
+}
+
+enum AnomalyType {
+  sensor_failure
+  abnormal_fill_rate
+  missed_collection
+  route_deviation
+  equipment_failure
+}
+
+enum AnomalySeverity {
+  low
+  medium
+  high
+  critical
+}
+
+// Rapports générés
+model Report {
+  id              Int       @id @default(autoincrement())
+  type            ReportType
+  period          ReportPeriod
+  title           String
+  file_path       String?
+  file_format     FileFormat?
+  status          ReportStatus @default(pending)
+  generated_at    DateTime  @default(now())
+  sent_at         DateTime?
+  recipient_email String?
+  createdAt       DateTime  @default(now())
+
+  @@index([type])
+  @@index([period])
+  @@index([status])
+  @@index([generated_at])
+}
+
+enum ReportType {
+  daily
+  weekly
+  monthly
+  custom
+}
+
+enum ReportPeriod {
+  day
+  week
+  month
+  year
+}
+
+enum FileFormat {
+  pdf
+  excel
+  csv
+  json
+}
+
+enum ReportStatus {
+  pending
+  generating
+  completed
+  sent
+  failed
+}
+
+// KPIs stockés
+model KPI {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  value           Float
+  unit            String?
+  category        String?
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+
+  @@index([category])
+}
+
+// Configuration du dashboard
+model DashboardConfig {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  config      Json
+  is_default  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
