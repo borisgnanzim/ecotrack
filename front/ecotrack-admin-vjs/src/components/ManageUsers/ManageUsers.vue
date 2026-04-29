@@ -15,7 +15,7 @@
           Gestion des utilisateurs
         </h2>
 
-        <button class="btn-primary">
+        <button class="btn-primary" @click="openCreate">
           + Ajouter un utilisateur
         </button>
       </div>
@@ -92,18 +92,81 @@
 
     </main>
 
+    <!-- CREATE / EDIT MODAL -->
+    <div v-if="showForm" class="modal-overlay">
+      <div class="modal animate-scaleIn">
+
+        <h2 class="modal-title">
+          {{ isEdit ? 'Modifier utilisateur' : 'Ajouter un utilisateur' }}
+        </h2>
+
+        <!-- AVATAR UPLOAD -->
+        <div class="flex justify-center mb-4">
+          <label class="avatar-upload">
+
+            <img
+              v-if="form.avatarPreview"
+              :src="form.avatarPreview"
+              class="avatar-big"
+            />
+
+            <div v-else class="avatar-big placeholder">
+              <i class="fa-solid fa-user"></i>
+            </div>
+
+            <input type="file" hidden @change="onFileChange" />
+          </label>
+        </div>
+
+        <div class="space-y-3">
+
+          <input class="input" v-model="form.firstname" placeholder="Prénom" />
+          <input class="input" v-model="form.lastname" placeholder="Nom" />
+          <input class="input" v-model="form.email" placeholder="Email" />
+
+          <select class="input" v-model="form.role">
+            <option disabled value="">Choisir un rôle</option>
+            <option>Admin</option>
+            <option>Agent</option>
+            <option>Citizen</option>
+          </select>
+
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-ghost" @click="closeForm">Annuler</button>
+
+          <button class="btn-primary" @click="submitUser">
+            {{ isEdit ? 'Modifier' : 'Créer' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+
     <!-- INSPECT MODAL -->
     <div v-if="showInspect" class="modal-overlay">
-      <div class="modal modal-sm animate-scaleIn inspect-modal">
+      <div class="modal animate-scaleIn inspect-modal">
 
-        <h2 class="modal-title">Utilisateur</h2>
+        <div class="text-center mb-4">
+
+          <img
+            v-if="selected.avatar"
+            :src="selected.avatar"
+            class="avatar-big mx-auto"
+          />
+
+          <div v-else class="avatar-big placeholder mx-auto">
+            {{ initials(selected.name) }}
+          </div>
+
+          <h2 class="modal-title mt-3">
+            {{ selected.name }}
+          </h2>
+
+        </div>
 
         <div class="inspect-content">
-
-          <div class="inspect-row">
-            <span>Nom</span>
-            <strong>{{ selected.name }}</strong>
-          </div>
 
           <div class="inspect-row">
             <span>Email</span>
@@ -117,7 +180,9 @@
 
           <div class="inspect-row">
             <span>Statut</span>
-            <strong>{{ selected.status }}</strong>
+            <strong :class="statusClass(selected.status)">
+              {{ selected.status }}
+            </strong>
           </div>
 
         </div>
@@ -177,28 +242,111 @@ export default {
     return {
 
       users: [
-        { id: 1, name: "Martin D.", email: "martin@mail.com", role: "Citizen", status: "ACTIVE" },
-        { id: 2, name: "Sarah L.", email: "sarah@mail.com", role: "Citizen", status: "ACTIVE" },
-        { id: 3, name: "Admin", email: "admin@mail.com", role: "Admin", status: "BANNED" },
+        { id: 1, name: "Martin D.", email: "martin@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
+        { id: 2, name: "Sarah L.", email: "sarah@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
+        { id: 3, name: "Admin", email: "admin@mail.com", role: "Admin", status: "BANNED", avatar: "" },
       ],
 
       showInspect: false,
       showBan: false,
+      showForm: false,
 
-      selected: null
+      isEdit: false,
+
+      selected: null,
+
+      form: {
+        id: null,
+        firstname: '',
+        lastname: '',
+        email: '',
+        role: '',
+        avatarPreview: ''
+      }
 
     }
   },
 
   methods: {
 
-    inspect(u) {
-      this.selected = u
-      this.showInspect = true
+    /* =========================
+       UI STATE
+    ========================= */
+
+    openCreate() {
+      this.isEdit = false
+      this.resetForm()
+      this.showForm = true
+    },
+
+    closeForm() {
+      this.showForm = false
+    },
+
+    resetForm() {
+      this.form = {
+        id: null,
+        firstname: '',
+        lastname: '',
+        email: '',
+        role: '',
+        avatarPreview: ''
+      }
+    },
+
+    /* =========================
+       CRUD USER
+    ========================= */
+
+    submitUser() {
+
+      const fullName = `${this.form.firstname} ${this.form.lastname}`.trim()
+
+      if (this.isEdit) {
+        const user = this.users.find(u => u.id === this.form.id)
+        if (!user) return
+
+        user.name = fullName
+        user.email = this.form.email
+        user.role = this.form.role
+        user.avatar = this.form.avatarPreview
+
+      } else {
+        this.users.push({
+          id: Date.now(),
+          name: fullName,
+          email: this.form.email,
+          role: this.form.role,
+          status: "ACTIVE",
+          avatar: this.form.avatarPreview
+        })
+      }
+
+      this.closeForm()
     },
 
     edit(u) {
-      console.log("edit user", u)
+      this.isEdit = true
+
+      this.form = {
+        id: u.id,
+        firstname: u.name?.split(' ')[0] || '',
+        lastname: u.name?.split(' ')[1] || '',
+        email: u.email,
+        role: u.role,
+        avatarPreview: u.avatar || ''
+      }
+
+      this.showForm = true
+    },
+
+    /* =========================
+       INSPECT / BAN
+    ========================= */
+
+    inspect(u) {
+      this.selected = u
+      this.showInspect = true
     },
 
     ban(u) {
@@ -207,6 +355,8 @@ export default {
     },
 
     confirmBan() {
+      if (!this.selected) return
+
       this.selected.status =
         this.selected.status === 'BANNED'
           ? 'ACTIVE'
@@ -215,15 +365,35 @@ export default {
       this.showBan = false
     },
 
+    /* =========================
+       UTILS UI
+    ========================= */
+
     statusClass(status) {
       return {
         ACTIVE: "status-active",
         BANNED: "status-banned"
-      }[status]
+      }[status] || ""
+    },
+
+    initials(name) {
+      if (!name) return "?"
+
+      return name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+    },
+
+    onFileChange(e) {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      this.form.avatarPreview = URL.createObjectURL(file)
     }
 
   }
-
 }
 </script>
 
@@ -513,5 +683,34 @@ export default {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+}
+
+/* AVATAR UPLOAD */
+.avatar-upload {
+  cursor: pointer;
+}
+
+.avatar-big {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: #059669;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.placeholder {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+/* SELECT */
+select.input {
+  background: white;
 }
 </style>
