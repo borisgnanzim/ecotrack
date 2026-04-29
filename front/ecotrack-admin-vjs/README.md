@@ -1,44 +1,46 @@
-# ecotrack-admin-vjs
+# 🌿 ECOTRACK — Frontend (Admin & Citizen)
 
-This template should help get you started developing with Vue 3 in Vite.
+ECOTRACK est une plateforme intelligente de gestion des déchets urbains.  
+Elle est composée de deux interfaces :
 
-## Recommended IDE Setup
+- 🧑‍💼 **ECOTRACK Admin** → gestion des conteneurs, tournées et agents  
+- 🌍 **ECOTRACK Citizen** → espace citoyen pour signalements et suivi
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+---
 
-## Recommended Browser Setup
+# 🟢 ECOTRACK Admin (Dashboard)
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+Interface d’administration permettant de superviser toute la logistique de collecte.
 
-## Customize configuration
+## 🚀 Fonctionnalités
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- 📦 Gestion des conteneurs (CRUD)
+- 🚛 Planification des tournées
+- 👷 Affectation des agents
+- 📊 Suivi du remplissage des conteneurs
+- ⚠️ Gestion des alertes (OK / ALERTE / URGENT)
+- 🧭 Dashboard de supervision global
 
-## Project Setup
+---
+
+## ⚙️ Installation
 
 ```sh
 npm install
-```
+  ```
+---
 
-### Compile and Hot-Reload for Development
-
+## Lancer le projet
 ```sh
 npm run dev
-```
+  ```
 
-### Compile and Minify for Production
-
+## URL par défaut :
 ```sh
-npm run build
-```
+http://localhost:5173
+  ```
 
-### Lint with [ESLint](https://eslint.org/)
-
+## Port configurable via .env :
 ```sh
-npm run lint
-```
+VITE_APP_PORT_ADMIN=5173
+  ```
