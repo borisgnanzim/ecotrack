@@ -8,10 +8,10 @@
 ## Architecture
 
 ### Frontend
-- **ecotrack-front** — application citoyenne (signalement, participation)  
-  → `http://localhost:3000`
-- **ecotrack-admin** — application de gestion et d'administration des conteneurs  
-  → `http://localhost:3001`
+- **ecotrack-citoyen-vjs** — application citoyenne (signalement, participation)  
+  → `http://localhost:5174`
+- **ecotrack-admin-vjs** — application de gestion et d'administration des conteneurs  
+  → `http://localhost:5173`
 
 ### Backend (Microservices)
 - **service-api-gateway** — Passerelle API pour router les requêtes vers les services internes  

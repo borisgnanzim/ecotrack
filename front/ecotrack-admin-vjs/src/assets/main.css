@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import './base.css';
+
+.logo {
+  height: 40px;
+  width: 40px;
+  object-fit: contain;
+
+  /* Glow blanc subtil */
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+
+  /* optionnel : petit relief */
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+}

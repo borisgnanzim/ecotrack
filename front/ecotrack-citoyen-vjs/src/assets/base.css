@@ -1,0 +1,40 @@
+:root {
+  /* 🎨 Palette ECOTRACK */
+  --color-primary: #059669; /* vert principal */
+  --color-primary-light: #34d399;
+  --color-secondary: #0f172a; /* dark slate */
+  --color-background: #f1f5f9; /* fond global */
+  --color-surface: #ffffff; /* cartes */
+  --color-text: #1e293b;
+  --color-muted: #64748b;
+  --color-danger: #ef4444;
+
+  /* 🌫️ effets */
+  --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+/* 🌍 Body global */
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ✨ titres */
+h1,
+h2,
+h3 {
+  font-weight: 600;
+}
+
+/* 🧩 boutons globaux */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 🧼 inputs propres */
+input {
+  transition: all 0.2s ease;
+}
