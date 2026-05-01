@@ -118,13 +118,13 @@ PM2 lance chaque service en mode cluster (multi-instances pour utiliser tous les
 
 ### 5. Lancer les frontends (optionnel)
 ```bash
-cd front/ecotrack-front
+cd front/ecotrack-citoyen-vjs
 npm install
-npm run dev  # → http://localhost:3000
+npm run dev  # → http://localhost:5174
 
-cd ../ecotrack-admin
+cd ../ecotrack-admin-vjs
 npm install
-npm run dev  # → http://localhost:3001
+npm run dev  # → http://localhost:5173
 ```
 
 ---
@@ -161,6 +161,3 @@ Consultez le dossier `docs/` pour une documentation détaillée :
 - **[API](docs/api.md)** : Endpoints et utilisation des APIs
 - **[Sécurité](docs/security.md)** : Mesures de protection implémentées
 - **[Performance](docs/performance.md)** : Optimisations et benchmarks
-
-
-
