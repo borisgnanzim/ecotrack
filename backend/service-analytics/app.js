@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { swaggerUi, specs } = require('./swagger');
 
 const app = express();
 
@@ -9,6 +10,12 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Analytics API Docs'
+}));
 
 // Import des routes
 const metricsRoutes = require('./src/routes/metrics');
@@ -31,6 +38,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Service Analytics EcoTrack',
     version: '1.0.0',
+    documentation: '/api-docs',
     endpoints: {
       metrics: '/analytics/metrics',
       kpis: '/analytics/kpis',
