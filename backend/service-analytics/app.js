@@ -32,22 +32,22 @@ app.get('/', (req, res) => {
     message: 'Service Analytics EcoTrack',
     version: '1.0.0',
     endpoints: {
-      metrics: '/api/analytics/metrics',
-      kpis: '/api/analytics/kpis',
-      dashboard: '/api/analytics/dashboard',
-      reports: '/api/analytics/reports',
-      predictions: '/api/analytics/predictions',
-      anomalies: '/api/analytics/anomalies'
+      metrics: '/analytics/metrics',
+      kpis: '/analytics/kpis',
+      dashboard: '/analytics/dashboard',
+      reports: '/analytics/reports',
+      predictions: '/analytics/predictions',
+      anomalies: '/analytics/anomalies'
     }
   });
 });
 
 // Routes API
-app.use('/api/analytics', metricsRoutes);
-app.use('/api/analytics', dashboardRoutes);
-app.use('/api/analytics', reportsRoutes);
-app.use('/api/analytics', predictionsRoutes);
-app.use('/api/analytics', anomaliesRoutes);
+app.use('/analytics', metricsRoutes);
+app.use('/analytics', dashboardRoutes);
+app.use('/analytics', reportsRoutes);
+app.use('/analytics', predictionsRoutes);
+app.use('/analytics', anomaliesRoutes);
 
 // Gestion des erreurs
 app.use((err, req, res, next) => {

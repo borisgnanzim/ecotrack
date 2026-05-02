@@ -321,5 +321,44 @@ router.use('/routes', auth, createProxyMiddleware({
   }
 }));
 
+// Service Analytics
+
+/**
+ * @swagger
+ * /analytics:
+ *   get:
+ *     summary: Récupérer les rapports d'analyses
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Rapports d'analyses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/AnalyticsReport'
+ *       401:
+ *         description: Non autorisé  
+ */
+
+router.use('/analytics', auth, createProxyMiddleware({
+  target: PROXY_CONFIG.analytics.url,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/analytics': '/analytics'
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy Error - Analytics Service:', err);
+    res.status(503).json({
+      error: 'Service Analytics indisponible',
+      statusCode: 503,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
 
 module.exports = router;
