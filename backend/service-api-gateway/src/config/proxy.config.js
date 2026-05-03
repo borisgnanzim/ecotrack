@@ -18,6 +18,11 @@ const PROXY_CONFIG = {
     url: process.env.ROUTES_SERVICE_URL || 'http://localhost:3013',
     description: 'Service de gestion des routes',
     routes: ['/routes']
+  },
+  analytics: {
+    url: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3014',
+    description: 'Service de gestion des analyses et rapports',
+    routes: ['/analytics']
   }
 };
 

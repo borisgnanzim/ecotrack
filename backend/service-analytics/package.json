@@ -22,9 +22,12 @@
     "pdfkit": "^0.15.0",
     "exceljs": "^4.4.0",
     "json2csv": "^6.0.0-alpha.2",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "nodemon": "^3.0.2"
   }
 }

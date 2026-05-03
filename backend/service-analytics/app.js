@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { swaggerUi, specs } = require('./swagger');
 
 const app = express();
 
@@ -9,6 +10,12 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Analytics API Docs'
+}));
 
 // Import des routes
 const metricsRoutes = require('./src/routes/metrics');
@@ -31,23 +38,24 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Service Analytics EcoTrack',
     version: '1.0.0',
+    documentation: '/api-docs',
     endpoints: {
-      metrics: '/api/analytics/metrics',
-      kpis: '/api/analytics/kpis',
-      dashboard: '/api/analytics/dashboard',
-      reports: '/api/analytics/reports',
-      predictions: '/api/analytics/predictions',
-      anomalies: '/api/analytics/anomalies'
+      metrics: '/analytics/metrics',
+      kpis: '/analytics/kpis',
+      dashboard: '/analytics/dashboard',
+      reports: '/analytics/reports',
+      predictions: '/analytics/predictions',
+      anomalies: '/analytics/anomalies'
     }
   });
 });
 
 // Routes API
-app.use('/api/analytics', metricsRoutes);
-app.use('/api/analytics', dashboardRoutes);
-app.use('/api/analytics', reportsRoutes);
-app.use('/api/analytics', predictionsRoutes);
-app.use('/api/analytics', anomaliesRoutes);
+app.use('/analytics', metricsRoutes);
+app.use('/analytics', dashboardRoutes);
+app.use('/analytics', reportsRoutes);
+app.use('/analytics', predictionsRoutes);
+app.use('/analytics', anomaliesRoutes);
 
 // Gestion des erreurs
 app.use((err, req, res, next) => {
