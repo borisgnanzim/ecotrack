@@ -79,16 +79,34 @@ export default {
       this.error = ''
       this.loading = true
 
+      // Validation
+      if (!this.form.username || !this.form.email || !this.form.password) {
+        this.error = 'Tous les champs sont requis'
+        this.loading = false
+        return
+      }
+
       try {
-        await authService.registerUser(this.form)
+        await authService.registerUser({
+          name: this.form.username,
+          email: this.form.email,
+          password: this.form.password,
+        })
+
         this.toast.success("Compte créé avec succès !")
-        // Redirection vers login
+
         this.$router.push('/login')
 
       } catch (err) {
         console.log('Erreur inscription :', err)
-        this.error = "Erreur lors de l'inscription"
-        this.toast.error("Erreur lors de l'inscription")
+
+        const message =
+          err.response?.data?.message ||
+          "Erreur lors de l'inscription"
+
+        this.error = message
+        this.toast.error(message)
+
       } finally {
         this.loading = false
       }

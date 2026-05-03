@@ -71,12 +71,14 @@
 
 <script>
 import authService from '@/services/authentication/authService'
+import { useToast } from 'vue-toastification'
 
 export default {
   name: 'LoginPage',
 
   data() {
     return {
+      toast: useToast(),
       form: {
         email: '',
         password: '',
@@ -97,6 +99,7 @@ export default {
 
       try {
         const res = await authService.loginUser(this.form)
+        this.toast.success("Connexion réussie")
 
         // Stockage du token
         localStorage.setItem('token', res.data.token)
@@ -106,7 +109,13 @@ export default {
 
       } catch (err) {
         console.log('Erreur de connexion :', err)
-        this.error = 'Email ou mot de passe incorrect'
+
+        const message =
+          err.response?.data?.message ||
+          'Email ou mot de passe incorrect'
+
+        this.error = message
+        this.toast.error(message)
       } finally {
         this.loading = false
       }

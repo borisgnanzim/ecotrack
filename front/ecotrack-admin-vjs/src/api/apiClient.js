@@ -1,15 +1,16 @@
-// src/api/apiAuthentication.js
+// src/api/apiClient.js
 import axios from 'axios'
 
 // Base URL du back depuis les variables d'environnement
-const API_BACK_URL = import.meta.env.APP_BACK_API_SERVICE_AUTH
+const API_BACK_URL = import.meta.env.VITE_APP_BACK_API_GATEWAY
 
 // Instance Axios configurée pour l'API
 const apiClient = axios.create({
+  // à enlever /api si c'est juste POST /auth/login par exemple
   baseURL: `${API_BACK_URL}/api`, // l'URL de l'API backend
   headers: {
-    'Content-Type': 'application/ld+json', // Pour l'envoi de données, on met le type qui est bien mentionné dans notre API (interface)
-    Accept: 'application/ld+json',
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
 })
 

@@ -1,5 +1,7 @@
 // src/services/container/containerService.js
-import apiContainer from "../../api/apiContainer.js"
+import apiClient from "@/api/apiClient.js"
+
+const BASE_URL =''
 
 export default {
 
@@ -8,7 +10,7 @@ export default {
    */
   async getAll(params = {}) {
     try {
-      const { data } = await apiContainer.get("/containers", { params })
+      const { data } = await apiClient.get("/containers", { params })
       return data
     } catch (error) {
       console.error("containerService.getAll error:", error)
@@ -21,7 +23,7 @@ export default {
    */
   async getById(id) {
     try {
-      const { data } = await apiContainer.get(`/containers/${id}`)
+      const { data } = await apiClient.get(`/containers/${id}`)
       return data
     } catch (error) {
       console.error("containerService.getById error:", error)
@@ -34,7 +36,7 @@ export default {
    */
   async create(payload) {
     try {
-      const { data } = await apiContainer.post("/containers", payload)
+      const { data } = await apiClient.post("/containers", payload)
       return data
     } catch (error) {
       console.error("containerService.create error:", error)
@@ -47,7 +49,7 @@ export default {
    */
   async update(id, payload) {
     try {
-      const { data } = await apiContainer.put(`/containers/${id}`, payload)
+      const { data } = await apiClient.put(`/containers/${id}`, payload)
       return data
     } catch (error) {
       console.error("containerService.update error:", error)
@@ -60,7 +62,7 @@ export default {
    */
   async remove(id) {
     try {
-      const { data } = await apiContainer.delete(`/containers/${id}`)
+      const { data } = await apiClient.delete(`/containers/${id}`)
       return data
     } catch (error) {
       console.error("containerService.remove error:", error)

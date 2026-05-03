@@ -8,7 +8,7 @@ Document technique à destination des développeurs frontend.
 
 ```
 ┌─────────────────────────────┐
-│   Frontend (Next.js)        │
+│   Frontend (VueJS)        │
 └──────────────┬──────────────┘
                │
                ▼
