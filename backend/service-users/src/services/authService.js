@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { prisma } = require('../config/postgres');
 const ValidationError = require('../dto/ValidationError');
-const { lowercase } = require('zod');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 const JWT_EXPIRES_IN = '1h';
@@ -60,8 +59,9 @@ class AuthService {
       throw error;
     }
 
-    const username = lowercase(`${firstname}${lastname}`.replace(/\s+/g, ''));
+    const username = `${firstname}${lastname}`.replace(/\s+/g, '').toLowerCase();
     const name = `${firstname} ${lastname}`.trim();
+    //console.log(typeof(username), username);
 
     // Créer l'utilisateur
     const user = await User.create({ username, email, password, name });
