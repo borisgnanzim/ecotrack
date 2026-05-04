@@ -233,6 +233,8 @@
 <script>
 import BackButton from "@/components/BackButton.vue"
 import AppHeader from "@/components/AppHeader/AppHeader.vue"
+import userService from "@/services/manageusers/userService";
+import { useToast } from "vue-toastification"
 
 export default {
 
@@ -240,12 +242,14 @@ export default {
 
   data() {
     return {
+      toast: useToast(),
 
       users: [
         { id: 1, name: "Martin D.", email: "martin@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
         { id: 2, name: "Sarah L.", email: "sarah@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
         { id: 3, name: "Admin", email: "admin@mail.com", role: "Admin", status: "BANNED", avatar: "" },
       ],
+      myUsers: [],
 
       showInspect: false,
       showBan: false,
@@ -254,6 +258,7 @@ export default {
       isEdit: false,
 
       selected: null,
+      error: '',
 
       form: {
         id: null,
@@ -267,7 +272,25 @@ export default {
     }
   },
 
+  mounted(){
+    this.fetchAllUsers()
+  },
+
   methods: {
+
+    async fetchAllUsers(){
+      try {
+        const response =  await userService.getAll()
+        this.myUsers = response.data
+      } catch (err){
+        const message =
+          err.response?.data?.message ||
+          "Erreur lors de la récupération"
+
+        this.error = message
+        this.toast.error(message)
+      }
+    },
 
     /* =========================
        UI STATE

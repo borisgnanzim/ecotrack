@@ -318,6 +318,7 @@ export default {
     return {
 
       containers: [],
+      ourContainers: [],
       loading: true,
 
       showCreate: false,
@@ -347,9 +348,24 @@ export default {
 
   mounted() {
     this.fetchContainers()
+    this.fetchAllContainers()
   },
 
   methods: {
+
+    async fetchAllContainers(){
+      try {
+        const response =  await containerService.getAll()
+        this.ourContainers = response.data
+      } catch (err){
+        const message =
+          err.response?.data?.message ||
+          "Erreur lors de l'inscription"
+
+        this.error = message
+        this.toast.error(message)
+      }
+    },
 
     fetchContainers() {
       setTimeout(() => {

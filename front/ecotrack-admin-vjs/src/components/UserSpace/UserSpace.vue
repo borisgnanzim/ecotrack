@@ -103,44 +103,44 @@
 
       </section>
 
-    </main>
+      <!-- MODAL LOGOUT -->
+      <div v-if="showLogout" class="modal-overlay">
 
-  </div>
+        <div class="modal-logout animate-pop">
 
-  <!-- MODAL LOGOUT -->
-  <div v-if="showLogout" class="modal-overlay">
+          <div class="text-center space-y-3">
 
-    <div class="modal-logout animate-pop">
+            <div class="text-red-500 text-3xl">
+              <i class="ri-logout-circle-line"></i>
+            </div>
 
-      <div class="text-center space-y-3">
+            <h3 class="text-lg font-semibold">
+              Déconnexion
+            </h3>
 
-        <div class="text-red-500 text-3xl">
-          <i class="ri-logout-circle-line"></i>
+            <p class="text-sm text-slate-500">
+              Voulez-vous vraiment quitter votre session ?
+            </p>
+
+          </div>
+
+          <div class="flex justify-center gap-3 mt-6">
+
+            <button class="btn-ghost" @click="showLogout = false">
+              Annuler
+            </button>
+
+            <button class="btn-danger" @click="logout">
+              Oui, se déconnecter
+            </button>
+
+          </div>
+
         </div>
 
-        <h3 class="text-lg font-semibold">
-          Déconnexion
-        </h3>
-
-        <p class="text-sm text-slate-500">
-          Voulez-vous vraiment quitter votre session ?
-        </p>
-
       </div>
 
-      <div class="flex justify-center gap-3 mt-6">
-
-        <button class="btn-ghost" @click="showLogout = false">
-          Annuler
-        </button>
-
-        <button class="btn-danger" @click="logout">
-          Oui, se déconnecter
-        </button>
-
-      </div>
-
-    </div>
+    </main>
 
   </div>
 </template>
@@ -148,6 +148,8 @@
 <script>
 import BackButton from "@/components/BackButton.vue"
 import AppHeader from "@/components/AppHeader/AppHeader.vue"
+import { logout } from "@/services/authStorage";
+import authStorage from "@/services/authStorage";
 
 export default {
 
@@ -184,9 +186,15 @@ export default {
 
   mounted() {
     this.initForm()
+    this.getRoles()
   },
 
   methods: {
+    // Roles de l'utilisateur
+    async getRoles() {
+      const roles = await authStorage.getRoles()
+      console.log("les roles : ", roles)
+    },
 
     initForm() {
       this.form = { ...this.user }
@@ -221,8 +229,7 @@ export default {
     },
 
     logout() {
-      // clear futur auth
-      localStorage.removeItem("token")
+      logout()
 
       this.showLogout = false
 

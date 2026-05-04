@@ -140,7 +140,6 @@ export default {
         this.$router.push('/login')
 
       } catch (err) {
-        console.log('Erreur inscription :', err)
 
         const message =
           err.response?.data?.message ||

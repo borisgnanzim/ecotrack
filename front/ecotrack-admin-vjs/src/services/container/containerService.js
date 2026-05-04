@@ -5,7 +5,9 @@ export default {
 
   // Récupérer tous les containers
   async getAll() {
-    return await apiClient.get('/containers')
+    const response = await apiClient.get('/containers')
+    console.log("LA réponse backend contain ", response)
+    return response
   },
 
   // Créer un container

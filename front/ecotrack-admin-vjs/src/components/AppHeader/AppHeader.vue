@@ -56,6 +56,8 @@
 
 <script>
 import { useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import authStorage from '@/services/authStorage';
 
 export default {
   name: "AppHeader",
@@ -64,10 +66,10 @@ export default {
 
     const route = useRoute()
 
-    const user = {
-      name: "Martin D.",
-      initials: "MD"
-    }
+    const user = ref({
+      name: '',
+      initials: ''
+    })
 
     const navItems = [
       { label: "Dashboard", path: "/dashboard" },
@@ -76,37 +78,49 @@ export default {
       { label: "Les tournées", path: "/manage-routes" }
     ]
 
-    const isActive = (path) => {
-      return route.path === path
-    }
+    const isActive = (path) => route.path === path
 
     const getTitle = () => {
       switch (route.path) {
-        case '/dashboard':
-          return 'ECOTRACK'
-        case '/contain-management':
-          return 'Gestion des conteneurs'
-        case '/user-management':
-          return 'Gestion des utilisateurs'
-        case '/manage-routes':
-          return 'Gestion des tournées'
-        default:
-          return 'ECOTRACK'
+        case '/dashboard': return 'ECOTRACK'
+        case '/contain-management': return 'Gestion des conteneurs'
+        case '/user-management': return 'Gestion des utilisateurs'
+        case '/manage-routes': return 'Gestion des tournées'
+        default: return 'ECOTRACK'
       }
     }
 
     const getSubtitle = () => {
       switch (route.path) {
-        case '/dashboard':
-          return 'Tableau de bord administrateur'
-        case '/contain-management':
-          return 'Suivi des conteneurs'
-        case '/user-management':
-          return 'Gestion des comptes utilisateurs'
-        default:
-          return ''
+        case '/dashboard': return 'Tableau de bord administrateur'
+        case '/contain-management': return 'Suivi des conteneurs'
+        case '/user-management': return 'Gestion des comptes utilisateurs'
+        default: return ''
       }
     }
+
+    const fetchProfile = async () => {
+      try {
+        const res = await authStorage.getProfile()
+        const userData = res.data || res
+
+        user.value.name = userData.name || 'Utilisateur'
+
+        user.value.initials = userData.name
+          ? userData.name
+              .split(' ')
+              .filter(Boolean)
+              .map(n => n[0])
+              .join('')
+              .toUpperCase()
+          : ''
+
+      } catch (err) {
+        console.log("Erreur profil :", err)
+      }
+    }
+
+    onMounted(fetchProfile)
 
     return {
       user,
