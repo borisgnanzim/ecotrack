@@ -41,6 +41,8 @@ const upload = multer({ storage });
  *     description: Upload et gestion des photos
  */
 
+router.get('/', containerController.getAll);
+
 /**
  * @swagger
  * /containers:
@@ -131,7 +133,6 @@ const upload = multer({ storage });
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/', containerController.getAll);
 router.post('/', authMiddleware, validate(CreateContainerDTO), containerController.create);
 
 /**
