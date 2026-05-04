@@ -16,13 +16,10 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:3002',
   'http://localhost:3003',
-<<<<<<< HEAD
-=======
   'http://localhost:3010',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:4173',
->>>>>>> 070a5ea91c7c2b78b4808dd7b7d34911c51dd6b7
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
