@@ -5,18 +5,47 @@
 
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const querystring = require('querystring');
 const router = express.Router();
 const PROXY_CONFIG = require('../config/proxy.config');
 const auth = require('../middlewares/auth.middleware');
+
+const proxyBodyWriter = (proxyReq, req) => {
+  if (!req.body || !Object.keys(req.body).length) return;
+
+  const contentType = proxyReq.getHeader('content-type') || '';
+  let bodyData;
+
+  if (contentType.includes('application/json')) {
+    bodyData = JSON.stringify(req.body);
+  } else if (contentType.includes('application/x-www-form-urlencoded')) {
+    bodyData = querystring.stringify(req.body);
+  }
+
+  if (!bodyData) return;
+
+  proxyReq.setHeader('content-length', Buffer.byteLength(bodyData));
+  proxyReq.write(bodyData);
+};
 
 
 /**
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Authentifier un utilisateur
- *     description: Permet à un utilisateur de se connecter en fournissant son email et mot de passe. Retourne un token JWT pour les requêtes authentifiées.
- *     tags: [Authentification]
+ *     summary: 🔐 Authentifier un utilisateur
+ *     description: |
+ *       Permet à un utilisateur de se connecter en fournissant son email et mot de passe.
+ *
+ *       **Processus d'authentification :**
+ *       1. Validation des identifiants
+ *       2. Vérification du compte (activé/non banni)
+ *       3. Génération d'un token JWT
+ *       4. Retour des informations utilisateur
+ *
+ *       Le token JWT doit être inclus dans toutes les requêtes suivantes :
+ *       `Authorization: Bearer <token>`
+ *     tags: [🔐 Authentification]
  *     requestBody:
  *       required: true
  *       content:
@@ -24,46 +53,91 @@ const auth = require('../middlewares/auth.middleware');
  *           schema:
  *             $ref: '#/components/schemas/LoginRequest'
  *           example:
- *             email: "user@example.com"
- *             password: "password123"
+ *             email: "john.doe@example.com"
+ *             password: "securePassword123"
  *     responses:
  *       200:
- *         description: Connexion réussie, retourne le token JWT et les informations utilisateur
+ *         description: ✅ Connexion réussie, retourne le token JWT et les informations utilisateur
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AuthResponse'
  *             example:
- *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGVzIjpbImNpdGl6ZW4iXSwiaWF0IjoxNjgzNTI4MDAwLCJleHAiOjE2ODM2MTQ0MDB9..."
  *               user:
  *                 id: 1
- *                 email: "user@example.com"
+ *                 email: "john.doe@example.com"
  *                 firstname: "John"
  *                 lastname: "Doe"
  *                 roles: ["citizen"]
+ *                 avatar: "https://api.ecotrack.com/uploads/avatars/1.webp"
  *                 createdAt: "2023-01-01T00:00:00.000Z"
+ *                 updatedAt: "2023-05-08T10:30:00.000Z"
+ *               message: "Connexion réussie"
  *       401:
- *         description: Identifiants incorrects ou compte non activé
+ *         description: ❌ Identifiants incorrects ou compte non activé
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalid_credentials:
+ *                 summary: Identifiants incorrects
+ *                 value:
+ *                   error: "Invalid credentials"
+ *                   statusCode: 401
+ *                   timestamp: "2023-05-08T10:30:00.000Z"
+ *                   path: "/auth/login"
+ *                   method: "POST"
+ *               account_disabled:
+ *                 summary: Compte désactivé
+ *                 value:
+ *                   error: "Account is disabled"
+ *                   statusCode: 401
+ *                   timestamp: "2023-05-08T10:30:00.000Z"
+ *                   path: "/auth/login"
+ *                   method: "POST"
+ *       400:
+ *         description: ❌ Données d'entrée invalides
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *             example:
- *               error: "Invalid credentials"
- *               statusCode: 401
- *               timestamp: "2023-01-01T00:00:00.000Z"
- *       400:
- *         description: Données d'entrée invalides
+ *               error: "Validation failed"
+ *               statusCode: 400
+ *               timestamp: "2023-05-08T10:30:00.000Z"
+ *               path: "/auth/login"
+ *               method: "POST"
+ *               details: ["email must be a valid email", "password must be at least 6 characters"]
+ *       429:
+ *         description: ⚠️ Trop de tentatives de connexion
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Too many login attempts"
+ *               statusCode: 429
+ *               timestamp: "2023-05-08T10:30:00.000Z"
+ *               retryAfter: 300
  *
- * /auth/register:
+ * /auth/register/citizen:
  *   post:
- *     summary: Inscrire un nouvel utilisateur
- *     description: Crée un nouveau compte utilisateur avec les informations fournies. L'utilisateur recevra un email de confirmation.
- *     tags: [Authentification]
+ *     summary: 👤 Inscrire un nouvel utilisateur
+ *     description: |
+ *       Crée un nouveau compte utilisateur avec les informations fournies.
+ *
+ *       **Processus d'inscription :**
+ *       1. Validation des données d'entrée
+ *       2. Vérification de l'unicité de l'email
+ *       3. Création du compte utilisateur
+ *       4. Attribution du rôle par défaut "citizen"
+ *       5. Envoi d'un email de confirmation (si configuré)
+ *       6. Génération d'un token JWT
+ *
+ *       Le compte sera créé avec le rôle "citizen" par défaut.
+ *     tags: [🔐 Authentification]
  *     requestBody:
  *       required: true
  *       content:
@@ -72,12 +146,12 @@ const auth = require('../middlewares/auth.middleware');
  *             $ref: '#/components/schemas/RegisterRequest'
  *           example:
  *             email: "newuser@example.com"
- *             password: "securepassword"
+ *             password: "mySecurePassword123"
  *             firstname: "Jane"
  *             lastname: "Smith"
  *     responses:
  *       201:
- *         description: Inscription réussie, retourne le token JWT et les informations utilisateur
+ *         description: ✅ Inscription réussie, retourne le token JWT et les informations utilisateur
  *         content:
  *           application/json:
  *             schema:
@@ -90,29 +164,57 @@ const auth = require('../middlewares/auth.middleware');
  *                 firstname: "Jane"
  *                 lastname: "Smith"
  *                 roles: ["citizen"]
- *                 createdAt: "2023-01-01T00:00:00.000Z"
+ *                 createdAt: "2023-05-08T10:30:00.000Z"
+ *                 updatedAt: "2023-05-08T10:30:00.000Z"
+ *               message: "Inscription réussie. Vérifiez votre email pour confirmer votre compte."
  *       400:
- *         description: Données d'entrée invalides ou email déjà utilisé
+ *         description: ❌ Données d'entrée invalides ou email déjà utilisé
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               email_exists:
+ *                 summary: Email déjà utilisé
+ *                 value:
+ *                   error: "Email already exists"
+ *                   statusCode: 400
+ *                   timestamp: "2023-05-08T10:30:00.000Z"
+ *                   path: "/auth/register/citizen"
+ *                   method: "POST"
+ *               validation_error:
+ *                 summary: Erreur de validation
+ *                 value:
+ *                   error: "Validation failed"
+ *                   statusCode: 400
+ *                   timestamp: "2023-05-08T10:30:00.000Z"
+ *                   details: ["email must be a valid email", "password must be at least 6 characters"]
+ *       422:
+ *         description: ❌ Erreur de validation des données
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *             example:
- *               error: "Email already exists"
- *               statusCode: 400
- *               timestamp: "2023-01-01T00:00:00.000Z"
- *       422:
- *         description: Erreur de validation des données
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               error: "Unprocessable Entity"
+ *               statusCode: 422
+ *               timestamp: "2023-05-08T10:30:00.000Z"
+ *               details:
+ *                 - "firstname: must be a string"
+ *                 - "lastname: must be a string"
+ *                 - "password: must contain at least one uppercase letter"
  */
 router.use('/auth', createProxyMiddleware({
   target: PROXY_CONFIG.users.url,
   changeOrigin: true,
   pathRewrite: {
     '^/auth': '/auth'
+  },
+  onProxyReq: (proxyReq, req) => {
+    if (req.headers.host) {
+      proxyReq.setHeader('host', new URL(PROXY_CONFIG.users.url).host);
+    }
+    proxyBodyWriter(proxyReq, req);
   },
   onError: (err, req, res) => {
     console.error('Proxy Error - Auth Service:', err);
@@ -128,27 +230,38 @@ router.use('/auth', createProxyMiddleware({
  * @swagger
  * /users/profile:
  *   get:
- *     summary: Récupérer le profil de l'utilisateur connecté
- *     description: Retourne les informations du profil de l'utilisateur actuellement authentifié.
- *     tags: [Utilisateurs]
+ *     summary: 👤 Récupérer le profil de l'utilisateur connecté
+ *     description: |
+ *       Retourne les informations complètes du profil de l'utilisateur actuellement authentifié.
+ *
+ *       **Informations incluses :**
+ *       - Données personnelles (nom, prénom, email)
+ *       - Rôles et permissions
+ *       - Avatar (URL si disponible)
+ *       - Dates de création et modification
+ *
+ *       Cette route est accessible à tous les utilisateurs authentifiés.
+ *     tags: [👥 Utilisateurs]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Profil de l'utilisateur récupéré avec succès
+ *         description: ✅ Profil de l'utilisateur récupéré avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *             example:
  *               id: 1
- *               email: "user@example.com"
+ *               email: "john.doe@example.com"
  *               firstname: "John"
  *               lastname: "Doe"
  *               roles: ["citizen"]
+ *               avatar: "https://api.ecotrack.com/uploads/avatars/1.webp"
  *               createdAt: "2023-01-01T00:00:00.000Z"
+ *               updatedAt: "2023-05-08T10:30:00.000Z"
  *       401:
- *         description: Token JWT manquant ou invalide
+ *         description: ❌ Token JWT manquant ou invalide
  *         content:
  *           application/json:
  *             schema:
@@ -156,34 +269,77 @@ router.use('/auth', createProxyMiddleware({
  *             example:
  *               error: "Unauthorized"
  *               statusCode: 401
- *               timestamp: "2023-01-01T00:00:00.000Z"
+ *               timestamp: "2023-05-08T10:30:00.000Z"
+ *               path: "/users/profile"
+ *               method: "GET"
  *
  * /users:
  *   get:
- *     summary: Récupérer la liste de tous les utilisateurs
- *     description: Retourne la liste complète des utilisateurs enregistrés dans le système. Réservé aux administrateurs.
- *     tags: [Utilisateurs]
+ *     summary: 👥 Récupérer la liste de tous les utilisateurs (Admin)
+ *     description: |
+ *       Retourne la liste complète des utilisateurs enregistrés dans le système.
+ *
+ *       **Permissions requises :** Rôle administrateur
+ *
+ *       **Utilisation :**
+ *       - Gestion des utilisateurs
+ *       - Audit et supervision
+ *       - Export de données
+ *
+ *       ⚠️ **Attention :** Cette route retourne toutes les données utilisateurs.
+ *       Utilisez la pagination pour les gros volumes.
+ *     tags: [👥 Utilisateurs]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Liste des utilisateurs récupérée avec succès
+ *         description: ✅ Liste des utilisateurs récupérée avec succès
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
+ *             example:
+ *               - id: 1
+ *                 email: "john.doe@example.com"
+ *                 firstname: "John"
+ *                 lastname: "Doe"
+ *                 roles: ["citizen"]
+ *                 createdAt: "2023-01-01T00:00:00.000Z"
+ *               - id: 2
+ *                 email: "admin@example.com"
+ *                 firstname: "Admin"
+ *                 lastname: "System"
+ *                 roles: ["admin"]
+ *                 createdAt: "2023-01-01T00:00:00.000Z"
  *       401:
- *         description: Token JWT manquant ou invalide
+ *         description: ❌ Token JWT manquant ou invalide
  *       403:
- *         description: Permissions insuffisantes (nécessite le rôle admin)
+ *         description: ❌ Permissions insuffisantes (nécessite le rôle admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Forbidden: Admin role required"
+ *               statusCode: 403
+ *               timestamp: "2023-05-08T10:30:00.000Z"
  *
  * /users/with-pagination:
  *   get:
- *     summary: Récupérer la liste des utilisateurs avec pagination
- *     description: Retourne une liste paginée des utilisateurs. Réservé aux administrateurs.
- *     tags: [Utilisateurs]
+ *     summary: 👥 Récupérer les utilisateurs avec pagination (Admin)
+ *     description: |
+ *       Retourne une liste paginée des utilisateurs pour une meilleure performance.
+ *
+ *       **Permissions requises :** Rôle administrateur
+ *
+ *       **Paramètres de pagination :**
+ *       - `page` : Numéro de page (défaut: 1)
+ *       - `limit` : Nombre d'éléments par page (défaut: 10, max: 100)
+ *
+ *       **Tri :** Par date de création décroissante
+ *     tags: [👥 Utilisateurs]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -191,17 +347,22 @@ router.use('/auth', createProxyMiddleware({
  *         name: page
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 1
- *         description: Numéro de page
+ *         description: Numéro de page (commence à 1)
+ *         example: 1
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *           maximum: 100
  *           default: 10
- *         description: Nombre d'utilisateurs par page
+ *         description: Nombre d'utilisateurs par page (max 100)
+ *         example: 20
  *     responses:
  *       200:
- *         description: Liste paginée des utilisateurs
+ *         description: ✅ Liste paginée des utilisateurs
  *         content:
  *           application/json:
  *             schema:
@@ -211,16 +372,58 @@ router.use('/auth', createProxyMiddleware({
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/User'
- *                 total:
- *                   type: integer
- *                 page:
- *                   type: integer
- *                 limit:
- *                   type: integer
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: Nombre total d'utilisateurs
+ *                       example: 150
+ *                     page:
+ *                       type: integer
+ *                       description: Page actuelle
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       description: Nombre d'éléments par page
+ *                       example: 20
+ *                     totalPages:
+ *                       type: integer
+ *                       description: Nombre total de pages
+ *                       example: 8
+ *                     hasNext:
+ *                       type: boolean
+ *                       description: Page suivante disponible
+ *                       example: true
+ *                     hasPrev:
+ *                       type: boolean
+ *                       description: Page précédente disponible
+ *                       example: false
+ *             example:
+ *               data:
+ *                 - id: 1
+ *                   email: "john.doe@example.com"
+ *                   firstname: "John"
+ *                   lastname: "Doe"
+ *                   roles: ["citizen"]
+ *                   createdAt: "2023-01-01T00:00:00.000Z"
+ *                 - id: 2
+ *                   email: "jane.smith@example.com"
+ *                   firstname: "Jane"
+ *                   lastname: "Smith"
+ *                   roles: ["citizen"]
+ *                   createdAt: "2023-01-02T00:00:00.000Z"
+ *               pagination:
+ *                 total: 150
+ *                 page: 1
+ *                 limit: 20
+ *                 totalPages: 8
+ *                 hasNext: true
+ *                 hasPrev: false
  *       401:
- *         description: Token JWT manquant ou invalide
+ *         description: ❌ Token JWT manquant ou invalide
  *       403:
- *         description: Permissions insuffisantes
+ *         description: ❌ Permissions insuffisantes
  *
  * /users/{id}:
  *   get:
@@ -488,6 +691,9 @@ router.use('/users', auth, createProxyMiddleware({
   pathRewrite: {
     '^/users': '/users'
   },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
   onError: (err, req, res) => {
     console.error('Proxy Error - Users Service:', err);
     res.status(503).json({
@@ -683,6 +889,9 @@ router.use('/notifications', auth, createProxyMiddleware({
   pathRewrite: {
     '^/notifications': '/notifications'
   },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
   onError: (err, req, res) => {
     console.error('Proxy Error - Notifications:', err);
     res.status(503).json({
@@ -703,9 +912,8 @@ router.use(
   createProxyMiddleware({
     target: PROXY_CONFIG.users.url,
     changeOrigin: true,
-    /* preserve subpaths for assets */
     pathRewrite: {
-      '^/*': '/api-docs/',
+      '^/docs/service-users': '/api-docs'
     },
     onError: (err, req, res) => {
       console.error('Proxy Error - Users API Docs:', err);
