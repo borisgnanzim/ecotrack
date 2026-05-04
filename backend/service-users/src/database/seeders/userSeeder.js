@@ -10,7 +10,7 @@ module.exports = async (prisma) => {
   const users = await prisma.user.createMany({
     data: [
       {
-        name: "Alice", 
+        name: "Alice",
         username: "alice123",
         email: "alice@mail.com", 
         password: password

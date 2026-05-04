@@ -60,6 +60,7 @@ class AuthService {
     }
 
     const username = `${firstname}${lastname}`.replace(/\s+/g, '').toLowerCase();
+    
     const name = `${firstname} ${lastname}`.trim();
     //console.log(typeof(username), username);
 
@@ -79,6 +80,9 @@ class AuthService {
     const userWithRoles = await User.findById(user.id);
     const roleNames = userWithRoles.roles.map(r => r.name);
     const token = this.generateToken(userWithRoles);
+
+    // Envoie une notification de bienvenue (asynchrone)
+    const notification = await sendWelcomeNotification(user);
 
     return {
       token,
