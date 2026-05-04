@@ -26,6 +26,14 @@
           <input v-model="form.password" type="password" placeholder="Mot de passe" />
         </div>
 
+        <!-- REMEMBER ME -->
+        <div class="remember-me">
+          <label>
+            <input type="checkbox" v-model="rememberMe" />
+            Se souvenir de moi
+          </label>
+        </div>
+
         <p v-if="error" class="auth-error">
           <i class="ri-error-warning-line"></i>
           {{ error }}
@@ -39,10 +47,10 @@
       </form>
 
       <!-- FOOTER -->
-      <div class="auth-footer">
+      <!--<div class="auth-footer">
         <span>Pas de compte ?</span>
         <a @click="$router.push('/register')">Créer un compte</a>
-      </div>
+      </div>-->
 
     </div>
 
@@ -63,13 +71,21 @@ export default {
         email: '',
         password: '',
       },
+      rememberMe: false,
       error: '',
       loading: false,
     }
   },
 
   mounted() {
-    // On va ajouter ce qu'il faut
+    // Pré-remplissage email
+    const saved = localStorage.getItem('rememberMeData')
+
+    if (saved) {
+      const data = JSON.parse(saved)
+      this.form.email = data.email
+      this.rememberMe = true
+    }
   },
 
   methods: {
@@ -81,10 +97,28 @@ export default {
         const res = await authService.loginUser(this.form)
         this.toast.success("Connexion réussie")
 
-        // Stockage du token
-        localStorage.setItem('token', res.data.token)
+        const token = res.data.token
+        const userId = res.data.user.id
+        const roles = res.data.roles
 
-        // Redirection (équivalent router.push)
+        if (this.rememberMe) {
+          localStorage.setItem('token', token)
+          localStorage.setItem('userId', userId)
+          localStorage.setItem('roles', JSON.stringify(roles))
+
+          localStorage.setItem(
+            'rememberMeData',
+            JSON.stringify({ email: this.form.email })
+          )
+
+        } else {
+          sessionStorage.setItem('token', token)
+          sessionStorage.setItem('userId', userId)
+          sessionStorage.setItem('roles', JSON.stringify(roles))
+
+          localStorage.removeItem('rememberMeData')
+        }
+
         this.$router.push('/dashboard')
 
       } catch (err) {
@@ -96,6 +130,7 @@ export default {
 
         this.error = message
         this.toast.error(message)
+
       } finally {
         this.loading = false
       }

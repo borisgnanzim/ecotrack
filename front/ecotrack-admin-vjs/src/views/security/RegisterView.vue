@@ -1,11 +1,9 @@
 <template>
   <div class="auth-wrapper">
-
     <div class="auth-card">
 
       <div class="auth-header">
         <i class="bi bi-person-plus auth-logo"></i>
-
         <h1>ECOTRACK</h1>
         <p>Créer un compte citoyen ou agent</p>
       </div>
@@ -27,6 +25,20 @@
           <input v-model="form.password" type="password" placeholder="Mot de passe" />
         </div>
 
+        <!-- Confirmation mot de passe -->
+        <div class="input-group">
+          <i class="ri-lock-password-line"></i>
+          <input v-model="form.passwordConfirm" type="password" placeholder="Confirmer le mot de passe" />
+        </div>
+
+        <!-- Indications utilisateur -->
+        <ul class="password-rules">
+          <li :class="{ valid: passwordChecks.length }">6 à 100 caractères</li>
+          <li :class="{ valid: passwordChecks.uppercase }">1 majuscule</li>
+          <li :class="{ valid: passwordChecks.lowercase }">1 minuscule</li>
+          <li :class="{ valid: passwordChecks.special }">1 caractère spécial</li>
+        </ul>
+
         <p v-if="error" class="auth-error">
           <i class="ri-error-warning-line"></i>
           {{ error }}
@@ -45,7 +57,6 @@
       </div>
 
     </div>
-
   </div>
 </template>
 
@@ -64,14 +75,29 @@ export default {
         username: '',
         email: '',
         password: '',
+        passwordConfirm: ''
       },
       error: '',
       loading: false,
     }
   },
 
-  mounted() {
-    // A ajouter ce qu'il faut
+  computed: {
+    passwordChecks() {
+      const pwd = this.form.password
+
+      return {
+        length: pwd.length >= 6 && pwd.length <= 100,
+        uppercase: /[A-Z]/.test(pwd),
+        lowercase: /[a-z]/.test(pwd),
+        special: /[^A-Za-z0-9]/.test(pwd)
+      }
+    },
+
+    isPasswordValid() {
+      const c = this.passwordChecks
+      return c.length && c.uppercase && c.lowercase && c.special
+    }
   },
 
   methods: {
@@ -79,22 +105,38 @@ export default {
       this.error = ''
       this.loading = true
 
-      // Validation
-      if (!this.form.username || !this.form.email || !this.form.password) {
+      // Champs requis
+      if (!this.form.username || !this.form.email || !this.form.password || !this.form.passwordConfirm) {
         this.error = 'Tous les champs sont requis'
         this.loading = false
         return
       }
 
+      // Validation mot de passe
+      if (!this.isPasswordValid) {
+        this.error = 'Le mot de passe doit contenir 6 à 100 caractères, une majuscule, une minuscule et un caractère spécial'
+        this.loading = false
+        return
+      }
+
+      // Confirmation mot de passe
+      if (this.form.password !== this.form.passwordConfirm) {
+        this.error = 'Les mots de passe ne correspondent pas'
+        this.loading = false
+        return
+      }
+
       try {
-        await authService.registerUser({
-          name: this.form.username,
+        const res = await authService.registerUser({
+          username: this.form.username,
           email: this.form.email,
           password: this.form.password,
+          passwordConfirm: this.form.passwordConfirm
         })
 
-        this.toast.success("Compte créé avec succès !")
+        console.log("réponse admin :", res)
 
+        this.toast.success("Compte créé avec succès !")
         this.$router.push('/login')
 
       } catch (err) {
@@ -110,7 +152,7 @@ export default {
       } finally {
         this.loading = false
       }
-    },
+    }
   },
 }
 </script>

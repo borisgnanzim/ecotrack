@@ -21,7 +21,7 @@
             Email
           </label>
 
-          <i class="fa-regular fa-envelope input-icon"></i>
+          <!--<i class="fa-regular fa-envelope input-icon"></i>-->
 
           <input
             v-model="form.email"
@@ -37,22 +37,31 @@
             Mot de passe
           </label>
 
-          <i class="fa-solid fa-lock input-icon"></i>
+          <!--<i class="fa-solid fa-lock input-icon"></i>-->
 
           <input
             v-model="form.password"
             type="password"
             class="auth-input with-icon"
+            placeholder="••••••••"
           />
+        </div>
+
+        <!-- REMEMBER ME -->
+        <div class="remember-me">
+          <label>
+            <input type="checkbox" v-model="rememberMe" />
+            Se souvenir de moi
+          </label>
         </div>
 
         <p v-if="error" class="auth-error">
           {{ error }}
         </p>
 
-        <button class="auth-btn">
+        <button class="auth-btn" :disabled="loading">
           <i class="fa-solid fa-leaf"></i>
-          Entrer dans l’espace citoyen
+          {{ loading ? "Connexion..." : "Entrer dans l’espace citoyen" }}
         </button>
 
       </form>
@@ -83,13 +92,21 @@ export default {
         email: '',
         password: '',
       },
+      rememberMe: false,
       error: '',
       loading: false,
     }
   },
 
   mounted() {
-    // On va ajouter ce qu'il faut
+    // Charger les infos sauvegardées
+    const saved = localStorage.getItem('rememberMeData')
+
+    if (saved) {
+      const data = JSON.parse(saved)
+      this.form.email = data.email
+      this.rememberMe = true
+    }
   },
 
   methods: {
@@ -101,14 +118,31 @@ export default {
         const res = await authService.loginUser(this.form)
         this.toast.success("Connexion réussie")
 
-        // Stockage du token
-        localStorage.setItem('token', res.data.token)
+        const token = res.data.token
+        const userId = res.data.user.id
+        const roles = res.data.roles
 
-        // Redirection (équivalent router.push)
-        this.$router.push('/dashboard')
+        if (this.rememberMe) {
+          localStorage.setItem('token', token)
+          localStorage.setItem('userId', userId)
+          localStorage.setItem('roles', JSON.stringify(roles))
+
+          localStorage.setItem(
+            'rememberMeData',
+            JSON.stringify({ email: this.form.email })
+          )
+
+        } else {
+          sessionStorage.setItem('token', token)
+          sessionStorage.setItem('userId', userId)
+          sessionStorage.setItem('roles', JSON.stringify(roles))
+
+          localStorage.removeItem('rememberMeData')
+        }
+
+        this.$router.push('/signalements')
 
       } catch (err) {
-        console.log('Erreur de connexion :', err)
 
         const message =
           err.response?.data?.message ||
@@ -116,6 +150,7 @@ export default {
 
         this.error = message
         this.toast.error(message)
+
       } finally {
         this.loading = false
       }

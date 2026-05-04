@@ -14,19 +14,31 @@
 
       <form @submit.prevent="handleSubmit" class="space-y-4 mt-6">
 
-        <!-- USERNAME -->
+        <!-- FIRSTNAME -->
         <div class="input-group">
           <label class="auth-label">
             <i class="fa-solid fa-user"></i>
-            Nom complet
+            Prénom
           </label>
 
-          <i class="fa-solid fa-user input-icon"></i>
+          <input
+            v-model="form.firstname"
+            class="auth-input with-icon"
+            placeholder="Jean"
+          />
+        </div>
+
+        <!-- LASTNAME -->
+        <div class="input-group">
+          <label class="auth-label">
+            <i class="fa-solid fa-user"></i>
+            Nom
+          </label>
 
           <input
-            v-model="form.username"
+            v-model="form.lastname"
             class="auth-input with-icon"
-            placeholder="Jean Dupont"
+            placeholder="Dupont"
           />
         </div>
 
@@ -37,7 +49,7 @@
             Email
           </label>
 
-          <i class="fa-regular fa-envelope input-icon"></i>
+          <!--<i class="fa-regular fa-envelope input-icon"></i>-->
 
           <input
             v-model="form.email"
@@ -53,7 +65,7 @@
             Mot de passe
           </label>
 
-          <i class="fa-solid fa-lock input-icon"></i>
+          <!--<i class="fa-solid fa-lock input-icon"></i>-->
 
           <input
             v-model="form.password"
@@ -63,13 +75,38 @@
           />
         </div>
 
+        <!-- CONFIRM PASSWORD -->
+        <div class="input-group">
+          <label class="auth-label">
+            <i class="fa-solid fa-lock"></i>
+            Confirmer le mot de passe
+          </label>
+
+          <!--<i class="fa-solid fa-lock input-icon"></i>-->
+
+          <input
+            v-model="form.passwordConfirm"
+            type="password"
+            class="auth-input with-icon"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <!-- RÈGLES MOT DE PASSE -->
+        <ul class="password-rules">
+          <li :class="{ valid: passwordChecks.length }">6 à 100 caractères</li>
+          <li :class="{ valid: passwordChecks.uppercase }">1 majuscule</li>
+          <li :class="{ valid: passwordChecks.lowercase }">1 minuscule</li>
+          <li :class="{ valid: passwordChecks.special }">1 caractère spécial</li>
+        </ul>
+
         <p v-if="error" class="auth-error">
           {{ error }}
         </p>
 
-        <button class="auth-btn">
+        <button class="auth-btn" :disabled="loading">
           <i class="fa-solid fa-seedling"></i>
-          Créer mon compte citoyen
+          {{ loading ? "Création..." : "Créer mon compte citoyen" }}
         </button>
 
       </form>
@@ -98,44 +135,100 @@ export default {
       toast: useToast(),
 
       form: {
-        username: '',
+        firstname: '',
+        lastname: '',
         email: '',
         password: '',
+        passwordConfirm: ''
       },
       error: '',
       loading: false,
     }
   },
 
-  mounted() {
-    // A ajouter ce qu'il faut
+  computed: {
+    passwordChecks() {
+      const pwd = this.form.password
+
+      return {
+        length: pwd.length >= 6 && pwd.length <= 100,
+        uppercase: /[A-Z]/.test(pwd),
+        lowercase: /[a-z]/.test(pwd),
+        special: /[^A-Za-z0-9]/.test(pwd)
+      }
+    },
+
+    isPasswordValid() {
+      const c = this.passwordChecks
+      return c.length && c.uppercase && c.lowercase && c.special
+    }
   },
 
   methods: {
+
+    formatFirstname(name) {
+      return name
+        .toLowerCase()
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    },
+
+    formatLastname(name) {
+      if (!name) return ''
+      return name.toUpperCase()
+    },
+
     async handleSubmit() {
       this.error = ''
       this.loading = true
 
-      // Validation
-      if (!this.form.username || !this.form.email || !this.form.password) {
+      // Champs requis
+      if (!this.form.firstname || !this.form.lastname || !this.form.email || !this.form.password || !this.form.passwordConfirm) {
         this.error = 'Tous les champs sont requis'
         this.loading = false
         return
       }
 
+      // Validation mot de passe
+      if (!this.isPasswordValid) {
+        this.error = 'Le mot de passe doit contenir 6 à 100 caractères, une majuscule, une minuscule et un caractère spécial'
+        this.loading = false
+        return
+      }
+
+      // Vérification confirmation
+      if (this.form.password !== this.form.passwordConfirm) {
+        this.error = 'Les mots de passe ne correspondent pas'
+        this.loading = false
+        return
+      }
+
       try {
-        await authService.registerUser({
-          name: this.form.username,
-          email: this.form.email,
+        const formattedFirstname = this.formatFirstname(this.form.firstname.trim())
+        const formattedLastname = this.formatLastname(this.form.lastname.trim())
+
+        const res = await authService.registerUser({
+          firstname: formattedFirstname,
+          lastname: formattedLastname,
+          email: this.form.email.trim(),
           password: this.form.password,
+          passwordConfirm: this.form.passwordConfirm
         })
 
-        this.toast.success("Compte créé avec succès !")
+        const token = res.data.token
+        const userId = res.data.user.id
+        const roles = res.data.roles
 
-        this.$router.push('/login')
+        this.toast.success("Compte citoyen créé avec succès !")
+
+        localStorage.setItem('token', token)
+        localStorage.setItem('userId', userId)
+        localStorage.setItem('roles', JSON.stringify(roles))
+
+        this.$router.push('/signalements')
 
       } catch (err) {
-        console.log('Erreur inscription :', err)
 
         const message =
           err.response?.data?.message ||

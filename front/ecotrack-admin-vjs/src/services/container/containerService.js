@@ -1,73 +1,68 @@
-// src/services/container/containerService.js
-import apiClient from "@/api/apiClient.js"
-
-const BASE_URL =''
+// src/services/authentication/containerService.js
+import apiClient from '@/api/apiClient.js'
 
 export default {
 
-  /**
-   * Récupérer tous les conteneurs
-   */
-  async getAll(params = {}) {
-    try {
-      const { data } = await apiClient.get("/containers", { params })
-      return data
-    } catch (error) {
-      console.error("containerService.getAll error:", error)
-      throw error
-    }
+  // Récupérer tous les containers
+  async getAll() {
+    return await apiClient.get('/containers')
   },
 
-  /**
-   * Récupérer un conteneur par ID
-   */
+  // Créer un container
+  async create(data) {
+    return await apiClient.post('/containers', data)
+  },
+
+  // Détails d’un container
   async getById(id) {
-    try {
-      const { data } = await apiClient.get(`/containers/${id}`)
-      return data
-    } catch (error) {
-      console.error("containerService.getById error:", error)
-      throw error
-    }
+    return await apiClient.get(`/containers/${id}`)
   },
 
-  /**
-   * Créer un conteneur
-   */
-  async create(payload) {
-    try {
-      const { data } = await apiClient.post("/containers", payload)
-      return data
-    } catch (error) {
-      console.error("containerService.create error:", error)
-      throw error
-    }
+  // Statistiques
+  async getStats() {
+    return await apiClient.get('/containers/stats')
   },
 
-  /**
-   * Mettre à jour un conteneur
-   */
-  async update(id, payload) {
-    try {
-      const { data } = await apiClient.put(`/containers/${id}`, payload)
-      return data
-    } catch (error) {
-      console.error("containerService.update error:", error)
-      throw error
-    }
+  // Recherche
+  async search(params) {
+    return await apiClient.get('/containers/search', { params })
   },
 
-  /**
-   * Supprimer un conteneur
-   */
-  async remove(id) {
-    try {
-      const { data } = await apiClient.delete(`/containers/${id}`)
-      return data
-    } catch (error) {
-      console.error("containerService.remove error:", error)
-      throw error
-    }
+  // Containers à proximité
+  async getNearby(params) {
+    return await apiClient.get('/containers/nearby', { params })
+  },
+
+  // Mettre à jour un container
+  async update(id, data) {
+    return await apiClient.put(`/containers/${id}`, data)
+  },
+
+  // Supprimer un container
+  async delete(id) {
+    return await apiClient.delete(`/containers/${id}`)
+  },
+
+  // Historique de remplissage
+  async getFillHistory(id) {
+    return await apiClient.get(`/containers/${id}/fill-history`)
+  },
+
+  // Ajouter un relevé de remplissage
+  async addFillHistory(id, data) {
+    return await apiClient.post(`/containers/${id}/fill-history`, data)
+  },
+
+  // Upload photo
+  async uploadPhoto(id, file) {
+    const formData = new FormData()
+    formData.append('photo', file)
+
+    return await apiClient.post(`/containers/${id}/photo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
   }
 
 }

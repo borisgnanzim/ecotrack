@@ -6,6 +6,6 @@ export default {
     return apiClient.post('/auth/login', credentials)
   },
   registerUser(userData) {
-    return apiClient.post('/auth/register', userData)
+    return apiClient.post('/auth/register/citizen', userData)
   },
 }

@@ -129,3 +129,29 @@
 .auth-footer a:hover {
   text-decoration: underline;
 }
+
+.password-rules {
+  font-size: 12px;
+  margin: 10px 0;
+  padding-left: 15px;
+  color: #999;
+}
+
+.password-rules li {
+  list-style: none;
+}
+
+.password-rules li.valid {
+  color: #2ecc71;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #555;
+}
+
+.remember-me input {
+  margin-right: 6px;
+}
