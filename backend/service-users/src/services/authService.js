@@ -50,7 +50,7 @@ class AuthService {
    * @param {string} password
    * @returns {Promise<{token: string, user: object}>}
    */
-  async registerCitizen(username, email, password) {
+  async registerCitizen(firstname, lastname, email, password) {
     // Vérifier si l'email existe déjà
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -59,8 +59,11 @@ class AuthService {
       throw error;
     }
 
+    const username = `${firstname}${lastname}`.replace(/\s+/g, '');
+    const name = `${username} ${lastname}`.trim();
+
     // Créer l'utilisateur
-    const user = await User.create({ username, email, password });
+    const user = await User.create({ username, email, password, name });
 
     // Assigner le rôle "citizen" par défaut
     const citizenRole = await prisma.role.findUnique({ where: { name: 'citizen' } });

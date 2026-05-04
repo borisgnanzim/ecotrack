@@ -7,11 +7,14 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  username: z.string()
-    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
-    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
-    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
-    .trim(),
+  firstname: z.string()
+    .trim()
+    .min(1, 'Prénom requis')
+    .max(50, 'Prénom trop long (max 50 caractères)'),
+  lastname: z.string()
+    .trim()
+    .min(1, 'Nom requis')
+    .max(50, 'Nom trop long (max 50 caractères)'),
   email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
   password: z.string()
     .min(6, 'Mot de passe invalide (minimum 6 caractères)')

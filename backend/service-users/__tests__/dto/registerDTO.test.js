@@ -5,7 +5,8 @@ describe('RegisterDTO', () => {
   describe('validate', () => {
     it('should validate correct registration data', () => {
       const dto = new RegisterDTO({
-        username: 'newuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'newuser@example.com',
         password: 'Password123',
         passwordConfirm: 'Password123',
@@ -14,8 +15,9 @@ describe('RegisterDTO', () => {
       expect(() => dto.validate()).not.toThrow();
     });
 
-    it('should throw error for missing username', () => {
+    it('should throw error for missing lastname', () => {
       const dto = new RegisterDTO({
+        firstname: 'Jane',
         email: 'test@example.com',
         password: 'Password123',
         passwordConfirm: 'Password123',
@@ -24,9 +26,10 @@ describe('RegisterDTO', () => {
       expect(() => dto.validate()).toThrow(ValidationError);
     });
 
-    it('should throw error for invalid username', () => {
+    it('should throw error for invalid firstname or lastname', () => {
       const dto = new RegisterDTO({
-        username: 'a',
+        firstname: 'A',
+        lastname: '',
         email: 'test@example.com',
         password: 'Password123',
         passwordConfirm: 'Password123',
@@ -37,7 +40,8 @@ describe('RegisterDTO', () => {
 
     it('should throw error for missing email', () => {
       const dto = new RegisterDTO({
-        username: 'testuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         password: 'Password123',
         passwordConfirm: 'Password123',
       });
@@ -47,7 +51,8 @@ describe('RegisterDTO', () => {
 
     it('should throw error for invalid email', () => {
       const dto = new RegisterDTO({
-        username: 'testuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'invalid',
         password: 'Password123',
         passwordConfirm: 'Password123',
@@ -58,7 +63,8 @@ describe('RegisterDTO', () => {
 
     it('should throw error for missing password', () => {
       const dto = new RegisterDTO({
-        username: 'testuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'test@example.com',
         passwordConfirm: 'Password123',
       });
@@ -68,7 +74,8 @@ describe('RegisterDTO', () => {
 
     it('should throw error for weak password', () => {
       const dto = new RegisterDTO({
-        username: 'testuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'test@example.com',
         password: 'weak',
         passwordConfirm: 'weak',
@@ -79,7 +86,8 @@ describe('RegisterDTO', () => {
 
     it('should throw error if passwords do not match', () => {
       const dto = new RegisterDTO({
-        username: 'testuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'test@example.com',
         password: 'Password123',
         passwordConfirm: 'DifferentPassword456',
@@ -92,7 +100,8 @@ describe('RegisterDTO', () => {
   describe('toJSON', () => {
     it('should return clean object with only allowed fields', () => {
       const dto = new RegisterDTO({
-        username: 'newuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'newuser@example.com',
         password: 'Password123',
         passwordConfirm: 'Password123',
@@ -102,7 +111,8 @@ describe('RegisterDTO', () => {
       const result = dto.toJSON();
 
       expect(result).toEqual({
-        username: 'newuser',
+        firstname: 'Jane',
+        lastname: 'Doe',
         email: 'newuser@example.com',
         password: 'Password123',
       });

@@ -44,11 +44,15 @@ router.post('/login', authController.login);
  *           schema:
  *             type: object
  *             properties:
- *               username:
+ *               firstname:
+ *                 type: string
+ *               lastname:
  *                 type: string
  *               email:
  *                 type: string
  *               password:
+ *                 type: string
+ *               passwordConfirm:
  *                 type: string
  *     responses:
  *       201:

@@ -5,11 +5,14 @@ const ValidationError = require('../ValidationError');
  * Schéma Zod pour l'inscription utilisateur
  */
 const registerSchema = z.object({
-  username: z.string()
-    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
-    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
-    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
-    .trim(),
+  firstname: z.string()
+    .trim()
+    .min(1, 'Prénom requis')
+    .max(50, 'Prénom trop long (max 50 caractères)'),
+  lastname: z.string()
+    .trim()
+    .min(1, 'Nom requis')
+    .max(50, 'Nom trop long (max 50 caractères)'),
   email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
   password: z.string()
     .min(6, 'Mot de passe invalide (minimum 6 caractères)')
@@ -25,7 +28,8 @@ const registerSchema = z.object({
  */
 class RegisterDTO {
   constructor(data) {
-    this.username = data?.username?.trim() || '';
+    this.firstname = data?.firstname?.trim() || '';
+    this.lastname = data?.lastname?.trim() || '';
     this.email = data?.email?.trim() || '';
     this.password = data?.password || '';
     this.passwordConfirm = data?.passwordConfirm || '';
@@ -38,14 +42,16 @@ class RegisterDTO {
   validate() {
     try {
       const validatedData = registerSchema.parse({
-        username: this.username,
+        firstname: this.firstname,
+        lastname: this.lastname,
         email: this.email,
         password: this.password,
         passwordConfirm: this.passwordConfirm
       });
 
       // Met à jour les propriétés avec les données validées
-      this.username = validatedData.username;
+      this.firstname = validatedData.firstname;
+      this.lastname = validatedData.lastname;
       this.email = validatedData.email;
       this.password = validatedData.password;
 
@@ -63,7 +69,8 @@ class RegisterDTO {
    */
   safeValidate() {
     return registerSchema.safeParse({
-      username: this.username,
+      firstname: this.firstname,
+      lastname: this.lastname,
       email: this.email,
       password: this.password,
       passwordConfirm: this.passwordConfirm
@@ -75,7 +82,8 @@ class RegisterDTO {
    */
   toJSON() {
     return {
-      username: this.username,
+      firstname: this.firstname,
+      lastname: this.lastname,
       email: this.email,
       password: this.password
     };

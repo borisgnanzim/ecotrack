@@ -38,7 +38,8 @@ exports.registerCitizen = async (req, res, next) => {
 
         // Utiliser le service pour la logique métier
         const result = await authService.registerCitizen(
-            validatedData.username,
+            validatedData.firstname,
+            validatedData.lastname,
             validatedData.email,
             validatedData.password
         );
