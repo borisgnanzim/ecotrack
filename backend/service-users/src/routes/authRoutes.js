@@ -42,18 +42,7 @@ router.post('/login', authController.login);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               firstname:
- *                 type: string
- *               lastname:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               passwordConfirm:
- *                 type: string
+ *             $ref: '#/components/schemas/RegisterRequest'
  *     responses:
  *       201:
  *         description: Citoyen enregistré avec succès

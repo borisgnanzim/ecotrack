@@ -97,6 +97,17 @@ const swaggerOptions = {
             password: { type: 'string', format: 'password' }
           }
         },
+        RegisterRequest: {
+          type: 'object',
+          required: ['firstname', 'lastname', 'email', 'password', 'passwordConfirm'],
+          properties: {
+            firstname: { type: 'string' },
+            lastname: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            password: { type: 'string', format: 'password' },
+            passwordConfirm: { type: 'string', format: 'password' }
+          }
+        },
         AuthResponse: {
           type: 'object',
           properties: {
