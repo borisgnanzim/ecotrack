@@ -3,6 +3,7 @@ const roleSeeder = async (prisma) => {
     { name: "citizen" },
     { name: "agent" },
     { name: "manager" },
+    { name: "analyst" },
     { name: "admin" }
   ];
 
