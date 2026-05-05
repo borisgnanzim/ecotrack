@@ -15,8 +15,9 @@
           Gestion des utilisateurs
         </h2>
 
-        <button class="btn-primary" @click="openCreate">
-          + Ajouter un utilisateur
+        <button class="btn-primary flex items-center gap-2" @click="openCreate">
+          <i class="bi bi-plus-circle"></i>
+          Ajouter un utilisateur
         </button>
       </div>
 
@@ -31,6 +32,7 @@
               <th class="px-6 py-3 text-left">Email</th>
               <th class="px-6 py-3 text-left">Rôle</th>
               <th class="px-6 py-3 text-left">Statut</th>
+              <th class="px-6 py-3 text-left">Créé le</th>
               <th class="px-6 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -43,8 +45,21 @@
               class="hover:bg-slate-50 transition"
             >
 
-              <td class="px-6 py-3 font-medium">
-                {{ u.name }}
+              <td class="px-6 py-3">
+                <div class="flex items-center gap-3">
+
+                  <img
+                    :src="u.avatar || defaultAvatar"
+                    class="avatar-sm"
+                    alt="avatar"
+                  />
+
+                  <div class="flex flex-col">
+                    <span class="font-medium">{{ u.name }}</span>
+                    <span class="text-xs text-slate-400">@{{ u.username }}</span>
+                  </div>
+
+                </div>
               </td>
 
               <td class="px-6 py-3">
@@ -61,25 +76,27 @@
                 </span>
               </td>
 
+              <td class="px-6 py-3 text-sm text-slate-500">
+                {{ formatDate(u.createdAt) }}
+              </td>
+
               <!-- ACTIONS -->
               <td class="px-6 py-3 text-right">
+                <div class="inline-flex gap-3">
 
-                <div class="inline-flex gap-4">
-
-                  <button class="btn-inspect" @click="inspect(u)">
-                    Voir
+                  <button class="icon-btn blue" @click="inspect(u)">
+                    <i class="bi bi-eye"></i>
                   </button>
 
-                  <button class="btn-edit" @click="edit(u)">
-                    Modifier
+                  <button class="icon-btn green" @click="edit(u)">
+                    <i class="bi bi-pencil"></i>
                   </button>
 
-                  <button class="btn-danger" @click="ban(u)">
-                    {{ u.status === 'BANNED' ? 'Débloquer' : 'Bannir' }}
+                  <button class="icon-btn red" @click="ban(u)">
+                    <i :class="u.status === 'BANNED' ? 'bi bi-unlock' : 'bi bi-slash-circle'"></i>
                   </button>
 
                 </div>
-
               </td>
 
             </tr>
@@ -244,12 +261,7 @@ export default {
     return {
       toast: useToast(),
 
-      users: [
-        { id: 1, name: "Martin D.", email: "martin@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
-        { id: 2, name: "Sarah L.", email: "sarah@mail.com", role: "Citizen", status: "ACTIVE", avatar: "" },
-        { id: 3, name: "Admin", email: "admin@mail.com", role: "Admin", status: "BANNED", avatar: "" },
-      ],
-      myUsers: [],
+      users: [],
 
       showInspect: false,
       showBan: false,
@@ -267,7 +279,8 @@ export default {
         email: '',
         role: '',
         avatarPreview: ''
-      }
+      },
+      defaultAvatar: new URL('/assets/icon/man-profile.png', import.meta.url).href,
 
     }
   },
@@ -281,7 +294,7 @@ export default {
     async fetchAllUsers(){
       try {
         const response =  await userService.getAll()
-        this.myUsers = response.data
+        this.users = response.data.data
       } catch (err){
         const message =
           err.response?.data?.message ||
@@ -414,6 +427,10 @@ export default {
       if (!file) return
 
       this.form.avatarPreview = URL.createObjectURL(file)
+    },
+
+    formatDate(date) {
+      return new Date(date).toLocaleDateString()
     }
 
   }
@@ -735,5 +752,57 @@ export default {
 /* SELECT */
 select.input {
   background: white;
+}
+
+.avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.icon-btn i {
+  font-size: 16px;
+}
+
+/* couleurs */
+.icon-btn.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.icon-btn.blue:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.icon-btn.green {
+  background: #ecfdf5;
+  color: #059669;
+}
+.icon-btn.green:hover {
+  background: #059669;
+  color: white;
+}
+
+.icon-btn.red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.icon-btn.red:hover {
+  background: #dc2626;
+  color: white;
 }
 </style>
