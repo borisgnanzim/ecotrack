@@ -55,14 +55,7 @@ class NotificationService {
    * @returns {Promise<Array>}
    */
   async getNotifications(userId) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new ValidationError({ userId: 'Utilisateur non trouvé' });
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return await Notification.findByUserId(userId);
+    return await Notification.find({ userId });
   }
   /** 
    * Récupérer toutes les notifications d'un utilisateur avec pagination
@@ -71,13 +64,6 @@ class NotificationService {
    * @returns {Promise<Array>}
    */
   async getNotificationsWithPagination(userId, options) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new ValidationError({ userId: 'Utilisateur non trouvé' });
-      error.statusCode = 404;
-      throw error;
-    }
-
     return await Notification.findByUserIdPaginated(userId, options);
   }
 
@@ -105,14 +91,13 @@ class NotificationService {
       throw error;
     }
 
-    // Vérifier que l'utilisateur est propriétaire de la notification
-    if (notification.userId !== userId) {
+    if (userId && notification.userId !== userId) {
       const error = new ValidationError({ permission: 'Accès refusé' });
       error.statusCode = 403;
       throw error;
     }
 
-    return await Notification.findByIdAndUpdate(notificationId, { isRead: true });
+    return await Notification.update(notificationId, { isRead: true });
   }
 
   /**
@@ -130,14 +115,13 @@ class NotificationService {
       throw error;
     }
 
-    // Vérifier que l'utilisateur est propriétaire de la notification
-    if (notification.userId !== userId) {
+    if (userId && notification.userId !== userId) {
       const error = new ValidationError({ permission: 'Accès refusé' });
       error.statusCode = 403;
       throw error;
     }
 
-    await Notification.findByIdAndDelete(notificationId);
+    await Notification.delete(notificationId);
     return { message: 'Notification supprimée avec succès' };
   }
 }

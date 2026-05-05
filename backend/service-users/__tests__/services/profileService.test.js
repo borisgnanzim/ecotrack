@@ -56,6 +56,7 @@ describe('ProfileService', () => {
       };
 
       User.findById.mockResolvedValue(user);
+      User.find.mockResolvedValue([]);
       User.update.mockResolvedValue(updatedUser);
 
       const result = await ProfileService.updateProfile(userId, updateData);
@@ -78,12 +79,14 @@ describe('ProfileService', () => {
     it('should update user avatar', async () => {
       const userId = '1';
       const avatarPath = '/uploads/avatars/1.webp';
+      const user = { id: userId };
 
       const updatedProfile = {
         id: userId,
         avatar: avatarPath,
       };
 
+      User.findById.mockResolvedValue(user);
       User.update.mockResolvedValue(updatedProfile);
 
       const result = await ProfileService.updateAvatar(userId, avatarPath);

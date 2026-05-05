@@ -25,6 +25,7 @@ model User {
   avatar        String?
   badges        String[]
   createdAt     DateTime       @default(now())
+  isActive      Boolean        @default(true)
   notifications Notification[]
   roles         Role[]         @relation("UserRoles")
 }

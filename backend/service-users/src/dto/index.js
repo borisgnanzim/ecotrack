@@ -27,27 +27,38 @@ const registerSchema = z.object({
 
 // User Schemas
 const createUserSchema = z.object({
-  username: z.string()
-    .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
-    .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')
-    .regex(/^\S+$/, 'Nom d\'utilisateur ne peut pas contenir d\'espaces')
-    .trim(),
+  firstname: z.string()
+    .trim()
+    .min(1, 'Prénom requis')
+    .max(50, 'Prénom trop long (max 50 caractères)'),
+  lastname: z.string()
+    .trim()
+    .min(1, 'Nom requis')
+    .max(50, 'Nom trop long (max 50 caractères)'),
   email: z.string().email('Email invalide').trim().min(1, 'Email est requis'),
   password: z.string()
     .min(6, 'Mot de passe invalide (minimum 6 caractères)')
     .max(100, 'Mot de passe trop long (max 100 caractères)'),
-  name: z.string()
-    .max(100, 'Nom trop long (max 100 caractères)')
-    .optional(),
   address: z.string()
     .max(200, 'Adresse trop longue (max 200 caractères)')
     .optional(),
   phone: z.string()
     .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Numéro de téléphone invalide')
-    .optional()
+    .optional(),
+  roleNames: z.array(z.string().min(1, 'Nom du rôle invalide')).optional()
 });
 
 const updateUserSchema = z.object({
+  firstname: z.string()
+    .trim()
+    .min(1, 'Prénom requis')
+    .max(50, 'Prénom trop long (max 50 caractères)')
+    .optional(),
+  lastname: z.string()
+    .trim()
+    .min(1, 'Nom requis')
+    .max(50, 'Nom trop long (max 50 caractères)')
+    .optional(),
   username: z.string()
     .min(3, 'Nom d\'utilisateur invalide (minimum 3 caractères)')
     .max(50, 'Nom d\'utilisateur trop long (max 50 caractères)')

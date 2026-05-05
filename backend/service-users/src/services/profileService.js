@@ -55,7 +55,7 @@ class ProfileService {
       }
     }
 
-    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+    const updatedUser = await User.update(userId, updateData);
     return updatedUser;
   }
 
@@ -74,7 +74,7 @@ class ProfileService {
       throw error;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(userId, { avatar: avatarPath }, { new: true });
+    const updatedUser = await User.update(userId, { avatar: avatarPath });
     return updatedUser;
   }
 

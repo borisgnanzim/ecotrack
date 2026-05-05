@@ -4,8 +4,8 @@ module.exports = {
   create: async (data) => {
     return prisma.notification.create({ data });
   },
-  find: async () => {
-    return prisma.notification.findMany();
+  find: async (where = {}) => {
+    return prisma.notification.findMany({ where });
   },
   findById: async (id) => {
     return prisma.notification.findUnique({ where: { id } });
@@ -42,7 +42,19 @@ module.exports = {
   findByIdAndDelete: async (id) => {
     return prisma.notification.delete({ where: { id } });
   },
+  update: async (id, update) => {
+    return prisma.notification.update({ where: { id }, data: update });
+  },
+  delete: async (id) => {
+    return prisma.notification.delete({ where: { id } });
+  },
   deleteMany: async (where = {}) => {
     return prisma.notification.deleteMany({ where });
+  },
+  update: async (id, update) => {
+    return prisma.notification.update({ where: { id }, data: update });
+  },
+  delete: async (id) => {
+    return prisma.notification.delete({ where: { id } });
   }
 };

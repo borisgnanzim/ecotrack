@@ -2,10 +2,12 @@ const AuthService = require('../../src/services/authService');
 const User = require('../../src/models/User');
 const jwt = require('jsonwebtoken');
 const bcryptjs = require('bcryptjs');
+const notificationService = require('../../src/services/notificationService');
 
 jest.mock('../../src/models/User');
 jest.mock('jsonwebtoken');
 jest.mock('bcryptjs');
+jest.mock('../../src/services/notificationService');
 
 describe('AuthService', () => {
   beforeEach(() => {
@@ -30,15 +32,22 @@ describe('AuthService', () => {
       };
 
       User.findOne.mockResolvedValue(null);
-      bcryptjs.hashSync.mockReturnValue(hashedPassword);
       User.create.mockResolvedValue(createdUser);
       User.addRole.mockResolvedValue(createdUser);
+      User.findById.mockResolvedValue(createdUser);
+      notificationService.sendWelcomeNotification.mockResolvedValue(createdUser);
+      jwt.sign.mockReturnValue('jwt_token_here');
 
       const result = await AuthService.registerCitizen(userData);
 
       expect(User.findOne).toHaveBeenCalledWith({ email: userData.email });
       expect(User.create).toHaveBeenCalled();
-      expect(result).toEqual(createdUser);
+      expect(User.addRole).toHaveBeenCalledWith(createdUser.id, 'citizen');
+      expect(result).toEqual({
+        token: 'jwt_token_here',
+        user: createdUser,
+        roles: ['citizen']
+      });
     });
 
     it('should throw error if email already exists', async () => {

@@ -76,16 +76,19 @@ describe('NotificationService', () => {
   describe('markAsRead', () => {
     it('should mark notification as read', async () => {
       const notificationId = '1';
+      const notification = { id: notificationId, userId: '1', isRead: false };
       const readNotification = {
         id: notificationId,
         isRead: true,
       };
 
+      Notification.findById.mockResolvedValue(notification);
       Notification.update.mockResolvedValue(readNotification);
 
       const result = await NotificationService.markAsRead(notificationId);
 
-      expect(Notification.update).toHaveBeenCalled();
+      expect(Notification.findById).toHaveBeenCalledWith(notificationId);
+      expect(Notification.update).toHaveBeenCalledWith(notificationId, { isRead: true });
       expect(result.isRead).toBe(true);
     });
   });
@@ -93,10 +96,14 @@ describe('NotificationService', () => {
   describe('deleteNotification', () => {
     it('should delete a notification', async () => {
       const notificationId = '1';
+      const notification = { id: notificationId, userId: '1' };
+
+      Notification.findById.mockResolvedValue(notification);
       Notification.delete.mockResolvedValue(true);
 
       await NotificationService.deleteNotification(notificationId);
 
+      expect(Notification.findById).toHaveBeenCalledWith(notificationId);
       expect(Notification.delete).toHaveBeenCalledWith(notificationId);
     });
   });

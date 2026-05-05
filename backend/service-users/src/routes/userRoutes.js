@@ -9,6 +9,45 @@ router.use(roleMiddleware(['admin']));
 /**
  * @openapi
  * /users:
+ *   post:
+ *     summary: Crée un nouvel utilisateur avec un ou plusieurs rôles (admin seulement)
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstname:
+ *                 type: string
+ *               lastname:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               roleNames:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Utilisateur créé avec succès
+ */
+router.post('/', userController.createUser);
+
+/**
+ * @openapi
+ * /users:
  *   get:
  *     summary: Récupère la liste des utilisateurs
  *     tags:
@@ -52,57 +91,95 @@ router.get('/with-pagination', userController.getAllUsersWithPagination);
 
 /**
  * @openapi
- * /users/{id}:
- *  get:    
- *    summary: Récupère un utilisateur par son ID
- *    tags:
- *      - Utilisateurs
- *    security:
- *      - bearerAuth: []
- *    parameters:
- *      - in: path
- *        name: id
- *        required: true
- *        schema:
- *          type: string
- *    responses:
- *      200:
- *        description: Utilisateur trouvé
+ * /users/{id}/roles:
+ *   post:
+ *     summary: Ajouter un rôle à un utilisateur (admin seulement)
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roleName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rôle ajouté avec succès
  */
-
-router.get('/:id', userController.getUserById);
+router.post('/:id/roles', userController.addRoleToUser);
 
 /**
  * @openapi
- * /users/{id}:
- *  put: 
- *      summary: Met à jour un utilisateur par son ID
- *      tags:
- *        - Utilisateurs
- *      security:
- *        - bearerAuth: []
- *      responses:
- *        200:
- *          description: Utilisateur mis à jour  
+ * /users/{id}/roles:
+ *   put:
+ *     summary: Mettre à jour les rôles d'un utilisateur (admin seulement)
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roleNames:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Rôles mis à jour avec succès
  */
-
-router.put('/:id',  userController.updateUser);
+router.put('/:id/roles', userController.updateUserRoles);
 
 /**
- * 
  * @openapi
- * /users/{id}:
- *  delete: 
- *      summary: Supprime un utilisateur par son ID
- *      tags:
- *        - Utilisateurs
- *      security:
- *        - bearerAuth: []
- *      responses:
- *        200:
- *          description: Utilisateur supprimé
+ * /users/{id}/roles/{roleName}:
+ *   delete:
+ *     summary: Retirer un rôle d'un utilisateur (admin seulement)
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *       - in: path
+ *         name: roleName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nom du rôle à retirer
+ *     responses:
+ *       200:
+ *         description: Rôle retiré avec succès
  */
-router.delete('/:id', userController.deleteUser);
+router.delete('/:id/roles/:roleName', userController.removeRoleFromUser);
 
 /**
  * @openapi
@@ -124,8 +201,114 @@ router.delete('/:id', userController.deleteUser);
  *       200:
  *         description: Liste des utilisateurs par rôle
  */
-
 router.get('/role/:roleName', userController.getUsersByRole);
 
+/**
+ * @openapi
+ * /users/{id}/roles:
+ *   get:
+ *     summary: Récupère les rôles d'un utilisateur (admin seulement)
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *     responses:
+ *       200:
+ *         description: Liste des rôles de l'utilisateur
+ */
+router.get('/:id/roles', userController.getUserRoles);
+
+/**
+ * @openapi
+ * /users/{id}:
+ *   get:
+ *     summary: Récupère un utilisateur par son ID
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Utilisateur trouvé
+ */
+
+router.get('/:id', userController.getUserById);
+
+/**
+ * @openapi
+ * /users/{id}:
+ *   put:
+ *     summary: Met à jour un utilisateur par son ID
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstname:
+ *                 type: string
+ *               lastname:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               address:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Utilisateur mis à jour
+ */
+
+router.put('/:id',  userController.updateUser);
+
+/**
+ * 
+ * @openapi
+ * /users/{id}:
+ *   delete:
+ *     summary: Supprime un utilisateur par son ID
+ *     tags:
+ *       - Utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de l'utilisateur
+ *     responses:
+ *       200:
+ *         description: Utilisateur supprimé
+ */
+router.delete('/:id', userController.deleteUser);
 
 module.exports = router;

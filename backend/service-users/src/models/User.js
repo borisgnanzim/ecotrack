@@ -61,6 +61,16 @@ module.exports = {
   findByIdAndDelete: async (id) => {
     return prisma.user.delete({ where: { id } });
   },
+  update: async (id, update) => {
+    if (update.password) {
+      update.password = await bcrypt.hash(update.password, 10);
+    }
+    const updated = await prisma.user.update({ where: { id }, data: update });
+    return attachCompare(updated);
+  },
+  delete: async (id) => {
+    return prisma.user.delete({ where: { id } });
+  },
   deleteMany: async () => {
     return prisma.user.deleteMany();
   },
@@ -116,5 +126,11 @@ module.exports = {
       where: { roles: { some: { id: role.id } } },
       include: { roles: true }
     });
+  },
+
+  findRolesByName: async (roleNames) => {
+    return prisma.role.findMany({
+      where: { name: { in: roleNames } }
+    });
   }
-}; 
+};

@@ -42,7 +42,6 @@ class UserService {
    * @returns {Promise<object>}
    */
   async createUser(userData) {
-    // Vérifier si l'email existe déjà
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
       const error = new ValidationError({ email: 'Email déjà utilisé' });
@@ -50,7 +49,34 @@ class UserService {
       throw error;
     }
 
-    const user = await User.create(userData);
+    const createData = {
+      email: userData.email,
+      password: userData.password,
+      address: userData.address,
+      phone: userData.phone
+    };
+
+    if (userData.firstname && userData.lastname) {
+      createData.username = `${userData.firstname}${userData.lastname}`.replace(/\s+/g, '').toLowerCase();
+      createData.name = `${userData.firstname} ${userData.lastname}`.trim();
+    } else {
+      if (userData.username) createData.username = userData.username;
+      if (userData.name) createData.name = userData.name;
+    }
+
+    if (Array.isArray(userData.roleNames)) {
+      const roleNames = userData.roleNames.length > 0 ? userData.roleNames : ['citizen'];
+      const roles = await User.findRolesByName(roleNames);
+      if (roles.length !== roleNames.length) {
+        const missingRoles = roleNames.filter(rn => !roles.some(role => role.name === rn));
+        const error = new ValidationError({ roleNames: `Rôles introuvables : ${missingRoles.join(', ')}` });
+        error.statusCode = 400;
+        throw error;
+      }
+      createData.roles = { connect: roles.map(role => ({ id: role.id })) };
+    }
+
+    const user = await User.create(createData);
     return user;
   }
 
@@ -77,6 +103,20 @@ class UserService {
         error.statusCode = 400;
         throw error;
       }
+    }
+
+    if (updateData.firstname || updateData.lastname) {
+      const currentName = user.name || '';
+      const [currentFirst = '', ...currentRest] = currentName.split(' ');
+      const currentLast = currentRest.join(' ');
+      const firstname = updateData.firstname || currentFirst;
+      const lastname = updateData.lastname || currentLast;
+
+      updateData.username = `${firstname}${lastname}`.replace(/\s+/g, '').toLowerCase();
+      updateData.name = `${firstname} ${lastname}`.trim();
+
+      delete updateData.firstname;
+      delete updateData.lastname;
     }
 
     const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true });
@@ -131,7 +171,21 @@ class UserService {
     return await User.updateRoles(userId, roleNames);
   }
 
-  
+  /**
+   * Récupérer les rôles d'un utilisateur
+   * @param {string} userId
+   * @returns {Promise<Array>}
+   */
+  async getUserRoles(userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new ValidationError({ id: 'Utilisateur non trouvé' });
+      error.statusCode = 404;
+      throw error;
+    }
+    return user.roles;
+  }
+
   /**
    * Récupérer les utilisateurs par rôle
    * @param {string} roleName

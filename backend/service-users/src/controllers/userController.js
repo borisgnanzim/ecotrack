@@ -25,7 +25,7 @@ exports.getAllUsersWithPagination = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
-        const result = await userService.getAllUsers({ page, limit });
+        const result = await userService.getAllUsersWithPagination({ page, limit });
         res.status(200).json({
             success: true,
             ...result
@@ -105,6 +105,73 @@ exports.deleteUser = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Ajouter un rôle à un utilisateur
+ * POST /users/:id/roles
+ */
+exports.addRoleToUser = async (req, res, next) => {
+    try {
+        const user = await userService.addRole(req.params.id, req.body.roleName);
+        res.status(200).json({
+            success: true,
+            message: 'Rôle ajouté avec succès',
+            data: user
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Retirer un rôle d'un utilisateur
+ * DELETE /users/:id/roles/:roleName
+ */
+exports.removeRoleFromUser = async (req, res, next) => {
+    try {
+        const user = await userService.removeRole(req.params.id, req.params.roleName);
+        res.status(200).json({
+            success: true,
+            message: 'Rôle retiré avec succès',
+            data: user
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Mettre à jour les rôles d'un utilisateur
+ * PUT /users/:id/roles
+ */
+exports.updateUserRoles = async (req, res, next) => {
+    try {
+        const user = await userService.updateRoles(req.params.id, req.body.roleNames);
+        res.status(200).json({
+            success: true,
+            message: 'Rôles mis à jour avec succès',
+            data: user
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Récupérer les rôles d'un utilisateur
+ * GET /users/:id/roles
+ */
+exports.getUserRoles = async (req, res, next) => {
+    try {
+        const roles = await userService.getUserRoles(req.params.id);
+        res.status(200).json({
+            success: true,
+            data: roles
         });
     } catch (error) {
         next(error);

@@ -17,9 +17,10 @@ class ValidationError extends Error {
    */
   static fromZodError(zodError) {
     const errors = {};
+    const issues = zodError.errors ?? zodError.issues ?? [];
 
-    zodError.errors.forEach(error => {
-      const field = error.path.join('.');
+    issues.forEach(error => {
+      const field = Array.isArray(error.path) ? error.path.join('.') : String(error.path || 'unknown');
       if (!errors[field]) {
         errors[field] = error.message;
       } else if (Array.isArray(errors[field])) {

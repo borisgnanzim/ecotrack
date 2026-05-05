@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const bcryptjs = require('bcryptjs');
 const User = require('../models/User');
-const { prisma } = require('../config/postgres');
+const notificationService = require('./notificationService');
 const ValidationError = require('../dto/ValidationError');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
@@ -13,7 +14,13 @@ class AuthService {
    * @param {string} password
    * @returns {Promise<{token: string, user: object, roles: string[]}>}
    */
-  async login(email, password) {
+  async login(emailOrData, password) {
+    let email = emailOrData;
+    if (typeof emailOrData === 'object' && emailOrData !== null) {
+      email = emailOrData.email;
+      password = emailOrData.password;
+    }
+
     const user = await User.findOne({ email });
     
     if (!user) {
@@ -22,7 +29,9 @@ class AuthService {
       throw error;
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = user.comparePassword
+      ? await user.comparePassword(password)
+      : bcryptjs.compareSync(password, user.password);
     if (!isMatch) {
       const error = new ValidationError({ password: 'Mot de passe incorrect' });
       error.statusCode = 401;
@@ -50,39 +59,53 @@ class AuthService {
    * @param {string} password
    * @returns {Promise<{token: string, user: object}>}
    */
-  async registerCitizen(firstname, lastname, email, password) {
-    // Vérifier si l'email existe déjà
-    const existingUser = await User.findOne({ email });
+  async registerCitizen(dataOrFirstname, lastname, email, password) {
+    let registrationData;
+
+    if (typeof dataOrFirstname === 'object' && dataOrFirstname !== null) {
+      registrationData = dataOrFirstname;
+    } else {
+      registrationData = {
+        firstname: dataOrFirstname,
+        lastname,
+        email,
+        password
+      };
+    }
+
+    const { firstname, lastname: last = '', email: userEmail, password: userPassword, username, name, address, phone } = registrationData;
+
+    const existingUser = await User.findOne({ email: userEmail });
     if (existingUser) {
       const error = new ValidationError({ email: 'Email déjà utilisé' });
       error.statusCode = 400;
       throw error;
     }
 
-    const username = `${firstname}${lastname}`.replace(/\s+/g, '').toLowerCase();
-    
-    const name = `${firstname} ${lastname}`.trim();
-    //console.log(typeof(username), username);
+    const resolvedUsername = username
+      || (firstname && last ? `${firstname}${last}`.replace(/\s+/g, '').toLowerCase() : undefined);
+    const resolvedName = name || (firstname && last ? `${firstname} ${last}`.trim() : undefined);
 
-    // Créer l'utilisateur
-    const user = await User.create({ username, email, password, name });
+    const createData = {
+      username: resolvedUsername,
+      email: userEmail,
+      password: userPassword,
+      name: resolvedName,
+      address,
+      phone
+    };
 
-    // Assigner le rôle "citizen" par défaut
-    const citizenRole = await prisma.role.findUnique({ where: { name: 'citizen' } });
-    if (citizenRole) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { roles: { connect: { id: citizenRole.id } } }
-      });
+    const user = await User.create(createData);
+
+    if (User.addRole) {
+      await User.addRole(user.id, 'citizen');
     }
 
-    // Récupérer l'utilisateur avec ses rôles
     const userWithRoles = await User.findById(user.id);
     const roleNames = userWithRoles.roles.map(r => r.name);
     const token = this.generateToken(userWithRoles);
 
-    // Envoie une notification de bienvenue (asynchrone)
-    const notification = await sendWelcomeNotification(user);
+    notificationService.sendWelcomeNotification(userWithRoles).catch(err => console.error('Notification échouée:', err.message || err));
 
     return {
       token,
