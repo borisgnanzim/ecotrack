@@ -4,8 +4,6 @@ import axios from 'axios'
 // Base URL du back depuis les variables d'environnement
 const API_BACK_URL = import.meta.env.VITE_APP_BACK_API_GATEWAY
 
-console.log("BASE URL =", API_BACK_URL)
-
 // Instance Axios configurée pour l'API
 const apiClient = axios.create({
   baseURL: `${API_BACK_URL}`, // l'URL de l'API backend

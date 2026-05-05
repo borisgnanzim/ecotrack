@@ -192,7 +192,7 @@ export default {
   methods: {
     // Roles de l'utilisateur
     async getRoles() {
-      const roles = await authStorage.getRoles()
+      const roles = await authStorage.getDBRoles()
       console.log("les roles : ", roles)
     },
 

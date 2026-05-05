@@ -6,7 +6,6 @@ export default {
   // Récupérer tous les containers
   async getAll() {
     const response = await apiClient.get('/containers')
-    console.log("LA réponse backend contain ", response)
     return response
   },
 

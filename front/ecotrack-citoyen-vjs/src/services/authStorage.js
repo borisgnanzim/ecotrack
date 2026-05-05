@@ -28,17 +28,24 @@ export default {
     return connectedUser
   },
 
-  // La mméhtode de déconnexion
-  logout() {
-    // localStorage
-    localStorage.removeItem('token')
-    localStorage.removeItem('userId')
-    localStorage.removeItem('roles')
-    localStorage.removeItem('rememberMeData')
-
-    // sessionStorage
-    sessionStorage.removeItem('token')
-    sessionStorage.removeItem('userId')
-    sessionStorage.removeItem('roles')
+  // Les roles de l'utilisateur depuis la bdd
+  async getDBRoles() {
+    const response = await this.getProfile()
+    const roles = response.data.roles
+    return roles
   }
+}
+
+// La méhtode de déconnexion
+export function logout() {
+  // localStorage
+  localStorage.removeItem('token')
+  localStorage.removeItem('userId')
+  localStorage.removeItem('roles')
+  localStorage.removeItem('rememberMeData')
+
+  // sessionStorage
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('userId')
+  sessionStorage.removeItem('roles')
 }

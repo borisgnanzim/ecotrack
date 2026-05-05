@@ -29,7 +29,7 @@ export default {
   },
 
   // Les roles de l'utilisateur depuis la bdd
-  async getRoles() {
+  async getDBRoles() {
     const response = await this.getProfile()
     const roles = response.data.roles
     return roles
