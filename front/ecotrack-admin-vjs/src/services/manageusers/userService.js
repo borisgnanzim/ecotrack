@@ -9,7 +9,21 @@ export default {
   },
 
   // Ajouter un utilisateur
-  async createUser() {
+  async createUser(userDatas) {
+    console.log("Les données envoyées : ", userDatas)
+    const response = await apiClient.post('/users', userDatas)
+    return response
+  },
 
+  // Modifier les infos d'un utilisateur.
+  async updateUser(userUuid, userDatas) {
+    const response = await apiClient.put(`/users/${userUuid}`, userDatas)
+    return response
+  },
+
+  // Supprimer un utilisateur
+  async deleteUser(userUuid) {
+    const response = await apiClient.delete(`/users/${userUuid}`)
+    return response
   }
 }

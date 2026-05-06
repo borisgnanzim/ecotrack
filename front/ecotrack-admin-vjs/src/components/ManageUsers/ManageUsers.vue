@@ -21,6 +21,70 @@
         </button>
       </div>
 
+      <!-- FILTERS -->
+      <div class="filters-container">
+
+        <!-- LEFT : SEARCH -->
+        <div class="filters-left">
+          <div class="search-wrapper">
+            <i class="bi bi-search search-icon"></i>
+
+            <input
+              v-model="filters.search"
+              type="text"
+              placeholder="Rechercher nom, email..."
+              class="input search-input"
+            />
+          </div>
+        </div>
+
+        <!-- RIGHT : FILTERS -->
+        <div class="filters-right">
+
+          <select v-model="filters.role" class="input filter-select">
+            <option value="">Tous les rôles</option>
+            <option value="admin">Administrateur</option>
+            <option value="agent">Agent</option>
+            <option value="citizen">Citoyen</option>
+            <option value="manager">Manager</option>
+          </select>
+
+          <select v-model="filters.status" class="input filter-select">
+            <option value="">Tous</option>
+            <option value="active">Actif</option>
+            <option value="banned">Banni</option>
+          </select>
+
+        </div>
+
+      </div>
+
+      <!-- PAGINATION -->
+      <div class="pagination-container">
+
+        <span class="pagination-info">
+          {{ (page - 1) * perPage + 1 }} - {{ (page - 1) * perPage + paginatedUsers.length }}
+          sur {{ filteredUsers.length }}
+        </span>
+
+        <div class="pagination-controls">
+
+          <button class="page-btn" @click="prevPage" :disabled="page === 1">
+            ←
+          </button>
+
+          <span class="page-current">
+            {{ page }} / {{ totalPages || 1 }}
+          </span>
+
+          <button class="page-btn" @click="nextPage" :disabled="page === totalPages">
+            →
+          </button>
+
+        </div>
+
+      </div>
+
       <!-- TABLE -->
       <div class="bg-white rounded-xl shadow overflow-hidden">
 
@@ -40,7 +104,7 @@
           <tbody class="divide-y">
 
             <tr
-              v-for="u in users"
+              v-for="u in paginatedUsers"
               :key="u.id"
               class="hover:bg-slate-50 transition"
             >
@@ -67,12 +131,12 @@
               </td>
 
               <td class="px-6 py-3">
-                {{ u.role }}
+                {{ getRoleLabel(u.roles) }}
               </td>
 
               <td class="px-6 py-3">
-                <span :class="statusClass(u.status)">
-                  {{ u.status }}
+                <span :class="statusClass(u.isActive)">
+                  {{ statusLabel(u.isActive) }}
                 </span>
               </td>
 
@@ -93,7 +157,11 @@
                   </button>
 
                   <button class="icon-btn red" @click="ban(u)">
-                    <i :class="u.status === 'BANNED' ? 'bi bi-unlock' : 'bi bi-slash-circle'"></i>
+                    <i :class="u.isActive === false ? 'bi bi-unlock' : 'bi bi-slash-circle'"></i>
+                  </button>
+
+                  <button class="icon-btn red" @click="del(u)">
+                    <i class="bi bi-trash"></i>
                   </button>
 
                 </div>
@@ -141,11 +209,15 @@
           <input class="input" v-model="form.lastname" placeholder="Nom" />
           <input class="input" v-model="form.email" placeholder="Email" />
 
-          <select class="input" v-model="form.role">
-            <option disabled value="">Choisir un rôle</option>
-            <option>Admin</option>
-            <option>Agent</option>
-            <option>Citizen</option>
+          <!--<input class="input" v-model="form.address" placeholder="Adresse" />-->
+          <input class="input" v-model="form.phone" placeholder="Téléphone" />
+
+          <!-- MULTI ROLES -->
+          <select multiple class="input" v-model="form.roles">
+            <option value="admin">Administrateur</option>
+            <option value="agent">Agent</option>
+            <option value="citizen">Citoyen</option>
+            <option value="manager">Manager</option>
           </select>
 
         </div>
@@ -192,13 +264,13 @@
 
           <div class="inspect-row">
             <span>Rôle</span>
-            <strong>{{ selected.role }}</strong>
+            <strong>{{ getRoleLabel(selected.roles) }}</strong>
           </div>
 
           <div class="inspect-row">
             <span>Statut</span>
-            <strong :class="statusClass(selected.status)">
-              {{ selected.status }}
+            <strong :class="statusClass(selected.isActive)">
+              {{ statusLabel(selected.isActive) }}
             </strong>
           </div>
 
@@ -244,6 +316,37 @@
 
     </div>
 
+    <!-- DELETE MODAL -->
+    <div v-if="showDel" class="modal-overlay">
+
+      <div class="modal animate-pop text-center">
+
+        <div class="text-red-500 text-3xl mb-2">⚠️</div>
+
+        <p class="font-semibold">
+          Confirmer l’action ?
+        </p>
+
+        <p class="text-sm text-slate-500 mt-1">
+          Cette action supprime l'utilisateur
+        </p>
+
+        <div class="flex justify-center gap-3 mt-4">
+
+          <button class="btn-ghost" @click="showDel = false">
+            Annuler
+          </button>
+
+          <button class="btn-danger" @click="confirmDel">
+            Confirmer
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
 </template>
 
@@ -252,6 +355,13 @@ import BackButton from "@/components/BackButton.vue"
 import AppHeader from "@/components/AppHeader/AppHeader.vue"
 import userService from "@/services/manageusers/userService";
 import { useToast } from "vue-toastification"
+
+const ROLE_LABELS = {
+  admin: 'Administrateur',
+  agent: 'Agent',
+  citizen: 'Citoyen',
+  manager: 'Manager'
+}
 
 export default {
 
@@ -266,6 +376,7 @@ export default {
       showInspect: false,
       showBan: false,
       showForm: false,
+      showDel: false,
 
       isEdit: false,
 
@@ -277,16 +388,75 @@ export default {
         firstname: '',
         lastname: '',
         email: '',
-        role: '',
+        password: '',
+        address: '',
+        phone: '',
+        roles: [], // maintenant
         avatarPreview: ''
       },
       defaultAvatar: new URL('/assets/icon/man-profile.png', import.meta.url).href,
 
+      filters: {
+        search: '',
+        role: '',
+        status: ''
+      },
+
+      page: 1,
+      perPage: 20,
     }
   },
 
   mounted(){
     this.fetchAllUsers()
+  },
+
+  computed: {
+
+    filteredUsers() {
+      return this.users.filter(u => {
+
+        // SEARCH (nom + email + username)
+        const search = this.filters.search.toLowerCase()
+        const matchesSearch =
+          !search ||
+          u.name?.toLowerCase().includes(search) ||
+          u.email?.toLowerCase().includes(search) ||
+          u.username?.toLowerCase().includes(search)
+
+        // ROLE
+        const matchesRole =
+          !this.filters.role ||
+          u.roles?.some(r => r.name === this.filters.role)
+
+        // STATUS
+        const matchesStatus =
+          !this.filters.status ||
+          (this.filters.status === 'active' && u.isActive) ||
+          (this.filters.status === 'banned' && !u.isActive)
+
+        return matchesSearch && matchesRole && matchesStatus
+      })
+    },
+
+    totalPages() {
+      return Math.ceil(this.filteredUsers.length / this.perPage)
+    },
+
+    paginatedUsers() {
+      const start = (this.page - 1) * this.perPage
+      return this.filteredUsers.slice(start, start + this.perPage)
+    }
+
+  },
+
+  watch: {
+    filters: {
+      handler() {
+        this.page = 1
+      },
+      deep: true
+    }
   },
 
   methods: {
@@ -295,6 +465,7 @@ export default {
       try {
         const response =  await userService.getAll()
         this.users = response.data.data
+        this.toast.success("Utilisateurs récupérés.")
       } catch (err){
         const message =
           err.response?.data?.message ||
@@ -303,6 +474,23 @@ export default {
         this.error = message
         this.toast.error(message)
       }
+    },
+
+    getRoleLabel(roles) {
+      if (!roles || roles.length === 0) return '—'
+
+      return roles
+        .map(r => ROLE_LABELS[r.name] || r.name) // fallback si inconnu
+        .join(', ')
+    },
+
+    // Pagination
+    nextPage() {
+      if (this.page < this.totalPages) this.page++
+    },
+
+    prevPage() {
+      if (this.page > 1) this.page--
     },
 
     /* =========================
@@ -316,6 +504,7 @@ export default {
     },
 
     closeForm() {
+      this.resetForm()
       this.showForm = false
     },
 
@@ -325,40 +514,93 @@ export default {
         firstname: '',
         lastname: '',
         email: '',
-        role: '',
+        password: '',
+        address: '',
+        phone: '',
+        roles: [],
         avatarPreview: ''
       }
+    },
+
+    formatFirstname(name) {
+      return name
+        .toLowerCase()
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    },
+
+    formatLastname(name) {
+      if (!name) return ''
+      return name.toUpperCase()
+    },
+
+    // Générer un mot de passe
+    generatePassword() {
+      const length = 12
+
+      const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      const lowercase = "abcdefghijklmnopqrstuvwxyz"
+      const numbers = "0123456789"
+      const special = "!@#$%^&*"
+
+      const all = uppercase + lowercase + numbers + special
+
+      let password = ""
+
+      // garantir au moins 1 de chaque
+      password += uppercase[Math.floor(Math.random() * uppercase.length)]
+      password += lowercase[Math.floor(Math.random() * lowercase.length)]
+      password += numbers[Math.floor(Math.random() * numbers.length)]
+      password += special[Math.floor(Math.random() * special.length)]
+
+      // compléter
+      for (let i = 4; i < length; i++) {
+        password += all[Math.floor(Math.random() * all.length)]
+      }
+
+      return password
     },
 
     /* =========================
        CRUD USER
     ========================= */
 
-    submitUser() {
+    async submitUser() {
+      try {
+        const formattedFirstname = this.formatFirstname(this.form.firstname.trim())
+        const formattedLastname = this.formatLastname(this.form.lastname.trim())
+        const generatedPassword = this.generatePassword()
 
-      const fullName = `${this.form.firstname} ${this.form.lastname}`.trim()
-
-      if (this.isEdit) {
-        const user = this.users.find(u => u.id === this.form.id)
-        if (!user) return
-
-        user.name = fullName
-        user.email = this.form.email
-        user.role = this.form.role
-        user.avatar = this.form.avatarPreview
-
-      } else {
-        this.users.push({
-          id: Date.now(),
-          name: fullName,
+        const payload = {
+          firstname: formattedFirstname,
+          lastname: formattedLastname,
           email: this.form.email,
-          role: this.form.role,
-          status: "ACTIVE",
-          avatar: this.form.avatarPreview
-        })
-      }
+          password: generatedPassword,
+          address: this.form.address || '-',
+          phone: this.form.phone || null,
+          roleNames: this.form.roles
+        }
 
-      this.closeForm()
+        if (this.isEdit) {
+          this.toast.info("Update non implémenté côté API")
+          return
+        }
+
+        await userService.createUser(payload)
+
+        this.toast.success("Utilisateur créé avec succès")
+
+        await this.fetchAllUsers()
+        this.closeForm()
+
+      } catch (err) {
+        const message =
+          err.response?.data?.message ||
+          "Erreur lors de la création"
+
+        this.toast.error(message)
+      }
     },
 
     edit(u) {
@@ -369,7 +611,10 @@ export default {
         firstname: u.name?.split(' ')[0] || '',
         lastname: u.name?.split(' ')[1] || '',
         email: u.email,
-        role: u.role,
+        password: '', // jamais pré-remplir
+        address: u.address || '',
+        phone: u.phone || '',
+        roles: u.roles?.map(r => r.name) || [],
         avatarPreview: u.avatar || ''
       }
 
@@ -401,15 +646,41 @@ export default {
       this.showBan = false
     },
 
+    del(u) {
+      this.selected = u
+      this.showDel = true
+    },
+
+    confirmDel() {
+      if (!this.selected) return
+
+      const id = this.selected.id
+      this.deleteUser(id)
+
+      this.showDel = false
+    },
+
+    async deleteUser(userUuid) {
+      try{
+        await userService.deleteUser(userUuid)
+        this.toast.success("User deleted.")
+        this.fetchAllUsers()
+      }catch (e) {
+        console.error(e)
+      }
+
+    },
+
     /* =========================
        UTILS UI
     ========================= */
 
-    statusClass(status) {
-      return {
-        ACTIVE: "status-active",
-        BANNED: "status-banned"
-      }[status] || ""
+    statusClass(isActive) {
+      return isActive ? "status-active" : "status-banned"
+    },
+
+    statusLabel(isActive) {
+      return isActive ? "ACTIF" : "BANNI"
     },
 
     initials(name) {
@@ -804,5 +1075,140 @@ select.input {
 .icon-btn.red:hover {
   background: #dc2626;
   color: white;
+}
+
+/* =========================
+   FILTERS UI
+========================= */
+
+.filters-container {
+  background: white;
+  padding: 14px 16px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* LEFT */
+.filters-left {
+  flex: 1;
+}
+
+/* SEARCH */
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding-left: 36px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+  background: white;
+}
+
+/* RIGHT */
+.filters-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* SELECT */
+.filter-select {
+  width: 140px;
+  font-size: 13px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+/* =========================
+   PAGINATION UI
+========================= */
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding: 6px 4px;
+}
+
+/* info */
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* controls */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* buttons */
+.page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #059669;
+  color: white;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* current page */
+.page-current {
+  font-size: 13px;
+  color: #475569;
+  min-width: 60px;
+  text-align: center;
+}
+
+select[multiple] {
+  height: auto;
+  min-height: 90px;
+  padding: 8px;
+}
+
+select[multiple] option {
+  padding: 6px;
+  border-radius: 6px;
 }
 </style>
