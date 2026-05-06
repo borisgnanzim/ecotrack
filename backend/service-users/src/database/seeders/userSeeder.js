@@ -13,36 +13,42 @@ module.exports = async (prisma) => {
         name: "Alice",
         username: "alice123",
         email: "alice@mail.com", 
+        phone: "1234567890",
         password: password
       },
       {
         name: "Bob", 
         username: "bob123",
         email: "bob@mail.com",
+        phone: "0987654321",
         password: password
       },
       {
         name: "citizen1",
         username: "citizen1",
         email: "citizen1@example.com",
+        phone: "1111111111",
         password: password
       },
       {
         name: "agent1",
         username: "agent1",
         email: "agent1@example.com",
+        phone: "2222222222",
         password: password
       },
       {
         name: "manager1",
         username: "manager1",
         email: "manager1@example.com",
+        phone: "3333333333",
         password: password
       },
       {
         name: "admin1",
         username: "admin1",
         email: "admin1@example.com",
+        phone: "4444444444",
         password: password
       }
     ]

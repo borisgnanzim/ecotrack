@@ -21,8 +21,9 @@ const createUserSchema = z.object({
     .max(200, 'Adresse trop longue (max 200 caractères)')
     .optional(),
   phone: z.string()
-    .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, 'Numéro de téléphone invalide')
     .optional()
+    .refine((val) => val === '' || /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/.test(val), 'Numéro de téléphone invalide'),
+
 });
 
 /**

@@ -22,6 +22,7 @@ model User {
   password      String
   points        Int            @default(0)
   address       String?
+  phone         String?
   avatar        String?
   badges        String[]
   createdAt     DateTime       @default(now())
