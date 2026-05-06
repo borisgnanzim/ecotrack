@@ -11,7 +11,26 @@ function attachCompare(user) {
 
 module.exports = {
   find: async () => {
-    return prisma.user.findMany();
+    return prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        points: true,
+        address: true,
+        avatar: true,
+        badges: true,
+        createdAt: true,
+        isActive: true,
+        roles: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
   },
   findPaginated: async (options) => {
     const { page = 1, limit = 10 } = options;
