@@ -51,10 +51,12 @@ class UserService {
 
     const createData = {
       email: userData.email,
-      password: userData.password,
-      address: userData.address,
-      phone: userData.phone
+      password: userData.password
     };
+
+    // Ajouter les champs optionnels seulement s'ils sont définis
+    if (userData.address !== undefined) createData.address = userData.address;
+    if (userData.phone !== undefined) createData.phone = userData.phone;
 
     if (userData.firstname && userData.lastname) {
       createData.username = `${userData.firstname}${userData.lastname}`.replace(/\s+/g, '').toLowerCase();
