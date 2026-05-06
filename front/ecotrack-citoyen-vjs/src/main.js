@@ -25,6 +25,7 @@ const options = {
 
 const app = createApp(App)
 
+app.use(Toast, options)
 app.use(router)
 
 app.mount('#app')

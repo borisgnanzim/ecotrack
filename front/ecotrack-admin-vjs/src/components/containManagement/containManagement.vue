@@ -164,6 +164,26 @@
 
           <input v-model="form.code_conteneur" placeholder="Code conteneur" class="input" />
 
+          <div class="relative">
+            <input
+              v-model="form.address"
+              @input="onSearchAddress"
+              placeholder="Adresse du conteneur"
+              class="input"
+            />
+
+            <!-- Suggestions -->
+            <ul v-if="suggestions.length" class="suggestions">
+              <li
+                v-for="s in suggestions"
+                :key="s.place_id"
+                @click="selectAddress(s)"
+              >
+                {{ formatAddress(s) }}
+              </li>
+            </ul>
+          </div>
+
           <input v-model="form.id_Zone" placeholder="Zone (ex: Centre-ville)" class="input" />
 
           <input v-model="form.type_Dechet" placeholder="Type (OM, Verre...)" class="input" />
@@ -303,6 +323,8 @@
 import BackButton from "@/components/BackButton.vue"
 import AppHeader from "@/components/AppHeader/AppHeader.vue"
 import containerService from "@/services/container/containerService"
+import streetMapService from "@/services/apiStreet/streetMapService"
+import streetService from "@/services/apiStreet/streetService"
 
 export default {
 
@@ -333,8 +355,13 @@ export default {
         id_Zone: "",
         type_Dechet: "",
         capacite_i: "",
-        Statut: "OK"
+        Statut: "OK",
+        address: "",
+        latitude: null,
+        longitude: null
       },
+      suggestions: [],
+      timeout: null,
 
       statusStyles: {
         OK: "bg-emerald-100 text-emerald-700",
@@ -438,13 +465,56 @@ export default {
       this.resetForm()
     },
 
+    /**
+     * Pour la suggestion des adresses
+     */
+
+    async onSearchAddress() {
+      clearTimeout(this.timeout)
+
+      // debounce (important pour éviter spam API)
+      this.timeout = setTimeout(async () => {
+        this.suggestions = await streetService.searchAddress(this.form.address)
+      }, 300)
+    },
+
+    selectAddress(s) {
+      this.form.address = s.display_name
+      this.form.latitude = parseFloat(s.lat)
+      this.form.longitude = parseFloat(s.lon)
+
+      this.suggestions = []
+    },
+
+    formatAddress(s) {
+      const a = s.address || {}
+
+      return [
+        a.house_number,
+        a.road,
+        a.postcode,
+        a.city || a.town || a.village
+      ]
+        .filter(Boolean)
+        .join(" ")
+    },
+
     async handleCreate() {
       try {
-        await containerService.create({
+
+        const geo = await streetMapService.geocode(this.form.address)
+
+        const payload = {
           ...this.form,
           code_conteneur: Number(this.form.code_conteneur),
-          capacite_i: Number(this.form.capacite_i)
-        })
+          capacite_i: Number(this.form.capacite_i),
+          latitude: geo?.latitude || null,
+          longitude: geo?.longitude || null
+        }
+        console.log(payload)
+        const myAdress = await streetMapService.reverseGeocode(geo.latitude, geo.longitude)
+        console.log(myAdress)
+        // await containerService.create(payload)
 
         this.closeCreate()
         this.fetchContainers()
@@ -456,10 +526,19 @@ export default {
 
     async handleUpdate() {
       try {
-        await containerService.update(
-          this.selectedContainer.id_conteneur,
-          this.form
-        )
+
+        const geo = await streetMapService.geocode(this.form.address)
+
+        const payload = {
+          ...this.form,
+          latitude: geo?.latitude || this.selectedContainer.latitude,
+          longitude: geo?.longitude || this.selectedContainer.longitude
+        }
+        console.log(payload)
+        // await containerService.update(
+        //   this.selectedContainer.id_conteneur,
+        //   payload
+        // )
 
         this.closeCreate()
         this.fetchContainers()

@@ -266,3 +266,26 @@
   color: #059669;
   margin-bottom: 6px;
 }
+
+
+/* Les suggestions de l'adresse */
+.suggestions {
+  position: absolute;
+  width: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.suggestions li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestions li:hover {
+  background: #f1f5f9;
+}

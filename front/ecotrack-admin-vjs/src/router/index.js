@@ -53,7 +53,7 @@ const router = createRouter({
       name: 'contain-management',
       component: () => import('../components/containManagement/containManagement.vue'),
       meta: {
-        title: 'Dashboard | Eko',
+        title: 'Manage Container | Eko',
         requiresAuth: true,
         roles: ['admin'],
       },
@@ -63,7 +63,7 @@ const router = createRouter({
       name: 'user-space',
       component: () => import('../components/UserSpace/UserSpace.vue'),
       meta: {
-        title: 'Dashboard | Eko',
+        title: 'Space User | Eko',
         requiresAuth: true,
         roles: ['admin'],
       },
@@ -73,7 +73,7 @@ const router = createRouter({
       name: 'user-management',
       component: () => import('../components/ManageUsers/ManageUsers.vue'),
       meta: {
-        title: 'Dashboard | Eko',
+        title: 'Manage Users | Eko',
         requiresAuth: true,
         roles: ['admin'],
       },
@@ -83,7 +83,7 @@ const router = createRouter({
       name: 'manage-routes',
       component: () => import('../components/ManageRoutes/ManageRoutes.vue'),
       meta: {
-        title: 'Dashboard | Eko',
+        title: 'Routes | Eko',
         requiresAuth: true,
         roles: ['admin'],
       },

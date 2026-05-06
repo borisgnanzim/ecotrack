@@ -46,7 +46,7 @@
         <h2 class="text-lg font-semibold mb-4">Carte des conteneurs</h2>
 
         <div class="map-placeholder">
-          Carte temps réel (Leaflet / Mapbox à venir)
+          <div id="map" class="map"></div>
         </div>
       </section>
 
@@ -103,6 +103,9 @@
 import AppHeader from "../AppHeader/AppHeader.vue";
 import StatCard from "./StatCard.vue";
 
+import L from "leaflet"
+import "leaflet/dist/leaflet.css"
+
 export default {
   name: "DashboardPage",
 
@@ -132,6 +135,10 @@ export default {
     }
   },
 
+  mounted() {
+    this.initMap()
+  },
+
   methods: {
 
     fillColor(value) {
@@ -147,6 +154,25 @@ export default {
         alert: status === "ALERTE",
         urgent: status === "URGENT"
       }
+    },
+
+    // Méthode pour initiatliser le map
+    initMap() {
+      // Coordonnées par défaut (Paris)
+      const map = L.map('map').setView([48.8566, 2.3522], 12)
+
+      // Layer OpenStreetMap (GRATUIT)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map)
+
+      // Marker test
+      L.marker([48.8566, 2.3522])
+        .addTo(map)
+        .bindPopup("Centre de Paris")
+        .openPopup()
+
+      this.map = map
     }
 
   }
@@ -298,4 +324,10 @@ export default {
   margin-bottom: 10px;
 }
 
+
+.map {
+  height: 300px;
+  width: 100%;
+  border-radius: 10px;
+}
 </style>
