@@ -321,24 +321,59 @@
 
       <div class="modal animate-pop text-center">
 
-        <div class="text-red-500 text-3xl mb-2">⚠️</div>
+        <div class="text-red-500 text-4xl mb-3">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
 
-        <p class="font-semibold">
-          Confirmer l’action ?
+        <p class="font-semibold text-lg">
+          Supprimer cet utilisateur ?
         </p>
 
-        <p class="text-sm text-slate-500 mt-1">
-          Cette action supprime l'utilisateur
+        <p class="text-sm text-slate-500 mt-2">
+          Cette action est irréversible.
         </p>
 
-        <div class="flex justify-center gap-3 mt-4">
+        <!-- Confirmation text -->
+        <div class="mt-5 text-left">
 
-          <button class="btn-ghost" @click="showDel = false">
+          <label class="block text-sm font-medium text-slate-600 mb-2">
+            Tapez <strong>SUPPRIMER</strong> pour confirmer
+          </label>
+
+          <input
+            v-model="deleteConfirmText"
+            type="text"
+            class="input"
+            placeholder="SUPPRIMER"
+          />
+
+          <p
+            v-if="deleteConfirmText && deleteConfirmText !== 'SUPPRIMER'"
+            class="text-xs text-red-500 mt-2"
+          >
+            Le texte doit être exactement : SUPPRIMER
+          </p>
+
+        </div>
+
+        <div class="flex justify-center gap-3 mt-6">
+
+          <button
+            class="btn-ghost"
+            @click="closeDeleteModal"
+          >
             Annuler
           </button>
 
-          <button class="btn-danger" @click="confirmDel">
-            Confirmer
+          <button
+            class="btn-danger"
+            :disabled="deleteConfirmText !== 'SUPPRIMER'"
+            :class="{
+              'opacity-50 cursor-not-allowed': deleteConfirmText !== 'SUPPRIMER'
+            }"
+            @click="confirmDel"
+          >
+            Confirmer la suppression
           </button>
 
         </div>
@@ -404,6 +439,8 @@ export default {
 
       page: 1,
       perPage: 20,
+
+      deleteConfirmText: "",
     }
   },
 
@@ -591,7 +628,8 @@ export default {
 
         this.toast.success("Utilisateur créé avec succès")
 
-        await this.fetchAllUsers()
+        const recup = await userService.getAll()
+        this.users = recup.data.data
         this.closeForm()
 
       } catch (err) {
@@ -635,6 +673,7 @@ export default {
       this.showBan = true
     },
 
+    // A revoir pour la désactivation d'un user
     confirmBan() {
       if (!this.selected) return
 
@@ -648,23 +687,36 @@ export default {
 
     del(u) {
       this.selected = u
+      this.deleteConfirmText = ""
       this.showDel = true
     },
 
+    closeDeleteModal() {
+      this.showDel = false
+      this.deleteConfirmText = ""
+    },
+
     confirmDel() {
+
+      if (this.deleteConfirmText !== "SUPPRIMER") {
+        return
+      }
+
       if (!this.selected) return
 
       const id = this.selected.id
+
       this.deleteUser(id)
 
-      this.showDel = false
+      this.closeDeleteModal()
     },
 
     async deleteUser(userUuid) {
       try{
         await userService.deleteUser(userUuid)
         this.toast.success("User deleted.")
-        this.fetchAllUsers()
+        const recup = await userService.getAll()
+        this.users = recup.data.data
       }catch (e) {
         console.error(e)
       }
