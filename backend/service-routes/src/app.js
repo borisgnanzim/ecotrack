@@ -7,6 +7,8 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger/swagger");
 const errorHandler = require("./middlewares/errorHandler");
 
+const PORT = process.env.PORT || 3002;
+
 const app = express();
 
 const allowedOrigins = [

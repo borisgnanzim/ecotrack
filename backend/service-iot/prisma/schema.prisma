@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Measurement {
+  id           Int       @id @default(autoincrement())
+  containerId  Int
+  fillLevel    Int
+  temperature  Float?
+  humidity     Float?
+  createdAt    DateTime  @default(now())
+  anomaly      Boolean   @default(false)
+}
+
+model SensorStatus {
+  id              Int       @id @default(autoincrement())
+  containerId     Int       @unique
+  lastFillLevel   Int?
+  lastTemperature Float?
+  lastHumidity    Float?
+  lastSeen        DateTime?
+  updatedAt       DateTime  @updatedAt
+}
+
+model Alert {
+  id           Int       @id @default(autoincrement())
+  containerId  Int
+  type         AlertType
+  message      String
+  createdAt    DateTime  @default(now())
+  resolved     Boolean   @default(false)
+}
+
+enum AlertType {
+  CRITICAL_FILL
+  SENSOR_OFFLINE
+  TEMPERATURE_ANOMALY
+  MAINTENANCE
+}

@@ -24,5 +24,6 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
+    "kafkajs": "^2.2.4"
   }
 }
