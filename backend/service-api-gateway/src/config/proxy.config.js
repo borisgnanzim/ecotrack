@@ -23,7 +23,12 @@ const PROXY_CONFIG = {
     url: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3014',
     description: 'Service de gestion des analyses et rapports',
     routes: ['/analytics']
-  }
+  },
+  iot: {
+    url: process.env.IOT_SERVICE_URL || 'http://localhost:3015',
+    description: 'Service de gestion des données IoT',
+    routes: ['/iot']
+  },
 };
 
 module.exports = PROXY_CONFIG;

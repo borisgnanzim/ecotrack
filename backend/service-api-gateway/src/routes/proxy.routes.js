@@ -2103,5 +2103,138 @@ router.use('/analytics', auth, createProxyMiddleware({
   }
 }));
 
+// Service IoT
+
+/**
+ * @swagger
+ * /iot/devices:
+ *   get:
+ *     summary: Lister tous les appareils IoT
+ *     description: Retourne la liste de tous les appareils IoT connectés.
+ *     tags: [IoT]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des appareils IoT
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *
+ * /iot/devices/{deviceId}:
+ *   get:
+ *     summary: Récupérer les détails d'un appareil IoT
+ *     description: Retourne les informations détaillées d'un appareil IoT.
+ *     tags: [IoT]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         description: ID de l'appareil
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Détails de l'appareil IoT
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *       404:
+ *         description: Appareil non trouvé
+ *
+ * /iot/devices/{deviceId}/telemetry:
+ *   get:
+ *     summary: Récupérer la télémétrie d'un appareil
+ *     description: Retourne les données de télémétrie d'un appareil IoT.
+ *     tags: [IoT]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         description: ID de l'appareil
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         description: Nombre de résultats
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *     responses:
+ *       200:
+ *         description: Données de télémétrie de l'appareil
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *
+ * /iot/devices/{deviceId}/commands:
+ *   post:
+ *     summary: Envoyer une commande à un appareil
+ *     description: Envoie une commande à un appareil IoT.
+ *     tags: [IoT]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         description: ID de l'appareil
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               commandType:
+ *                 type: string
+ *               payload:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Commande envoyée avec succès
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *       404:
+ *         description: Appareil non trouvé
+ *
+ * /iot/devices/{deviceId}/status:
+ *   get:
+ *     summary: Récupérer le statut d'un appareil
+ *     description: Retourne le statut actuel d'un appareil IoT.
+ *     tags: [IoT]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         description: ID de l'appareil
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Statut de l'appareil
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ */
+router.use('/iot', auth, createProxyMiddleware({
+  target: PROXY_CONFIG.iot.url,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/iot': '/iot'
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy Error - IoT Service:', err);
+    res.status(503).json({
+      error: 'Service IoT indisponible',
+      statusCode: 503,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
 
 module.exports = router;
