@@ -8,7 +8,7 @@ datasource db {
 }
 
 model conteneur {
-  id_conteneur   Int           @id @default(autoincrement())
+  id_conteneur   String        @id @default(uuid()) @db.Uuid
   type_Dechet    String
   Statut         String?
   id_Zone        String
@@ -26,11 +26,10 @@ model conteneur {
 }
 
 model FillHistory {
-  id             Int        @id @default(autoincrement())
+  id             String       @id @default(uuid()) @db.Uuid
   niveau         Int
-  recordedAt     DateTime   @default(now())
-  
+  recordedAt     DateTime     @default(now())
 
-  conteneurId    Int
-  conteneur      conteneur  @relation(fields: [conteneurId], references: [id_conteneur], onDelete: Cascade)
+  conteneurId    String       @db.Uuid
+  conteneur      conteneur   @relation(fields: [conteneurId], references: [id_conteneur], onDelete: Cascade)
 }
