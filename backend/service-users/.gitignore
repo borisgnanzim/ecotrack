@@ -1,5 +1,6 @@
 node_modules
 /prisma/client
+prisma/migrations/
 .env
 # Uploaded user avatars
 uploads/
