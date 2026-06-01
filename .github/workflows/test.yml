@@ -80,3 +80,33 @@ jobs:
         working-directory: ./backend/service-api-gateway
         run: npm test
         continue-on-error: true
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies - service-users
+        working-directory: ./backend/service-users
+        run: npm ci
+
+      - name: Generate coverage report
+        working-directory: ./backend/service-users
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/service-users/coverage/coverage-final.json
+          flags: service-users
+          fail_ci_if_error: false
