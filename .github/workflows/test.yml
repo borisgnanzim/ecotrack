@@ -1,0 +1,82 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # Service Users Tests
+      - name: Install dependencies - service-users
+        working-directory: ./backend/service-users
+        run: npm ci
+
+      - name: Run tests - service-users
+        working-directory: ./backend/service-users
+        run: npm test -- --coverage
+        continue-on-error: false
+
+      # Service Containers Tests (add when configured)
+      - name: Install dependencies - service-containers
+        working-directory: ./backend/service-containers
+        run: npm ci
+        continue-on-error: true
+
+      - name: Run tests - service-containers
+        working-directory: ./backend/service-containers
+        run: npm test
+        continue-on-error: true
+
+      # Service Analytics Tests (add when configured)
+      - name: Install dependencies - service-analytics
+        working-directory: ./backend/service-analytics
+        run: npm ci
+        continue-on-error: true
+
+      - name: Run tests - service-analytics
+        working-directory: ./backend/service-analytics
+        run: npm test
+        continue-on-error: true
+
+      # Service Routes Tests (add when configured)
+      - name: Install dependencies - service-routes
+        working-directory: ./backend/service-routes
+        run: npm ci
+        continue-on-error: true
+
+      - name: Run tests - service-routes
+        working-directory: ./backend/service-routes
+        run: npm test
+        continue-on-error: true
+
+      # Service API Gateway Tests (add when configured)
+      - name: Install dependencies - service-api-gateway
+        working-directory: ./backend/service-api-gateway
+        run: npm ci
+        continue-on-error: true
+
+      - name: Run tests - service-api-gateway
+        working-directory: ./backend/service-api-gateway
+        run: npm test
+        continue-on-error: true
