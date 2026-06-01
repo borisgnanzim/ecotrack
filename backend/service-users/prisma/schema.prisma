@@ -8,42 +8,59 @@ datasource db {
 }
 
 enum NotificationType {
-  info
-  success
-  warning
-  error
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
 }
 
+// User - Utilisateurs du système (citoyens, agents, gestionnaires, admins)
 model User {
-  id            String         @id @default(uuid())
-  username      String
+  id            String          @id @default(uuid()) @db.Uuid
+  username      String          @unique
+  email         String          @unique
+  password      String          // Hashed
   name          String?
-  email         String         @unique
-  password      String
-  points        Int            @default(0)
+  points        Int             @default(0)
   address       String?
   phone         String?
   avatar        String?
-  badges        String[]
-  createdAt     DateTime       @default(now())
-  isActive      Boolean        @default(true)
+  badges        String[]        // JSON array of badge names
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
   notifications Notification[]
-  roles         Role[]         @relation("UserRoles")
+  roles         Role[]          @relation("UserRoles")
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
 }
 
+// Role - Rôles des utilisateurs (citizen, agent, manager, admin)
 model Role {
-  id    String   @id @default(uuid())
-  name  String   @unique
+  id    String   @id @default(uuid()) @db.Uuid
+  name  String   @unique // "citizen", "agent", "manager", "admin"
   users User[]   @relation("UserRoles")
+
+  @@map("roles")
 }
 
+// Notification - Notifications pour les utilisateurs
 model Notification {
-  id        String           @id @default(uuid())
-  userId    String?
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
   title     String
   message   String
-  type      NotificationType @default(info)
+  type      NotificationType @default(INFO)
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
-  user      User?            @relation(fields: [userId], references: [id])
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }

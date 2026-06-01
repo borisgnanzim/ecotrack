@@ -1,27 +1,30 @@
 const express = require('express');
-const GamificationService = require('../services/gamificationService');
+const GamificationController = require('../controllers/gamificationController');
 
 const router = express.Router();
 
-router.get('/points/:userId', async (req, res, next) => {
-  try {
-    const userId = req.params.userId;
-    const points = await GamificationService.getUserPoints(userId);
-    res.json(points);
-  } catch (error) {
-    next(error);
-  }
-});
+// ===== POINTS ENDPOINTS =====
+router.post('/points/:userId', GamificationController.addPoints);
+router.get('/points/:userId', GamificationController.getUserTotalPoints);
 
-router.post('/reward/:userId', async (req, res, next) => {
-  try {
-    const userId = req.params.userId;
-    const reward = req.body.reward;
-    const result = await GamificationService.awardReward(userId, reward);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-});
+// ===== BADGES ENDPOINTS =====
+router.get('/users/:userId/badges', GamificationController.getUserBadges);
+router.post('/users/:userId/badges/:badgeId', GamificationController.awardBadge);
+
+// ===== CHALLENGES ENDPOINTS =====
+router.post('/challenges', GamificationController.createChallenge);
+router.get('/challenges', GamificationController.getActiveChallenges);
+router.post('/users/:userId/challenges/:challengeId/join', GamificationController.joinChallenge);
+router.put('/users/:userId/challenges/:challengeId/progress', GamificationController.updateChallengeProgress);
+router.get('/users/:userId/challenges', GamificationController.getUserChallenges);
+
+// ===== LEADERBOARD ENDPOINTS =====
+router.get('/leaderboard', GamificationController.getLeaderboard);
+
+// ===== STATISTICS ENDPOINTS =====
+router.get('/users/:userId/stats', GamificationController.getUserStats);
+
+// ===== REWARDS ENDPOINTS (Legacy) =====
+router.post('/reward/:userId', GamificationController.awardReward);
 
 module.exports = router;

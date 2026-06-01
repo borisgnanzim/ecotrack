@@ -7,181 +7,190 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== ENUMS ====================
+
+enum AnomalyType {
+  SENSOR_FAILURE
+  ABNORMAL_FILL_RATE
+  MISSED_COLLECTION
+  ROUTE_DEVIATION
+  EQUIPMENT_FAILURE
+}
+
+enum AnomalySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum ReportPeriod {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum FileFormat {
+  PDF
+  EXCEL
+  CSV
+  JSON
+}
+
+enum ReportStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  SENT
+  FAILED
+}
+
 // ==================== MODÈLES ANALYTICS ====================
 
 // Métriques agrégées par conteneur
 model ContainerMetrics {
-  id              Int       @id @default(autoincrement())
-  container_id    Int
+  id              String    @id @default(uuid()) @db.Uuid
+  containerId     String    @db.Uuid  // Référence service-containers
   date            DateTime  @default(now()) @db.Date
-  avg_fill_level  Float     @default(0)
-  max_fill_level  Int       @default(0)
-  min_fill_level  Int       @default(0)
-  collection_count Int      @default(0)
-  total_weight    Float     @default(0)
+  avgFillLevel    Float     @default(0)
+  maxFillLevel    Int       @default(0)
+  minFillLevel    Int       @default(0)
+  collectionCount Int       @default(0)
+  totalWeight     Float     @default(0)
   createdAt       DateTime  @default(now())
 
-  @@unique([container_id, date])
+  @@unique([containerId, date])
   @@index([date])
-  @@index([container_id])
+  @@index([containerId])
+  @@map("container_metrics")
 }
 
 // Métriques agrégées par zone
 model ZoneMetrics {
-  id              Int       @id @default(autoincrement())
-  zone_id         String
+  id              String    @id @default(uuid()) @db.Uuid
+  zoneId          String
   date            DateTime  @default(now()) @db.Date
-  total_containers Int      @default(0)
-  critical_count  Int       @default(0)
-  avg_fill_level  Float     @default(0)
-  collection_count Int      @default(0)
-  total_weight    Float     @default(0)
+  totalContainers Int       @default(0)
+  criticalCount   Int       @default(0)
+  avgFillLevel    Float     @default(0)
+  collectionCount Int       @default(0)
+  totalWeight     Float     @default(0)
   createdAt       DateTime  @default(now())
 
-  @@unique([zone_id, date])
+  @@unique([zoneId, date])
   @@index([date])
-  @@index([zone_id])
+  @@index([zoneId])
+  @@map("zone_metrics")
 }
 
 // Métriques agrégées par agent
 model AgentMetrics {
-  id              Int       @id @default(autoincrement())
-  agent_id        Int
-  date            DateTime  @default(now()) @db.Date
-  routes_completed Int      @default(0)
-  routes_planned  Int       @default(0)
-  containers_collected Int @default(0)
-  total_distance  Float    @default(0)
-  total_time      Int      @default(0)
-  avg_fill_level  Float    @default(0)
-  createdAt       DateTime @default(now())
+  id                  String    @id @default(uuid()) @db.Uuid
+  agentId             String    @db.Uuid  // Référence service-users
+  date                DateTime  @default(now()) @db.Date
+  routesCompleted     Int       @default(0)
+  routesPlanned       Int       @default(0)
+  containersCollected Int       @default(0)
+  totalDistance       Float     @default(0)
+  totalTime           Int       @default(0)
+  avgFillLevel        Float     @default(0)
+  createdAt           DateTime  @default(now())
 
-  @@unique([agent_id, date])
+  @@unique([agentId, date])
   @@index([date])
-  @@index([agent_id])
+  @@index([agentId])
+  @@map("agent_metrics")
 }
 
 // Métriques quotidiennes globales
 model DailyMetrics {
-  id                      Int       @id @default(autoincrement())
-  date                    DateTime  @unique @db.Date
-  total_containers        Int       @default(0)
-  critical_containers     Int       @default(0)
-  total_collections       Int       @default(0)
-  total_weight            Float     @default(0)
-  active_routes           Int       @default(0)
-  completed_routes        Int       @default(0)
-  active_agents           Int       @default(0)
-  signalements_today      Int       @default(0)
-  avg_fill_level          Float     @default(0)
-  createdAt               DateTime  @default(now())
+  id                  String    @id @default(uuid()) @db.Uuid
+  date                DateTime  @unique @db.Date
+  totalContainers     Int       @default(0)
+  criticalContainers  Int       @default(0)
+  totalCollections    Int       @default(0)
+  totalWeight         Float     @default(0)
+  activeRoutes        Int       @default(0)
+  completedRoutes     Int       @default(0)
+  activeAgents        Int       @default(0)
+  signalements        Int       @default(0)
+  avgFillLevel        Float     @default(0)
+  createdAt           DateTime  @default(now())
 
   @@index([date])
+  @@map("daily_metrics")
 }
 
 // Historique des prédictions de remplissage
 model FillPrediction {
-  id              Int       @id @default(autoincrement())
-  container_id    Int
-  predicted_date  DateTime  @db.Date
-  predicted_fill  Int
-  actual_fill     Int?
-  weather_factor  Float     @default(0)
+  id              String    @id @default(uuid()) @db.Uuid
+  containerId     String    @db.Uuid
+  predictedDate   DateTime  @db.Date
+  predictedFill   Int
+  actualFill      Int?
+  weatherFactor   Float     @default(0)
   confidence      Float     @default(0)
-  model_version   String    @default("v1")
+  modelVersion    String    @default("v1")
   createdAt       DateTime  @default(now())
 
-  @@unique([container_id, predicted_date])
-  @@index([predicted_date])
-  @@index([container_id])
+  @@unique([containerId, predictedDate])
+  @@index([predictedDate])
+  @@index([containerId])
+  @@map("fill_predictions")
 }
 
 // Anomalies détectées
 model Anomaly {
-  id              Int       @id @default(autoincrement())
+  id              String           @id @default(uuid()) @db.Uuid
   type            AnomalyType
   severity        AnomalySeverity
-  container_id    Int?
-  sensor_id       String?
+  containerId     String?          @db.Uuid
+  sensorId        String?
   description     String
   details         Json?
-  is_resolved     Boolean   @default(false)
-  resolved_at     DateTime?
-  createdAt       DateTime  @default(now())
+  isResolved      Boolean          @default(false)
+  resolvedAt      DateTime?
+  createdAt       DateTime         @default(now())
 
   @@index([type])
   @@index([severity])
-  @@index([is_resolved])
+  @@index([isResolved])
   @@index([createdAt])
-}
-
-enum AnomalyType {
-  sensor_failure
-  abnormal_fill_rate
-  missed_collection
-  route_deviation
-  equipment_failure
-}
-
-enum AnomalySeverity {
-  low
-  medium
-  high
-  critical
+  @@map("anomalies")
 }
 
 // Rapports générés
 model Report {
-  id              Int       @id @default(autoincrement())
+  id              String         @id @default(uuid()) @db.Uuid
   type            ReportType
   period          ReportPeriod
   title           String
-  file_path       String?
-  file_format     FileFormat?
-  status          ReportStatus @default(pending)
-  generated_at    DateTime  @default(now())
-  sent_at         DateTime?
-  recipient_email String?
-  createdAt       DateTime  @default(now())
+  filePath        String?
+  fileFormat      FileFormat?
+  status          ReportStatus   @default(PENDING)
+  generatedAt     DateTime       @default(now())
+  sentAt          DateTime?
+  recipientEmail  String?
+  createdAt       DateTime       @default(now())
 
   @@index([type])
   @@index([period])
   @@index([status])
-  @@index([generated_at])
-}
-
-enum ReportType {
-  daily
-  weekly
-  monthly
-  custom
-}
-
-enum ReportPeriod {
-  day
-  week
-  month
-  year
-}
-
-enum FileFormat {
-  pdf
-  excel
-  csv
-  json
-}
-
-enum ReportStatus {
-  pending
-  generating
-  completed
-  sent
-  failed
+  @@index([generatedAt])
+  @@map("reports")
 }
 
 // KPIs stockés
 model KPI {
-  id              Int       @id @default(autoincrement())
+  id              String    @id @default(uuid()) @db.Uuid
   name            String    @unique
   value           Float
   unit            String?
@@ -190,14 +199,18 @@ model KPI {
   createdAt       DateTime  @default(now())
 
   @@index([category])
+  @@map("kpis")
 }
 
 // Configuration du dashboard
 model DashboardConfig {
-  id          Int       @id @default(autoincrement())
-  user_id     Int?
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String?   @db.Uuid
   config      Json
-  is_default  Boolean   @default(false)
+  isDefault   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("dashboard_configs")
 }

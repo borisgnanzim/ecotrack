@@ -7,29 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model conteneur {
-  id_conteneur   String        @id @default(uuid()) @db.Uuid
-  type_Dechet    String
-  Statut         String?
-  id_Zone        String
-  capacite_i     Int?
-  code_conteneur Int           @unique
+// Container - Conteneurs intelligents avec capteurs IoT
+model Container {
+  id            String        @id @default(uuid()) @db.Uuid
+  type          String        // Type de déchet (recyclage, organique, etc)
+  status        String?       // Statut du conteneur (active, maintenance, etc)
+  zoneId        String        // ID de la zone
+  capacity      Int?          // Capacité maximale en litres
+  code          Int           @unique // Code unique du conteneur
 
-  latitude       Float?
-  longitude      Float?
-  photo_url      String?
+  latitude      Float?        // Coordonnée GPS
+  longitude     Float?        // Coordonnée GPS
+  photoUrl      String?       // URL de la photo
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  fillHistory    FillHistory[]
+  fillHistory   FillHistory[]
+
+  @@index([zoneId])
+  @@index([status])
+  @@index([code])
+  @@map("containers")
 }
 
+// FillHistory - Historique des niveaux de remplissage
 model FillHistory {
-  id             String       @id @default(uuid()) @db.Uuid
-  niveau         Int
-  recordedAt     DateTime     @default(now())
+  id            String       @id @default(uuid()) @db.Uuid
+  fillLevel     Int          // Niveau de remplissage (0-100%)
+  recordedAt    DateTime     @default(now())
 
-  conteneurId    String       @db.Uuid
-  conteneur      conteneur   @relation(fields: [conteneurId], references: [id_conteneur], onDelete: Cascade)
+  containerId   String       @db.Uuid
+  container     Container    @relation(fields: [containerId], references: [id], onDelete: Cascade)
+
+  @@index([containerId])
+  @@index([recordedAt])
+  @@map("fill_history")
 }

@@ -1,13 +1,88 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// Prisma schema for Gamification Service
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// User Actions - Points system
+model UserAction {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  action    String   // "report", "challenge_completed", "badge_earned"
+  points    Int
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("user_actions")
+}
+
+// Badge Definitions
+model Badge {
+  id               String      @id @default(cuid())
+  name             String      @unique
+  description      String?
+  icon             String?     // URL or emoji
+  pointsRequired   Int
+  createdAt        DateTime    @default(now())
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+// User Badges - Awarded badges to users
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  badgeId   String
+  awardedAt DateTime @default(now())
+
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// Challenges - Individual and collective challenges
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  objective   Int      // e.g., 10 containers to report
+  reward      Int      // Points rewarded
+  type        String   // "individual" or "collective"
+  period      String   // "weekly", "monthly", "one-time"
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+
+  participations ChallengeParticipation[]
+
+  @@index([type])
+  @@index([period])
+  @@index([endDate])
+  @@map("challenges")
+}
+
+// Challenge Participations - User progress in challenges
+model ChallengeParticipation {
+  id          String   @id @default(cuid())
+  userId      String   @db.Uuid
+  challengeId String
+  progress    Int      @default(0)
+  status      String   @default("in_progress") // "in_progress", "completed", "abandoned"
+  joinedAt    DateTime @default(now())
+  completedAt DateTime?
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@index([status])
+  @@map("challenge_participations")
 }

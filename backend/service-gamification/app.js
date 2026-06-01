@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const { errorHandler } = require('./src/middlewares/errorHandler');
 
 const app = express();
 
@@ -20,6 +21,8 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Optional: handle unhandled rejections / exceptions to avoid silent crashes
 process.on('unhandledRejection', (reason) => {
