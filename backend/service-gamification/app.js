@@ -7,10 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/health", (req, res) => {
+const gamificationRoutes = require('./src/routes/gamificationRoutes');
+
+app.use('/api/gamification', gamificationRoutes);
+
+app.get('/health', (req, res) => {
   res.json({
-    status: "ok",
-    service: "service-gamification",
+    status: 'ok',
+    service: 'service-gamification',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });

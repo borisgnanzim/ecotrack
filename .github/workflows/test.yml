@@ -39,6 +39,16 @@ jobs:
         run: npm test -- --coverage
         continue-on-error: false
 
+      # Service Gamification Tests
+      - name: Install dependencies - service-gamification
+        working-directory: ./backend/service-gamification
+        run: npm ci
+
+      - name: Run tests - service-gamification
+        working-directory: ./backend/service-gamification
+        run: npm test
+        continue-on-error: false
+
       # Service Containers Tests (add when configured)
       - name: Install dependencies - service-containers
         working-directory: ./backend/service-containers
