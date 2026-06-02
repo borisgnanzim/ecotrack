@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-100 text-slate-700">
+  <div class="manage-users-page min-h-screen bg-slate-100 text-slate-700">
 
     <AppHeader />
 
@@ -10,7 +10,7 @@
     <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
       <!-- HEADER ACTION -->
-      <div class="flex justify-between items-center">
+      <div class="page-header flex justify-between items-center">
         <h2 class="text-xl font-semibold text-slate-700">
           Gestion des utilisateurs
         </h2>
@@ -86,11 +86,11 @@
       </div>
 
       <!-- TABLE -->
-      <div class="bg-white rounded-xl shadow overflow-hidden">
+      <div class="table-panel bg-white rounded-[28px] shadow-xl overflow-hidden border border-slate-200">
 
-        <table class="w-full text-sm">
+        <table class="w-full text-sm user-table">
 
-          <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead class="user-table-head">
             <tr>
               <th class="px-6 py-3 text-left">Nom</th>
               <th class="px-6 py-3 text-left">Email</th>
@@ -761,15 +761,84 @@ export default {
 </script>
 
 <style scoped>
+/* Page wrapper */
+.manage-users-page {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f4 100%);
+}
+
+.page-header {
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.page-header h2 {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.page-header .btn-primary {
+  box-shadow: 0 14px 30px rgba(5, 150, 105, 0.15);
+}
+
+.table-panel {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.user-table {
+  border-collapse: collapse;
+}
+
+.user-table-head {
+  background: #f8fafc;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.user-table-head th {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.user-table td {
+  padding: 18px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.user-table tr:hover {
+  background: #f8fafc;
+}
+
+.avatar-sm {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 2px solid #f1f5f9;
+}
+
+.status-active,
+.status-banned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+}
+
 /* Inputs */
 .input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  border-radius: 14px;
   color: #334155;
   outline: none;
-  transition: 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  background: #ffffff;
 }
 
 .input::placeholder {
@@ -881,8 +950,20 @@ export default {
   font-weight: 500;
 }
 
+.btn-primary {
+  background: #059669;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 12px 26px rgba(5, 150, 105, 0.14);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
 .btn-primary:hover {
   background: #047857;
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -907,14 +988,18 @@ export default {
 
 /* Boutons modernes */
 .btn-ghost {
-  padding: 8px 14px;
-  border-radius: 10px;
-  color: #64748b;
-  transition: all 0.2s;
+  padding: 10px 16px;
+  border-radius: 14px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-ghost:hover {
-  background: #f1f5f9;
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
 }
 
 .btn-danger {
@@ -929,6 +1014,157 @@ export default {
 .btn-danger:hover {
   background: #b91c1c;
   transform: translateY(-1px);
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.page-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #059669;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.page-current {
+  font-size: 13px;
+  color: #475569;
+  min-width: 64px;
+  text-align: center;
+}
+
+.inspect-modal {
+  padding: 24px;
+  border-radius: 22px;
+}
+
+.modal {
+  background: white;
+  border-radius: 24px;
+  padding: 28px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.18);
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.avatar-big {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  object-fit: cover;
+  background: #059669;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.18);
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.icon-btn i {
+  font-size: 16px;
+}
+
+.filters-container {
+  background: white;
+  padding: 20px 22px;
+  border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.filters-container .input,
+.filters-container .filter-select {
+  min-width: 220px;
+}
+
+.filter-select {
+  width: auto;
+  font-size: 13px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 14px;
+}
+
+.search-input {
+  padding-left: 42px;
+  background: #f8fafc;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+}
+
+@property --dot-scale {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: true;
 }
 
 /* Animations smooth */
@@ -1054,6 +1290,21 @@ export default {
 }
 
 .avatar-big {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  object-fit: cover;
+  background: #059669;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.18);
+}
+
+.avatar-big {
   width: 80px;
   height: 80px;
   border-radius: 18px;
@@ -1086,15 +1337,20 @@ select.input {
 }
 
 .icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
   cursor: pointer;
   border: none;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
 }
 
 .icon-btn i {
@@ -1135,15 +1391,19 @@ select.input {
 
 .filters-container {
   background: white;
-  padding: 14px 16px;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-
+  padding: 18px 20px;
+  border-radius: 22px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
+}
+
+.filters-container .input,
+.filters-container .filter-select {
+  min-width: 220px;
 }
 
 /* LEFT */

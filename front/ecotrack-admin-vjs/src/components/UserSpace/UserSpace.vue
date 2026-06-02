@@ -242,124 +242,218 @@ export default {
 </script>
 
 <style scoped>
-/* Profil */
-.profile-card {
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
+.dashboard {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
 }
 
-/* Avatar */
+main {
+  min-height: calc(100vh - 110px);
+}
+
+.profile-card,
+.card {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 26px;
+}
+
 .avatar-wrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .avatar {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 4px solid #ffffff;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.12);
 }
 
 .avatar-edit {
   position: absolute;
-  bottom: -5px;
-  right: -5px;
+  bottom: 0;
+  right: 0;
   background: #059669;
   color: white;
   border-radius: 50%;
-  padding: 6px;
-  font-size: 12px;
+  padding: 10px;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.18);
 }
 
-/* Badge */
+.profile-card h2 {
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+}
+
+.profile-card p {
+  margin-top: 8px;
+  color: #64748b;
+}
+
 .role-badge {
-  display: inline-block;
-  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
   font-size: 12px;
-  padding: 3px 10px;
+  padding: 8px 14px;
   border-radius: 999px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  letter-spacing: 0.01em;
+  font-weight: 600;
 }
 
-/* Card */
-.card {
-  background: white;
-  padding: 20px;
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 12px 18px;
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: white;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.card {
+  padding: 26px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
-/* Form */
+.card-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.btn-ghost,
+.btn-primary,
+.btn-danger {
+  transition: all 0.2s ease;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #475569;
+  background: #f8fafc;
+}
+
+.btn-ghost:hover {
+  transform: translateY(-1px);
+  background: white;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 16px;
+  background: #059669;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.18);
+}
+
+.btn-primary:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 16px;
+  background: #dc2626;
+  color: white;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 15px;
-  gap: 10px;
+  gap: 14px;
+  margin-top: 22px;
 }
 
-/* Inputs */
 .input {
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-/* Boutons */
-.btn-primary {
-  background: #059669;
-  color: white;
-  padding: 10px 14px;
-  border-radius: 10px;
+.input:focus {
+  border-color: #059669;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
 }
 
-.btn-danger {
-  background: #dc2626;
-  color: white;
-  padding: 10px 14px;
-  border-radius: 10px;
+.input::placeholder {
+  color: #94a3b8;
 }
 
-.btn-ghost {
-  color: #64748b;
-}
-
-/* LOGOUT BUTTON */
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fee2e2;
-  color: #b91c1c;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: 0.2s;
-  cursor: pointer;
-}
-
-.btn-logout:hover {
-  background: #fecaca;
-}
-
-/* MODAL */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -369,18 +463,35 @@ export default {
 
 .modal-logout {
   background: white;
-  padding: 24px;
-  border-radius: 18px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+  padding: 28px;
+  border-radius: 24px;
+  width: min(100%, 420px);
+  box-shadow: 0 32px 80px rgba(15, 23, 42, 0.15);
 }
 
-/* ANIMATION */
+.modal-logout .text-center {
+  text-align: center;
+}
+
+.modal-logout h3 {
+  margin-top: 16px;
+  font-size: 1.25rem;
+}
+
+.modal-logout p {
+  margin-top: 10px;
+  color: #64748b;
+}
+
+.modal-logout .btn-ghost,
+.modal-logout .btn-danger {
+  min-width: 140px;
+}
+
 @keyframes pop {
   from {
     opacity: 0;
-    transform: scale(0.92) translateY(10px);
+    transform: scale(0.92) translateY(14px);
   }
   to {
     opacity: 1;

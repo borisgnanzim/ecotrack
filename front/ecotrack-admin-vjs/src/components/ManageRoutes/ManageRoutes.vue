@@ -273,137 +273,173 @@ export default {
 
 
 <style scoped>
+.min-h-screen {
+  background: #f8fafc;
+}
+
+main {
+  min-height: calc(100vh - 112px);
+}
+
 .card {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.08);
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 1.7rem;
   font-weight: 700;
   color: #0f172a;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.page-title i,
+.card-title i {
+  font-size: 1.2rem;
+  color: #059669;
 }
 
 .page-subtitle {
-  font-size: 13px;
+  margin-top: 8px;
+  font-size: 0.95rem;
   color: #64748b;
-  margin-top: 4px;
-}
-
-/* CARDS */
-.card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid #e2e8f0;
+  max-width: 540px;
 }
 
 .card-title {
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #0f172a;
 }
 
-/* SECTORS */
 .sector-card,
 .tour-card,
 .agent-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 14px;
   background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* META */
-.meta {
-  font-size: 12px;
-  color: #64748b;
+.sector-card:hover,
+.tour-card:hover,
+.agent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
+}
+
+.meta,
+.tour-meta {
+  font-size: 0.92rem;
+  color: #475569;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .tour-meta {
-  font-size: 12px;
-  color: #64748b;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .dot {
   margin: 0 6px;
+  color: #94a3b8;
 }
 
-/* PROGRESS */
 .progress {
-  height: 6px;
+  height: 8px;
   background: #e2e8f0;
   border-radius: 999px;
-  margin: 8px 0;
+  margin: 12px 0;
+  overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: #059669;
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
   border-radius: 999px;
 }
 
-/* AVATAR */
 .avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   background: #059669;
   color: white;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(5, 150, 105, 0.18);
 }
 
-/* BUTTONS */
+.btn-primary,
+.btn-mini,
+.btn-ghost {
+  transition: all 0.2s ease;
+}
+
 .btn-primary {
   background: #059669;
   color: white;
-  padding: 8px 14px;
-  border-radius: 10px;
-  display: flex;
-  gap: 6px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  display: inline-flex;
+  gap: 10px;
   align-items: center;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.18);
+}
+
+.btn-primary:hover {
+  background: #047857;
+  transform: translateY(-1px);
 }
 
 .btn-mini {
-  font-size: 12px;
-  background: #e2e8f0;
-  padding: 6px 10px;
-  border-radius: 8px;
-  display: flex;
-  gap: 6px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 10px 14px;
+  border-radius: 14px;
+  display: inline-flex;
+  gap: 8px;
   align-items: center;
+  color: #0f172a;
+}
+
+.btn-mini:hover {
+  background: #f8fafc;
 }
 
 .btn-ghost {
-  background: #f1f5f9;
-  padding: 8px;
-  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #475569;
 }
 
-/* BADGES */
+.btn-ghost:hover {
+  background: white;
+}
+
 .badge {
-  font-size: 12px;
-  padding: 3px 10px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
   border-radius: 999px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .badge-danger {
@@ -426,11 +462,18 @@ export default {
   color: #1e40af;
 }
 
-/* AGENTS */
 .agent-meta {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
-  font-size: 12px;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.agent-meta span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

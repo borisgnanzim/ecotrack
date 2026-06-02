@@ -135,9 +135,13 @@ export default {
 
 <style scoped>
 .app-header {
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: linear-gradient(135deg, #059669 0%, #0f766e 100%);
+  color: white;
+  border-bottom: none;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 /* NEW WRAPPER */
@@ -148,74 +152,84 @@ export default {
 
 /* TOP BAR */
 .header-container {
-  padding: 16px 24px;
+  padding: 22px 24px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
 .logo {
-  font-size: 22px;
+  font-size: 26px;
   width: max-content;
-  font-weight: bold;
-  color: #059669;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.03em;
 }
 
 .subtitle {
   font-size: 13px;
-  color: #64748b;
-  margin-top: 2px;
+  color: rgba(255,255,255,0.78);
+  margin-top: 6px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 16px;
+  background: rgba(255,255,255,0.12);
+  padding: 10px 14px;
+  border-radius: 999px;
 }
 
 .agent {
   font-size: 14px;
-  color: #64748b;
+  color: rgba(255,255,255,0.92);
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  background: #059669;
-  color: white;
+  width: 40px;
+  height: 40px;
+  background: white;
+  color: #059669;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
 }
 
 /* NAV BAR ALIGNÉE */
 .nav-bar {
   display: flex;
-  gap: 8px;
-  padding: 0 24px 12px 24px; /* 👈 même padding horizontal */
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  gap: 10px;
+  padding: 14px 24px 18px;
+  background: rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
 }
 
 /* ITEMS */
 .nav-item {
   font-size: 14px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  color: #64748b;
-  transition: 0.2s;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: rgba(255,255,255,0.92);
+  transition: 0.2s ease;
   font-weight: 500;
 }
 
 .nav-item:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: rgba(255,255,255,0.18);
+  color: white;
 }
 
 .nav-item.active {
-  background: #059669;
-  color: white;
+  background: white;
+  color: #0f172a;
+  font-weight: 600;
 }
 </style>

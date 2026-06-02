@@ -98,27 +98,30 @@
               <!-- Actions -->
               <td class="px-6 py-3 text-right">
 
-                <div class="inline-flex items-center gap-4">
+                <div class="inline-flex items-center gap-3">
 
                   <button
                     @click="openEdit(c)"
-                    class="text-emerald-600 hover:underline font-medium cursor-pointer btn-edit"
+                    title="Modifier"
+                    class="action-button action-edit"
                   >
-                    Modifier
+                    <i class="ri-pencil-line text-xl"></i>
                   </button>
 
                   <button
                     @click="openInspect(c)"
-                    class="text-blue-600 hover:underline font-medium cursor-pointer btn-inspect"
+                    title="Inspecter"
+                    class="action-button action-inspect"
                   >
-                    Inspecter
+                    <i class="ri-eye-line text-xl"></i>
                   </button>
 
                   <button
                     @click="showDelete = c.id_conteneur"
-                    class="text-red-600 hover:underline font-medium cursor-pointer btn-delete"
+                    title="Supprimer"
+                    class="action-button action-delete"
                   >
-                    Supprimer
+                    <i class="ri-delete-bin-6-line text-xl"></i>
                   </button>
 
                 </div>
@@ -384,6 +387,7 @@ export default {
       try {
         const response =  await containerService.getAll()
         this.ourContainers = response.data
+        console.log("Nos conteneurs", this.ourContainers)
       } catch (err){
         const message =
           err.response?.data?.message ||
