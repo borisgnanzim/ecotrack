@@ -11,7 +11,10 @@ export default {
 
   // Créer un container
   async create(data) {
-    return await apiClient.post('/containers', data)
+    console.log("Données envoyées au service : ", data)
+    const response = await apiClient.post('/containers', data)
+    console.log("Réponse du service : ", response)
+    return response
   },
 
   // Détails d’un container

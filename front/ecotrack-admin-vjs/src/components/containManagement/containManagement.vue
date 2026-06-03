@@ -6,27 +6,129 @@
 
     <!-- Back -->
     <div class="max-w-6xl mx-auto px-6 mt-4">
+      <!-- à mettre à gauche-->
       <BackButton />
     </div>
 
     <!-- Main -->
     <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-      <!-- Actions -->
-      <div class="flex justify-end">
-        <button
-          @click="showCreate = true; resetForm()"
-          class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold shadow-sm transition cursor-pointer"
-        >
-          + Créer un conteneur
+      <!-- Page header -->
+      <div class="page-header">
+        <div>
+          <h2 class="text-xl font-semibold text-slate-700">Gestion des containers</h2>
+          <p class="text-sm text-slate-500 mt-1">Filtrer et piloter les conteneurs actifs.</p>
+        </div>
+
+        <button class="btn-primary flex items-center gap-2" @click="openCreate">
+          <i class="bi bi-plus-circle"></i>
+          Nouveau conteneur
         </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-card">
+
+        <div class="filters-header">
+          <h3>
+            <i class="ri-filter-3-line"></i>
+            Filtres
+          </h3>
+
+          <button
+            @click="resetFilters"
+            class="btn-ghost filter-reset"
+          >
+            <i class="ri-refresh-line"></i>
+            Réinitialiser
+          </button>
+        </div>
+
+        <div class="filters-stats">
+
+          <div class="stat-card">
+            <span class="stat-label">Total</span>
+            <strong>{{ ourContainers.length }}</strong>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">Affichés</span>
+            <strong>{{ filteredContainers.length }}</strong>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">Normaux</span>
+            <strong>{{ normalCount }}</strong>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">Pleins</span>
+            <strong>{{ fullCount }}</strong>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">Maintenance</span>
+            <strong>{{ maintenanceCount }}</strong>
+          </div>
+
+        </div>
+
+        <div class="filters-grid">
+
+          <div class="search-wrapper filter-search">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              v-model="filters.search"
+              type="search"
+              placeholder="Rechercher un conteneur..."
+              class="input search-input"
+            />
+          </div>
+
+          <input
+            v-model="filters.zone"
+            placeholder="Zone"
+            class="input"
+          />
+
+          <select
+            v-model="filters.type"
+            class="input"
+          >
+            <option value="">Tous les types</option>
+            <option
+              v-for="type in typeOptions"
+              :key="type.value"
+              :value="type.value"
+            >
+              {{ type.label }}
+            </option>
+          </select>
+
+          <select
+            v-model="filters.status"
+            class="input"
+          >
+            <option value="">Tous les statuts</option>
+            <option
+              v-for="status in statusOptions"
+              :key="status.value"
+              :value="status.value"
+            >
+              {{ status.label }}
+            </option>
+          </select>
+
+        </div>
+
       </div>
 
       <!-- Table -->
       <div class="bg-white rounded-xl shadow overflow-hidden">
-        <table class="w-full text-sm table-auto">
+        <div class="max-h-155 overflow-y-auto">
+          <table class="w-full text-sm table-auto">
 
-          <thead class="bg-slate-50 border-b text-xs uppercase tracking-wide text-slate-500">
+            <thead class="bg-slate-50 border-b text-xs uppercase tracking-wide text-slate-500 sticky top-0 z-20">
             <tr class="text-left text-slate-500">
               <th class="px-6 py-3">Code</th>
               <th class="px-6 py-3">Zone</th>
@@ -41,25 +143,25 @@
           <tbody class="divide-y">
 
             <tr
-              v-for="c in containers"
-              :key="c.id_conteneur"
+              v-for="c in filteredContainers"
+              :key="c.id"
               class="hover:bg-slate-50 transition duration-150"
             >
 
               <td class="px-6 py-3 font-medium align-middle">
-                {{ c.code_conteneur }}
+                {{ c.code }}
               </td>
 
               <td class="px-6 py-3 align-middle">
-                {{ c.id_Zone }}
+                {{ c.zoneId }}
               </td>
 
               <td class="px-6 py-3 align-middle">
-                {{ c.type_Dechet }}
+                {{ c.type }}
               </td>
 
               <td class="px-6 py-3 align-middle">
-                {{ c.capacite_i ?? '-' }}
+                {{ c.capacity ?? '-' }}
               </td>
 
               <!-- Fill Level -->
@@ -68,14 +170,14 @@
                 <div class="w-full">
 
                   <div class="flex justify-between text-xs text-slate-500 mb-1">
-                    <span>{{ c.fill_level ?? 0 }}%</span>
+                    <span>{{ c.fillLevel ?? 0 }}%</span>
                   </div>
 
                   <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       class="h-full rounded-full transition-all"
-                      :class="fillColor(c.fill_level)"
-                      :style="{ width: (c.fill_level ?? 0) + '%' }"
+                      :class="fillColor(c.fillLevel)"
+                      :style="{ width: (c.fillLevel ?? 0) + '%' }"
                     />
                   </div>
 
@@ -88,9 +190,9 @@
 
                 <span
                   class="inline-block px-2 py-1 rounded-full text-xs font-semibold"
-                  :class="statusStyles[c.Statut || 'OK']"
+                  :class="statusStyles[c.status || 'OK']"
                 >
-                  {{ c.Statut || 'OK' }}
+                  {{ formatTextStatus(c.status) }}
                 </span>
 
               </td>
@@ -117,7 +219,7 @@
                   </button>
 
                   <button
-                    @click="showDelete = c.id_conteneur"
+                    @click="showDelete = c.id"
                     title="Supprimer"
                     class="action-button action-delete"
                   >
@@ -142,6 +244,7 @@
         </div>
 
       </div>
+      </div>
     </main>
 
     <!-- MODAL CREATE -->
@@ -165,8 +268,6 @@
         <!-- Form -->
         <div class="space-y-4">
 
-          <input v-model="form.code_conteneur" placeholder="Code conteneur" class="input" />
-
           <div class="relative">
             <input
               v-model="form.address"
@@ -187,16 +288,22 @@
             </ul>
           </div>
 
-          <input v-model="form.id_Zone" placeholder="Zone (ex: Centre-ville)" class="input" />
+          <input v-model="form.zoneId" placeholder="Zone (ex: Centre-ville)" class="input" />
 
-          <input v-model="form.type_Dechet" placeholder="Type (OM, Verre...)" class="input" />
+          <select v-model="form.type" class="input">
+            <option value="">Type de déchet</option>
+            <option v-for="type in typeOptions" :key="type.value" :value="type.value">
+              {{ type.label }}
+            </option>
+          </select>
 
-          <input v-model="form.capacite_i" placeholder="Capacité (L)" class="input" />
+          <input v-model="form.capacity" placeholder="Capacité (L)" class="input" />
 
-          <select v-model="form.Statut" class="input">
-            <option value="OK">OK</option>
-            <option value="ALERTE">ALERTE</option>
-            <option value="URGENT">URGENT</option>
+          <select v-model="form.status" class="input">
+            <option value="">Statut</option>
+            <option v-for="status in statusOptions" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
           </select>
 
         </div>
@@ -277,33 +384,33 @@
 
             <div class="inspect-row">
               <span>Code</span>
-              <strong>{{ selectedContainer.code_conteneur }}</strong>
+              <strong>{{ selectedContainer.code }}</strong>
             </div>
 
             <div class="inspect-row">
               <span>Zone</span>
-              <strong>{{ selectedContainer.id_Zone }}</strong>
+              <strong>{{ selectedContainer.zoneId }}</strong>
             </div>
 
             <div class="inspect-row">
               <span>Type</span>
-              <strong>{{ selectedContainer.type_Dechet }}</strong>
+              <strong>{{ selectedContainer.type }}</strong>
             </div>
 
             <div class="inspect-row">
               <span>Capacité</span>
-              <strong>{{ selectedContainer.capacite_i }} L</strong>
+              <strong>{{ selectedContainer.capacity }} L</strong>
             </div>
 
             <div class="inspect-row">
               <span>Remplissage</span>
-              <strong>{{ selectedContainer.fill_level }}%</strong>
+              <strong>{{ selectedContainer.fillLevel }}%</strong>
             </div>
 
             <div class="inspect-row">
               <span>Statut</span>
-              <span :class="['status-badge', statusStyles[selectedContainer.Statut]]">
-                {{ selectedContainer.Statut }}
+              <span :class="['status-badge', statusStyles[selectedContainer.status || 'normal']]">
+                {{ formatTextStatus(selectedContainer.status || 'normal') }}
               </span>
             </div>
 
@@ -329,6 +436,21 @@ import containerService from "@/services/container/containerService"
 import streetMapService from "@/services/apiStreet/streetMapService"
 import streetService from "@/services/apiStreet/streetService"
 
+const CONTAINERS_STATUS = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'plein', label: 'Plein' },
+  { value: 'en_maintenance', label: 'En maintenance' },
+  { value: 'desactive', label: 'Désactivé' }
+]
+const TYPES_DECHETS = [
+  { value: 'plastique', label: 'Plastique' },
+  { value: 'papier', label: 'Papier' },
+  { value: 'verre', label: 'Verre' },
+  { value: 'composte', label: 'Composte' },
+  { value: 'textile', label: 'Textile' },
+  { value: 'electronique', label: 'Électronique' }
+]
+
 export default {
 
   name: "ManageContainersPage",
@@ -341,8 +463,6 @@ export default {
   data() {
 
     return {
-
-      containers: [],
       ourContainers: [],
       loading: true,
 
@@ -354,30 +474,42 @@ export default {
       isEdit: false,
 
       form: {
-        code_conteneur: "",
-        id_Zone: "",
-        type_Dechet: "",
-        capacite_i: "",
-        Statut: "OK",
-        address: "",
+        zoneId: "",
+        type: "",
+        capacity: "",
+        status: "normal",
+        photoUrl: null,
         latitude: null,
         longitude: null
+      },
+      filters: {
+        search: "",
+        zone: "",
+        type: "",
+        status: ""
       },
       suggestions: [],
       timeout: null,
 
       statusStyles: {
+
+        normal: "bg-emerald-100 text-emerald-700",
+        plein: "bg-emerald-100 text-emerald-700",
+        full: "bg-amber-100 text-amber-700",
+        en_maintenance: "bg-blue-100 text-blue-700",
+        desactive: "bg-slate-100 text-slate-700",
         OK: "bg-emerald-100 text-emerald-700",
         ALERTE: "bg-amber-100 text-amber-700",
         URGENT: "bg-red-100 text-red-700"
       },
+      typeOptions: TYPES_DECHETS,
+      statusOptions: CONTAINERS_STATUS
 
     }
 
   },
 
   mounted() {
-    this.fetchContainers()
     this.fetchAllContainers()
   },
 
@@ -388,8 +520,6 @@ export default {
         const response =  await containerService.getAll()
         this.ourContainers = response.data
 
-        console.log("Réponse API", response)
-        console.log("Nos conteneurs", this.ourContainers)
       } catch (err){
         const message =
           err.response?.data?.message ||
@@ -397,73 +527,28 @@ export default {
 
         this.error = message
         this.toast.error(message)
+      } finally {
+        this.loading = false
       }
-    },
-
-    fetchContainers() {
-      setTimeout(() => {
-        this.containers = [
-          {
-            id_conteneur: 1,
-            code_conteneur: 101,
-            id_Zone: "Centre-ville",
-            type_Dechet: "OM",
-            capacite_i: 660,
-            fill_level: 42,
-            Statut: "OK"
-          },
-          {
-            id_conteneur: 2,
-            code_conteneur: 102,
-            id_Zone: "Nord",
-            type_Dechet: "Verre",
-            capacite_i: 500,
-            fill_level: 78,
-            Statut: "ALERTE"
-          },
-          {
-            id_conteneur: 3,
-            code_conteneur: 103,
-            id_Zone: "Sud",
-            type_Dechet: "Plastique",
-            capacite_i: 660,
-            fill_level: 95,
-            Statut: "URGENT"
-          },
-          {
-            id_conteneur: 4,
-            code_conteneur: 104,
-            id_Zone: "Est",
-            type_Dechet: "Papier",
-            capacite_i: 400,
-            fill_level: 63,
-            Statut: "OK"
-          },
-          {
-            id_conteneur: 5,
-            code_conteneur: 105,
-            id_Zone: "Ouest",
-            type_Dechet: "OM",
-            capacite_i: 660,
-            fill_level: 88,
-            Statut: "ALERTE"
-          }
-        ];
-
-        this.loading = false;
-      }, 800);
     },
 
     resetForm() {
       this.form = {
-        code_conteneur: "",
-        id_Zone: "",
-        type_Dechet: "",
-        capacite_i: "",
-        Statut: "OK"
+        zoneId: "",
+        type: "",
+        capacity: "",
+        status: "normal",
+        photoUrl: null,
+        latitude: null,
+        longitude: null
       }
       this.isEdit = false
       this.selectedContainer = null
+    },
+
+    openCreate() {
+      this.resetForm()
+      this.showCreate = true
     },
 
     closeCreate() {
@@ -485,7 +570,7 @@ export default {
     },
 
     selectAddress(s) {
-      this.form.address = s.display_name
+      this.form.address = this.formatAddress(s)
       this.form.latitude = parseFloat(s.lat)
       this.form.longitude = parseFloat(s.lon)
 
@@ -512,22 +597,39 @@ export default {
 
         const payload = {
           ...this.form,
-          code_conteneur: Number(this.form.code_conteneur),
-          capacite_i: Number(this.form.capacite_i),
+          capacity: Number(this.form.capacity),
           latitude: geo?.latitude || null,
-          longitude: geo?.longitude || null
+          longitude: geo?.longitude || null,
         }
-        console.log(payload)
-        const myAdress = await streetMapService.reverseGeocode(geo.latitude, geo.longitude)
-        console.log(myAdress)
-        // await containerService.create(payload)
+        // const myAdress = await streetMapService.reverseGeocode(geo.latitude, geo.longitude)
+        // const simpleAddress = await streetMapService.reverseGeocodeShort(geo.latitude, geo.longitude)
+        await containerService.create(payload)
 
         this.closeCreate()
-        this.fetchContainers()
+        this.fetchAllContainers()
 
       } catch (e) {
         console.error("Erreur création", e)
       }
+    },
+
+    formatTextStatus(status) {
+      switch (status) {
+        case 'normal':
+        case 'OK':
+          return 'Normal'
+        case 'plein':
+        case 'ALERTE':
+          return 'Plein'
+        case 'en_maintenance':
+        case 'maintenance':
+          return 'En maintenance'
+        case 'desactive':
+        case 'disabled':
+          return 'Désactivé'
+        default:
+          return status
+       }
     },
 
     async handleUpdate() {
@@ -547,7 +649,7 @@ export default {
         // )
 
         this.closeCreate()
-        this.fetchContainers()
+        this.fetchAllContainers()
 
       } catch (e) {
         console.error("Erreur update", e)
@@ -557,7 +659,15 @@ export default {
     openEdit(container) {
       this.isEdit = true
       this.selectedContainer = container
-      this.form = { ...container }
+      this.form = {
+        zoneId: container.zoneId || '',
+        type: container.type || '',
+        capacity: container.capacity || '',
+        status: container.status || 'normal',
+        address: container.address || '',
+        latitude: container.latitude || null,
+        longitude: container.longitude || null
+      }
       this.showCreate = true
     },
 
@@ -574,7 +684,7 @@ export default {
       try {
         await containerService.remove(this.showDelete)
         this.closeDelete()
-        this.fetchContainers()
+        this.fetchAllContainers()
       } catch (e) {
         console.error(e)
         alert("Impossible de supprimer")
@@ -587,8 +697,56 @@ export default {
       if (value < 70) return "bg-emerald-500"
       if (value < 90) return "bg-amber-500"
       return "bg-red-500"
+    },
+
+    resetFilters() {
+      this.filters = {
+        search: "",
+        zone: "",
+        type: "",
+        status: ""
+      }
     }
 
+  },
+
+  computed: {
+    filteredContainers() {
+      const term = this.filters.search.toString().trim().toLowerCase()
+
+      return this.ourContainers.filter((container) => {
+        const matchesSearch = !term || [
+          container.code?.toString(),
+          container.zoneId,
+          container.type,
+          container.status
+        ].some((value) => value?.toString().toLowerCase().includes(term))
+
+        const matchesZone = !this.filters.zone || container.zoneId?.toString().toLowerCase().includes(this.filters.zone.toLowerCase())
+        const matchesType = !this.filters.type || container.type === this.filters.type
+        const matchesStatus = !this.filters.status || container.status === this.filters.status
+
+        return matchesSearch && matchesZone && matchesType && matchesStatus
+      })
+    },
+
+    normalCount() {
+      return this.filteredContainers.filter(
+        c => c.status === "normal" || c.status === "OK"
+      ).length
+    },
+
+    fullCount() {
+      return this.filteredContainers.filter(
+        c => c.status === "plein" || c.status === "ALERTE"
+      ).length
+    },
+
+    maintenanceCount() {
+      return this.filteredContainers.filter(
+        c => c.status === "en_maintenance"
+      ).length
+    }
   }
 
 }

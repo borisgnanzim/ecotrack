@@ -52,6 +52,41 @@ export default {
       console.error("StreetMap reverse error:", err)
       return null
     }
+  },
+
+  /**
+   * Reverse geocoding simplifié : lat/lon → adresse courte
+   */
+  async reverseGeocodeShort(lat, lon) {
+    if (!lat || !lon) return null
+
+    try {
+      const url = `${NOMINATIM_BASE_URL}/reverse?format=json&lat=${lat}&lon=${lon}`
+
+      const res = await fetch(url, { headers })
+      const data = await res.json()
+      const address = data?.address || {}
+
+      const streetParts = [address.house_number, address.road || address.pedestrian || address.cycleway || address.footway]
+        .filter(Boolean)
+        .join(" ")
+
+      const city = address.city || address.town || address.village || address.municipality || address.county
+      const locationParts = [address.postcode, city].filter(Boolean).join(" ")
+
+      if (streetParts && locationParts) {
+        return `${streetParts}, ${locationParts}`
+      }
+
+      if (streetParts) return streetParts
+      if (locationParts) return locationParts
+
+      return data?.display_name || null
+
+    } catch (err) {
+      console.error("StreetMap reverseShort error:", err)
+      return null
+    }
   }
 
 }
