@@ -1,62 +1,64 @@
-import prisma from "../prisma/client.js";
+import prisma from '../prisma/client.js';
 
 class ContainerRepository {
   async findAll() {
-    return prisma.conteneur.findMany();
-  }
-
-  async findById(id) {
-    return prisma.conteneur.findUnique({
-      where: { id_conteneur: id },
+    return prisma.container.findMany({
+      include: { fillHistory: false },
     });
   }
 
-  async findByName(codeConteneur) {
-    return prisma.conteneur.findFirst({
-      where: { code_conteneur: codeConteneur },
+  async findById(id) {
+    return prisma.container.findUnique({
+      where: { id },
+      include: { fillHistory: false },
+    });
+  }
+
+  async findByCode(code) {
+    return prisma.container.findUnique({
+      where: { code },
+      include: { fillHistory: false },
     });
   }
 
   async create(data) {
-    return prisma.conteneur.create({
+    return prisma.container.create({
       data,
+      include: { fillHistory: false },
     });
   }
 
   async update(id, data) {
-    return prisma.conteneur.update({
-      where: { id_conteneur: id },
+    return prisma.container.update({
+      where: { id },
       data,
+      include: { fillHistory: false },
     });
   }
 
   async delete(id) {
-    return prisma.conteneur.delete({
-      where: { id_conteneur: id },
+    return prisma.container.delete({
+      where: { id },
     });
-  }
-
-  async findNearby(latitude, longitude, radius) {
-    // Exemple simple (à optimiser plus tard avec PostGIS)
-    return prisma.$queryRaw`
-      SELECT *
-      FROM "conteneur"
-      WHERE earth_distance(
-        ll_to_earth(latitude, longitude),
-        ll_to_earth(${latitude}, ${longitude})
-      ) <= ${radius}
-    `;
   }
 
   async findByFilters(filters) {
     const where = {};
-    if (filters.type_Dechet) where.type_Dechet = filters.type_Dechet;
-    if (filters.id_Zone) where.id_Zone = filters.id_Zone;
-    if (filters.Statut) where.Statut = filters.Statut;
-    if (filters.code_conteneur) where.code_conteneur = filters.code_conteneur;
+    if (filters.type) where.type = filters.type;
+    if (filters.zoneId) where.zoneId = filters.zoneId;
+    if (filters.status) where.status = filters.status;
+    if (filters.code) where.code = filters.code;
 
-    return prisma.conteneur.findMany({
+    return prisma.container.findMany({
       where,
+      include: { fillHistory: false },
+    });
+  }
+
+  async findByZone(zoneId) {
+    return prisma.container.findMany({
+      where: { zoneId },
+      include: { fillHistory: false },
     });
   }
 }

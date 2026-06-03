@@ -11,24 +11,24 @@
       <form @submit.prevent="handleSubmit" class="auth-form">
 
         <div class="input-group">
-          <i class="ri-user-line"></i>
-          <input v-model="form.username" type="text" placeholder="Nom complet" />
+          <i class="input-icon ri-user-line"></i>
+          <input class="auth-input with-icon" v-model="form.username" type="text" placeholder="Nom complet" />
         </div>
 
         <div class="input-group">
-          <i class="ri-mail-line"></i>
-          <input v-model="form.email" type="email" placeholder="Email" />
+          <i class="input-icon ri-mail-line"></i>
+          <input class="auth-input with-icon" v-model="form.email" type="email" placeholder="Email" />
         </div>
 
         <div class="input-group">
-          <i class="ri-lock-2-line"></i>
-          <input v-model="form.password" type="password" placeholder="Mot de passe" />
+          <i class="input-icon ri-lock-2-line"></i>
+          <input class="auth-input with-icon" v-model="form.password" type="password" placeholder="Mot de passe" />
         </div>
 
         <!-- Confirmation mot de passe -->
         <div class="input-group">
-          <i class="ri-lock-password-line"></i>
-          <input v-model="form.passwordConfirm" type="password" placeholder="Confirmer le mot de passe" />
+          <i class="input-icon ri-lock-password-line"></i>
+          <input class="auth-input with-icon" v-model="form.passwordConfirm" type="password" placeholder="Confirmer le mot de passe" />
         </div>
 
         <!-- Indications utilisateur -->

@@ -147,105 +147,127 @@ export default {
 </script>
 
 <style scoped>
-/* Profile button */
-.profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #475569;
-  cursor: pointer;
-  transition: 0.2s;
+.min-h-screen {
+  background: linear-gradient(180deg, #f0fdf4 0%, #eff6ff 100%);
 }
 
-.profile-btn:hover {
-  color: #059669;
+main {
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  background: #ecfdf5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #059669;
-}
-
-/* Intro */
 .intro-card {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: center;
-  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
-  border: 1px solid #bbf7d0;
-  border-radius: 16px;
-  padding: 18px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(236, 253, 245, 0.9));
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 24px;
+  padding: 24px 26px;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.06);
 }
 
 .intro-icon {
-  font-size: 22px;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: #ecfdf5;
   color: #059669;
+  font-size: 28px;
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.12);
 }
 
-/* Inputs modernes */
+.intro-card h2 {
+  font-size: 1.8rem;
+  margin: 0;
+  color: #0f172a;
+}
+
+.intro-card p {
+  margin: 6px 0 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.bg-white.rounded-xl.shadow.p-8 {
+  border-radius: 28px;
+  padding: 34px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.08);
+}
+
 .input-modern {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid #d1d5db;
   background: #f8fafc;
-  transition: all 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .input-modern:focus {
-  border-color: #10b981;
+  border-color: #059669;
   background: white;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
 }
 
-/* Bouton */
-.btn-primary-lg {
-  background: #059669;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: 0.2s;
-}
-
-.btn-primary-lg:hover {
-  background: #047857;
-  transform: translateY(-1px);
-}
-
-/* Upload box */
 .upload-box {
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 20px;
+  border: 2px dashed rgba(16, 185, 129, 0.35);
+  border-radius: 20px;
+  padding: 26px;
   text-align: center;
-  color: #64748b;
+  color: #475569;
   position: relative;
   cursor: pointer;
-  transition: 0.2s;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .upload-box:hover {
-  border-color: #10b981;
-  background: #f0fdf4;
-  color: #059669;
+  border-color: #059669;
+  background: rgba(236, 253, 245, 0.9);
+  color: #0f172a;
 }
 
-.upload-box input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+.upload-box i {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: 18px;
+  font-weight: 700;
+  box-shadow: 0 16px 40px rgba(5, 150, 105, 0.16);
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 /* Form card amélioration */
 form {
   animation: fadeIn 0.25s ease;
+}
+
+@media (max-width: 720px) {
+  .intro-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .intro-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 </style>

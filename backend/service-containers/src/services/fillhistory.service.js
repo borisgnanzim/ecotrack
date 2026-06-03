@@ -1,30 +1,28 @@
-import FillHistoryRepository from "../repositories/fillhistory.repository.js";
-import ContainerRepository from "../repositories/container.repository.js";
-import { NotFoundError } from "../utils/errors.js";
-import { emitFillLevelUpdate, emitCriticalAlert } from "../sockets/container.socket.js";
+import FillHistoryRepository from '../repositories/fillhistory.repository.js';
+import ContainerRepository from '../repositories/container.repository.js';
+import { NotFoundError } from '../utils/errors.js';
+import { emitFillLevelUpdate, emitCriticalAlert } from '../sockets/container.socket.js';
 
 class FillHistoryService {
   async addFillHistory(containerId, data) {
     const container = await ContainerRepository.findById(containerId);
 
     if (!container) {
-      throw new NotFoundError("Conteneur introuvable");
+      throw new NotFoundError('Conteneur introuvable');
     }
 
     const history = await FillHistoryRepository.create({
-      conteneurId: containerId,
-      niveau: data.niveau,
+      containerId,
+      fillLevel: data.fillLevel,
       recordedAt: data.recordedAt ?? new Date(),
     });
 
     // LOGIQUE MÉTIER CRITIQUE
-    if (data.niveau >= 85) {
-      console.warn(
-        `⚠️ Conteneur ${containerId} critique (${data.niveau}%)`
-      );
-      emitCriticalAlert(containerId, data.niveau);
+    if (data.fillLevel >= 85) {
+      console.warn(`⚠️ Conteneur ${containerId} critique (${data.fillLevel}%)`);
+      emitCriticalAlert(containerId, data.fillLevel);
     } else {
-      emitFillLevelUpdate(containerId, data.niveau);
+      emitFillLevelUpdate(containerId, data.fillLevel);
     }
 
     return history;
@@ -34,10 +32,20 @@ class FillHistoryService {
     const container = await ContainerRepository.findById(containerId);
 
     if (!container) {
-      throw new NotFoundError("Conteneur introuvable");
+      throw new NotFoundError('Conteneur introuvable');
     }
 
     return FillHistoryRepository.findByContainerId(containerId);
+  }
+
+  async getLatestFillLevel(containerId) {
+    const container = await ContainerRepository.findById(containerId);
+
+    if (!container) {
+      throw new NotFoundError('Conteneur introuvable');
+    }
+
+    return FillHistoryRepository.findLatestByContainerId(containerId);
   }
 }
 

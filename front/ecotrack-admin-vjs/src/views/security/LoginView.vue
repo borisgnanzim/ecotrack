@@ -5,10 +5,13 @@
 
       <!-- BRAND -->
       <div class="auth-header">
-        <i class="bi bi-recycle auth-logo"></i>
-
-        <h1>ECOTRACK</h1>
-        <p>Connexion à votre espace administrateur</p>
+        <div class="auth-brand">
+          <i class="bi bi-recycle auth-logo"></i>
+          <div>
+            <h1 class="auth-title">ECOTRACK</h1>
+            <p class="auth-subtitle">Connexion à votre espace administrateur</p>
+          </div>
+        </div>
       </div>
 
       <!-- FORM -->
@@ -16,14 +19,14 @@
 
         <!-- EMAIL -->
         <div class="input-group">
-          <i class="ri-mail-line"></i>
-          <input v-model="form.email" type="email" placeholder="Email professionnel" />
+          <i class="input-icon ri-mail-line"></i>
+          <input class="auth-input with-icon" v-model="form.email" type="email" placeholder="Email professionnel" />
         </div>
 
         <!-- PASSWORD -->
         <div class="input-group">
-          <i class="ri-lock-2-line"></i>
-          <input v-model="form.password" type="password" placeholder="Mot de passe" />
+          <i class="input-icon ri-lock-2-line"></i>
+          <input class="auth-input with-icon" v-model="form.password" type="password" placeholder="Mot de passe" />
         </div>
 
         <!-- REMEMBER ME -->

@@ -105,43 +105,42 @@
 
     </main>
 
-  </div>
+    <!-- MODAL LOGOUT -->
+    <div v-if="showLogout" class="modal-overlay">
 
-  <!-- MODAL LOGOUT -->
-  <div v-if="showLogout" class="modal-overlay">
+      <div class="modal-logout animate-pop">
 
-    <div class="modal-logout animate-pop">
+        <div class="text-center space-y-3">
 
-      <div class="text-center space-y-3">
+          <div class="text-red-500 text-3xl">
+            <i class="ri-logout-circle-line"></i>
+          </div>
 
-        <div class="text-red-500 text-3xl">
-          <i class="ri-logout-circle-line"></i>
+          <h3 class="text-lg font-semibold">
+            Déconnexion
+          </h3>
+
+          <p class="text-sm text-slate-500">
+            Voulez-vous vraiment quitter votre session ?
+          </p>
+
         </div>
 
-        <h3 class="text-lg font-semibold">
-          Déconnexion
-        </h3>
+        <div class="flex justify-center gap-3 mt-6">
 
-        <p class="text-sm text-slate-500">
-          Voulez-vous vraiment quitter votre session ?
-        </p>
+          <button class="btn-ghost" @click="showLogout = false">
+            Annuler
+          </button>
 
-      </div>
+          <button class="btn-danger" @click="logout">
+            Oui, se déconnecter
+          </button>
 
-      <div class="flex justify-center gap-3 mt-6">
-
-        <button class="btn-ghost" @click="showLogout = false">
-          Annuler
-        </button>
-
-        <button class="btn-danger" @click="logout">
-          Oui, se déconnecter
-        </button>
+        </div>
 
       </div>
 
     </div>
-
   </div>
 </template>
 
@@ -235,141 +234,231 @@ export default {
 </script>
 
 <style scoped>
-/* Profil */
-.profile-card {
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
+.dashboard {
+  background: linear-gradient(180deg, #f0fdf4 0%, #eaf7f0 100%);
 }
 
-/* Avatar */
+.profile-card,
+.card {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.08);
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 26px;
+  padding: 28px;
+}
+
 .avatar-wrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .avatar {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.16);
 }
 
 .avatar-edit {
   position: absolute;
-  bottom: -5px;
-  right: -5px;
+  bottom: 0;
+  right: 0;
   background: #059669;
   color: white;
   border-radius: 50%;
-  padding: 6px;
-  font-size: 12px;
+  padding: 10px;
+  font-size: 14px;
+  box-shadow: 0 12px 24px rgba(5, 150, 105, 0.18);
 }
 
-/* Badge */
+.profile-card h2 {
+  font-size: 1.9rem;
+  margin: 0;
+}
+
+.profile-card p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
 .role-badge {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 12px;
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  padding: 9px 16px;
   border-radius: 999px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-weight: 600;
 }
 
-/* Card */
-.card {
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 14px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.btn-logout:hover {
+  transform: translateY(-1px);
   background: white;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
+}
+
+.card {
+  padding: 28px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 15px;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
-/* Form */
+.card-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 15px;
-  gap: 10px;
+  margin-top: 24px;
+  gap: 16px;
 }
 
-/* Inputs */
 .input {
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 18px;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-/* Boutons */
+.input:focus {
+  border-color: #059669;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+}
+
+.btn-primary,
+.btn-danger,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
 .btn-primary {
   background: #059669;
   color: white;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 14px 22px;
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(5, 150, 105, 0.18);
+}
+
+.btn-primary:hover {
+  background: #047857;
+  transform: translateY(-1px);
 }
 
 .btn-danger {
   background: #dc2626;
   color: white;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 14px 22px;
+  border-radius: 18px;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
-  color: #64748b;
+  color: #475569;
+  padding: 14px 20px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-/* LOGOUT BUTTON */
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fee2e2;
-  color: #b91c1c;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: 0.2s;
-  cursor: pointer;
+.btn-ghost:hover {
+  background: white;
 }
 
-.btn-logout:hover {
-  background: #fecaca;
-}
-
-/* MODAL */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 60;
 }
 
 .modal-logout {
   background: white;
-  padding: 24px;
-  border-radius: 18px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+  padding: 32px;
+  border-radius: 26px;
+  width: min(100%, 520px);
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.18);
 }
 
-/* ANIMATION */
+.modal-logout .text-center {
+  text-align: center;
+}
+
+.modal-logout h3 {
+  margin-top: 12px;
+  font-size: 1.25rem;
+}
+
+.modal-logout p {
+  margin-top: 10px;
+  color: #64748b;
+}
+
+.modal-logout .btn-ghost,
+.modal-logout .btn-danger {
+  min-width: 140px;
+}
+
 @keyframes pop {
   from {
     opacity: 0;

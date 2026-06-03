@@ -1,20 +1,37 @@
-import prisma from "../prisma/client.js";
+import prisma from '../prisma/client.js';
 
 class FillHistoryRepository {
   async create(data) {
     return prisma.fillHistory.create({
       data: {
-        niveau: data.niveau,
+        fillLevel: data.fillLevel,
         recordedAt: data.recordedAt,
-        conteneurId: data.conteneurId,
+        containerId: data.containerId,
       },
     });
   }
 
-  async findByContainerId(conteneurId) {
+  async findByContainerId(containerId) {
     return prisma.fillHistory.findMany({
-      where: { conteneurId },
-      orderBy: { recordedAt: "desc" },
+      where: { containerId },
+      orderBy: { recordedAt: 'desc' },
+    });
+  }
+
+  async findLatestByContainerId(containerId) {
+    return prisma.fillHistory.findFirst({
+      where: { containerId },
+      orderBy: { recordedAt: 'desc' },
+    });
+  }
+
+  async deleteOldRecords(containerId, retentionDays = 90) {
+    const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    return prisma.fillHistory.deleteMany({
+      where: {
+        containerId,
+        recordedAt: { lt: cutoffDate },
+      },
     });
   }
 }

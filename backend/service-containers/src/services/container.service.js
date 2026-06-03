@@ -1,12 +1,12 @@
-import ContainerRepository from "../repositories/container.repository.js";
-import { NotFoundError, ConflictError } from "../utils/errors.js";
+import ContainerRepository from '../repositories/container.repository.js';
+import { NotFoundError, ConflictError } from '../utils/errors.js';
 
 class ContainerService {
   async getContainerById(id) {
     const container = await ContainerRepository.findById(id);
 
     if (!container) {
-      throw new NotFoundError("Conteneur introuvable");
+      throw new NotFoundError('Conteneur introuvable');
     }
 
     return container;
@@ -17,10 +17,10 @@ class ContainerService {
   }
 
   async createContainer(data) {
-    // Règle métier : unicité du code_conteneur
-    const exists = await ContainerRepository.findByName(data.code_conteneur);
+    // Règle métier : unicité du code
+    const exists = await ContainerRepository.findByCode(data.code);
     if (exists) {
-      throw new ConflictError("Un conteneur avec ce code existe déjà");
+      throw new ConflictError('Un conteneur avec ce code existe déjà');
     }
 
     return ContainerRepository.create(data);
@@ -29,7 +29,15 @@ class ContainerService {
   async updateContainer(id, data) {
     const container = await ContainerRepository.findById(id);
     if (!container) {
-      throw new NotFoundError("Conteneur introuvable");
+      throw new NotFoundError('Conteneur introuvable');
+    }
+
+    // Vérifier l'unicité du code si modifié
+    if (data.code && data.code !== container.code) {
+      const exists = await ContainerRepository.findByCode(data.code);
+      if (exists) {
+        throw new ConflictError('Un conteneur avec ce code existe déjà');
+      }
     }
 
     return ContainerRepository.update(id, data);
@@ -38,7 +46,7 @@ class ContainerService {
   async deleteContainer(id) {
     const container = await ContainerRepository.findById(id);
     if (!container) {
-      throw new NotFoundError("Conteneur introuvable");
+      throw new NotFoundError('Conteneur introuvable');
     }
 
     await ContainerRepository.delete(id);
@@ -47,21 +55,24 @@ class ContainerService {
   async searchContainers(filters) {
     const results = await ContainerRepository.findByFilters(filters);
     if (results.length === 0) {
-      throw new NotFoundError("Conteneur non trouvé");
+      throw new NotFoundError('Aucun conteneur trouvé');
     }
     return results;
   }
 
+  async getContainersByZone(zoneId) {
+    return ContainerRepository.findByZone(zoneId);
+  }
+
   async getStats() {
     const containers = await ContainerRepository.findAll();
-    
+
     if (containers.length === 0) {
       return {
         total: 0,
         parType: {},
         statusCount: {},
         totalCapacity: 0,
-        averageFillLevel: null,
       };
     }
 
@@ -70,21 +81,17 @@ class ContainerService {
       parType: {},
       statusCount: {},
       totalCapacity: 0,
-      averageFillLevel: null,
     };
-
-    let totalFillLevel = 0;
-    let countWithFill = 0;
 
     containers.forEach((c) => {
       // Compter par type
-      stats.parType[c.type_Dechet] = (stats.parType[c.type_Dechet] || 0) + 1;
-      
+      stats.parType[c.type] = (stats.parType[c.type] || 0) + 1;
+
       // Compter par statut
-      stats.statusCount[c.Statut || "normal"] = (stats.statusCount[c.Statut || "normal"] || 0) + 1;
-      
+      stats.statusCount[c.status || 'active'] = (stats.statusCount[c.status || 'active'] || 0) + 1;
+
       // Capacité totale
-      stats.totalCapacity += c.capacite_i || 0;
+      stats.totalCapacity += c.capacity || 0;
     });
 
     return stats;

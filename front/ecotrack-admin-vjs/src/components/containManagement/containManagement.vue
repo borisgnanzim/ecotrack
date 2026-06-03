@@ -387,6 +387,8 @@ export default {
       try {
         const response =  await containerService.getAll()
         this.ourContainers = response.data
+
+        console.log("Réponse API", response)
         console.log("Nos conteneurs", this.ourContainers)
       } catch (err){
         const message =

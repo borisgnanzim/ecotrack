@@ -1,67 +1,58 @@
 <template>
   <header class="app-header">
-    <div class="header-container">
+    <div class="header-wrapper">
 
-      <!-- LEFT -->
-      <div class="header-left">
-
+      <div class="header-top">
         <div>
           <h1 class="logo">
             {{ getTitle() }}
           </h1>
-
           <p v-if="getSubtitle()" class="subtitle">
             {{ getSubtitle() }}
           </p>
         </div>
 
-        <!-- NAV rapide -->
-        <nav class="nav-links">
+        <div class="header-actions">
+          <div class="icon-btn" title="Notifications">
+            <i class="ri-notification-line"></i>
+          </div>
 
-          <router-link
-            to="/signalements"
-            :class="{ active: isActive('/signalements') }"
-          >
-            Signaler
+          <router-link to="/citizen-profile" class="profile">
+            <div class="avatar">
+              <i class="ri-user-line"></i>
+            </div>
+            <span class="username">
+              {{ user.name }}
+            </span>
           </router-link>
-
-          <router-link
-            to="/my-signalements"
-            :class="{ active: isActive('/my-signalements') }"
-          >
-            Mes signalements
-          </router-link>
-
-          <router-link
-            to="/nearby-containers"
-            :class="{ active: isActive('/nearby-containers') }"
-          >
-            À proximité
-          </router-link>
-
-        </nav>
-
+        </div>
       </div>
 
-      <!-- RIGHT -->
-      <div class="header-right">
-
-        <!-- Notification (future) -->
-        <div class="icon-btn" title="Notifications">
-          🔔
-        </div>
-
-        <!-- Profil -->
-        <router-link to="/citizen-profile" class="profile">
-          <div class="avatar">
-            <i class="ri-user-line"></i>
-          </div>
-          <span class="username">
-            {{ user.name }}
-          </span>
+      <nav class="nav-bar">
+        <router-link
+          to="/signalements"
+          class="nav-item"
+          :class="{ active: isActive('/signalements') }"
+        >
+          Signaler
         </router-link>
 
-      </div>
+        <router-link
+          to="/my-signalements"
+          class="nav-item"
+          :class="{ active: isActive('/my-signalements') }"
+        >
+          Mes signalements
+        </router-link>
+
+        <router-link
+          to="/nearby-containers"
+          class="nav-item"
+          :class="{ active: isActive('/nearby-containers') }"
+        >
+          À proximité
+        </router-link>
+      </nav>
 
     </div>
   </header>
@@ -127,123 +118,134 @@ export default {
 
 <style scoped>
 .app-header {
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #059669 0%, #0f766e 100%);
+  color: white;
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 60;
+  box-shadow: 0 16px 40px rgba(5, 150, 105, 0.2);
 }
 
-.header-container {
+.header-wrapper {
   max-width: 1200px;
   margin: auto;
-  padding: 16px 24px;
+}
+
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-/* LEFT */
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 18px;
+  padding: 22px 24px 14px;
 }
 
 .logo {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
-  color: #059669;
+  color: white;
+  letter-spacing: 0.02em;
 }
 
 .subtitle {
-  font-size: 12px;
-  color: #64748b;
-}
-
-/* NAV */
-.nav-links {
-  display: flex;
-  gap: 16px;
-  margin-top: 6px;
-}
-
-.nav-links a {
   font-size: 13px;
-  color: #64748b;
-  text-decoration: none;
-  transition: 0.2s;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 8px;
+  max-width: 560px;
 }
 
-.nav-links a:hover {
-  color: #059669;
-}
-
-/* RIGHT */
-.header-right {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
-/* ICON BUTTON */
 .icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.icon-btn:hover {
-  background: #e2e8f0;
-}
-
-/* PROFILE */
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #059669;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.15);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+.profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 10px 14px;
+  border-radius: 20px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background: white;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
 }
 
 .username {
-  font-size: 13px;
-  font-weight: 500;
-  color: #334155;
-}
-
-.nav-links a.active {
-  color: #059669;
+  font-size: 0.95rem;
   font-weight: 600;
-  position: relative;
 }
 
-/* petit underline moderne */
-.nav-links a.active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -4px;
-  width: 100%;
-  height: 2px;
-  background: #059669;
-  border-radius: 10px;
+.nav-bar {
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px 22px;
+  background: rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.nav-item {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.nav-item.active {
+  background: white;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+@media (max-width: 820px) {
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 </style>
