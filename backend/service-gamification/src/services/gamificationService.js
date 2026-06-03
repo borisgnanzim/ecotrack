@@ -1,6 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(process.env.DATABASE_URL),
+  log: ['query', 'warn', 'error'],
+});
 
 // Point values for different actions
 const POINTS_CONFIG = {
