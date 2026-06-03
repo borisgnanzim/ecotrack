@@ -15,6 +15,7 @@ model Container {
   zoneId        String        // ID de la zone
   capacity      Int?          // Capacité maximale en litres
   code          Int           @unique // Code unique du conteneur
+  fillLevel     Int           @default(0) // Niveau de remplissage courant (0-100%)
 
   latitude      Float?        // Coordonnée GPS
   longitude     Float?        // Coordonnée GPS
