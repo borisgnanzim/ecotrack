@@ -63,6 +63,7 @@
 <script>
 import authService from '@/services/authentication/authService'
 import { useToast } from 'vue-toastification'
+import whosRole from '@/services/roles/whosRole';
 
 export default {
   name: 'LoginPage',
@@ -77,6 +78,8 @@ export default {
       rememberMe: false,
       error: '',
       loading: false,
+      isAdmin: false,
+      isAgent: false
     }
   },
 
@@ -122,7 +125,16 @@ export default {
           localStorage.removeItem('rememberMeData')
         }
 
-        this.$router.push('/dashboard')
+        this.isAdmin = await whosRole.isAdmin()
+        this.isAgent = await whosRole.isAgent()
+
+        if(this.isAdmin) {
+          this.$router.push('/dashboard')
+        } else if(this.isAgent) {
+          this.$router.push('/my-routes')
+        } else {
+          this.toast.error("Rôle utilisateur inconnu")
+        }
 
       } catch (err) {
         console.log('Erreur de connexion :', err)

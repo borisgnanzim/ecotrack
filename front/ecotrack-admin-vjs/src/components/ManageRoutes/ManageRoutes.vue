@@ -123,6 +123,13 @@
 
               </div>
 
+              <div class="tour-load">
+                <div
+                  class="tour-load-bar"
+                  :style="{ width: (t.fillRate || 75) + '%' }"
+                />
+              </div>
+
               <div class="tour-footer">
 
                 <span class="meta">
@@ -130,10 +137,32 @@
                   {{ t.containers }} conteneurs
                 </span>
 
-                <button class="btn-mini">
+                <button
+                  class="btn-mini"
+                  @click="openAssignModal(t)"
+                >
                   <i class="ri-user-add-line"></i>
                   Assigner agent
                 </button>
+
+              </div>
+
+              <div class="tour-stats">
+
+                <span>
+                  <i class="ri-road-map-line"></i>
+                  {{ t.distance || 12 }} km
+                </span>
+
+                <span>
+                  <i class="ri-delete-bin-line"></i>
+                  {{ t.containers }} conteneurs
+                </span>
+
+                <span>
+                  <i class="ri-user-line"></i>
+                  {{ t.agent || "Non assigné" }}
+                </span>
 
               </div>
 
@@ -204,6 +233,138 @@
 
     </main>
 
+    <transition name="fade">
+
+      <div
+        v-if="showAssignModal"
+        class="modal-overlay"
+      >
+
+        <div class="assign-modal">
+
+          <div class="modal-header">
+
+            <div>
+
+              <h3>
+                Affectation tournée
+              </h3>
+
+              <p>
+                {{ selectedTour?.name }}
+              </p>
+
+            </div>
+
+            <button
+              @click="showAssignModal = false"
+              class="close-btn"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+
+          </div>
+
+          <div class="modal-content">
+
+            <div class="form-group">
+
+              <label>Agent</label>
+
+              <select
+                v-model="assignForm.agentId"
+                class="input-modern"
+              >
+                <option :value="null">
+                  Sélectionner un agent
+                </option>
+
+                <option
+                  v-for="agent in availableAgents"
+                  :key="agent.id"
+                  :value="agent.id"
+                >
+                  {{ agent.name }}
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="form-group">
+
+              <label>Véhicule</label>
+
+              <select
+                v-model="assignForm.vehicle"
+                class="input-modern"
+              >
+                <option value="">
+                  Choisir un véhicule
+                </option>
+
+                <option
+                  v-for="v in vehicles"
+                  :key="v.id"
+                  :value="v.id"
+                >
+                  {{ v.name }} - {{ v.plate }}
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="form-group">
+
+              <label>Heure de départ</label>
+
+              <input
+                v-model="assignForm.startTime"
+                type="time"
+                class="input-modern"
+              />
+
+            </div>
+
+            <div class="form-group">
+
+              <label>Consignes</label>
+
+              <textarea
+                v-model="assignForm.notes"
+                rows="4"
+                class="input-modern"
+                placeholder="Informations complémentaires..."
+              />
+
+            </div>
+
+          </div>
+
+          <div class="modal-actions">
+
+            <button
+              class="btn-ghost"
+              @click="showAssignModal = false"
+            >
+              Annuler
+            </button>
+
+            <button
+              class="btn-primary"
+              @click="assignAgent"
+            >
+              Confirmer l'affectation
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </transition>
   </div>
 </template>
 
@@ -228,7 +389,11 @@ export default {
           sector: "Centre-ville",
           duration: 120,
           containers: 6,
-          priority: "URGENT"
+          priority: "URGENT",
+
+          distance: 14,
+          fillRate: 92,
+          agent: null
         },
         {
           id: 2,
@@ -236,7 +401,11 @@ export default {
           sector: "Nord",
           duration: 90,
           containers: 4,
-          priority: "NORMAL"
+          priority: "NORMAL",
+
+          distance: 9,
+          fillRate: 75,
+          agent: "Ahmed K."
         }
       ],
 
@@ -244,8 +413,43 @@ export default {
         { id: 1, name: "Ahmed K.", initials: "AK", status: "Disponible", load: 20 },
         { id: 2, name: "Sophie M.", initials: "SM", status: "En tournée", load: 80 },
         { id: 3, name: "Lucas P.", initials: "LP", status: "Disponible", load: 35 }
+      ],
+
+      showAssignModal: false,
+      selectedTour: null,
+
+      assignForm: {
+        agentId: null,
+        vehicle: "",
+        startTime: "",
+        notes: ""
+      },
+
+      vehicles: [
+        {
+          id: 1,
+          name: "Camion 01",
+          plate: "AB-123-CD",
+          status: "Disponible"
+        },
+        {
+          id: 2,
+          name: "Camion 02",
+          plate: "EF-456-GH",
+          status: "Disponible"
+        }
       ]
     }
+  },
+
+  computed: {
+
+    availableAgents() {
+      return this.agents.filter(
+        a => a.status === "Disponible"
+      )
+    }
+
   },
 
   methods: {
@@ -266,6 +470,42 @@ export default {
       return s === "Disponible"
         ? "text-emerald-600"
         : "text-red-500"
+    },
+
+    openAssignModal(tour) {
+
+      this.selectedTour = tour
+
+      this.assignForm = {
+        agentId: null,
+        vehicle: "",
+        startTime: "",
+        notes: ""
+      }
+
+      this.showAssignModal = true
+    },
+
+    assignAgent() {
+
+      const agent = this.agents.find(
+        a => a.id === this.assignForm.agentId
+      )
+
+      if (
+        !agent ||
+        !this.assignForm.vehicle ||
+        !this.assignForm.startTime
+      ) {
+        return
+      }
+
+      this.selectedTour.agent = agent.name
+
+      agent.status = "En tournée"
+      agent.load += 20
+
+      this.showAssignModal = false
     }
   }
 }
@@ -475,5 +715,128 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.tour-load {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.tour-load-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #059669,
+    #10b981
+  );
+  border-radius: 999px;
+}
+
+.tour-stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.45);
+  backdrop-filter: blur(5px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 100;
+}
+
+.assign-modal {
+  width: 100%;
+  max-width: 650px;
+
+  background: white;
+  border-radius: 24px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 40px 90px rgba(15,23,42,.15);
+}
+
+.modal-header {
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-content {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.input-modern {
+  width: 100%;
+  padding: 14px;
+
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+
+  background: #f8fafc;
+}
+
+.input-modern:focus {
+  outline: none;
+  border-color: #10b981;
+  background: white;
+}
+
+.modal-actions {
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.close-btn {
+  width: 40px;
+  height: 40px;
+
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.close-btn:hover {
+  background: #e2e8f0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity .2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

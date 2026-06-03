@@ -1,5 +1,5 @@
 // Pour les roles
-import authStorage from '../authentication/authStorage.js'
+import authStorage from '../authStorage.js'
 
 export default {
   // admin

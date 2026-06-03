@@ -58,6 +58,7 @@
 import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import authStorage from '@/services/authStorage';
+import whosRole from '@/services/roles/whosRole';
 
 export default {
   name: "AppHeader",
@@ -65,18 +66,34 @@ export default {
   setup() {
 
     const route = useRoute()
+    const isAdmin = ref(false)
+    const isAgent = ref(false)
 
     const user = ref({
       name: '',
       initials: ''
     })
 
-    const navItems = [
-      { label: "Dashboard", path: "/dashboard" },
-      { label: "Conteneurs", path: "/contain-management" },
-      { label: "Utilisateurs", path: "/user-management" },
-      { label: "Les tournées", path: "/manage-routes" }
-    ]
+    const navItems = ref([])
+
+    const buildNavItems = ({ admin, agent }) => {
+      const items = []
+
+      if (admin) {
+        items.push(
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Conteneurs", path: "/contain-management" },
+          { label: "Utilisateurs", path: "/user-management" },
+          { label: "Les tournées", path: "/manage-routes" }
+        )
+      }
+
+      if (agent) {
+        items.push({ label: "Mes tournées", path: "/my-routes" })
+      }
+
+      navItems.value = items
+    }
 
     const isActive = (path) => route.path === path
 
@@ -86,6 +103,7 @@ export default {
         case '/contain-management': return 'Gestion des conteneurs'
         case '/user-management': return 'Gestion des utilisateurs'
         case '/manage-routes': return 'Gestion des tournées'
+        case '/my-routes': return 'Mes tournées'
         default: return 'ECOTRACK'
       }
     }
@@ -95,6 +113,8 @@ export default {
         case '/dashboard': return 'Tableau de bord administrateur'
         case '/contain-management': return 'Suivi des conteneurs'
         case '/user-management': return 'Gestion des comptes utilisateurs'
+        case '/manage-routes': return 'Planification des tournées et affectation'
+        case '/my-routes': return 'Suivi de vos tournées en cours'
         default: return ''
       }
     }
@@ -120,7 +140,24 @@ export default {
       }
     }
 
-    onMounted(fetchProfile)
+    const initRoles = async () => {
+      try {
+        const [admin, agent] = await Promise.all([
+          whosRole.isAdmin(),
+          whosRole.isAgent()
+        ])
+        isAdmin.value = admin
+        isAgent.value = agent
+        buildNavItems({ admin, agent })
+      } catch (err) {
+        console.log('Erreur rôle :', err)
+      }
+    }
+
+    onMounted(() => {
+      fetchProfile()
+      initRoles()
+    })
 
     return {
       user,

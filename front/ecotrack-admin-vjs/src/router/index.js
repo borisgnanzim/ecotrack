@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import authStorage from '@/services/authStorage'
 import { logout } from '@/services/authStorage'
+import whosRole from '@/services/roles/whosRole';
 
 const APP_AUTH_URL = import.meta.env.VITE_APP_AUTH_URL
 
@@ -65,7 +66,7 @@ const router = createRouter({
       meta: {
         title: 'Space User | Eko',
         requiresAuth: true,
-        roles: ['admin'],
+        roles: ['admin', 'agent', 'manager'],
       },
     },
     {
@@ -86,6 +87,17 @@ const router = createRouter({
         title: 'Routes | Eko',
         requiresAuth: true,
         roles: ['admin'],
+      },
+    },
+    // Les tournées d'un agent
+    {
+      path: '/my-routes',
+      name: 'my-routes',
+      component: () => import('../components/ManageRoutes/MyRoutes.vue'),
+      meta: {
+        title: 'My Routes | Eko',
+        requiresAuth: true,
+        roles: ['agent', 'manager'],
       },
     },
     {
