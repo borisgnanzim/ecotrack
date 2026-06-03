@@ -12,8 +12,9 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-const allowedOrigins = [
-  'http://localhost:3000', // Vue/React dev server
+// Parse ALLOWED_ORIGINS from environment (comma-separated list)
+const getDefaultOrigins = () => [
+  'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
   'http://localhost:3003',
@@ -21,11 +22,17 @@ const allowedOrigins = [
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
   'http://127.0.0.1:3003',
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:4173', // Vite preview
+  'http://localhost:5173',
+  'http://localhost:4173',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:4173'
 ];
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+      .map(origin => origin.trim())
+      .filter(origin => origin.length > 0)
+  : getDefaultOrigins();
 
 app.use(cors({ 
   origin: function (origin, callback) {

@@ -13,8 +13,8 @@ function sample(arr) {
 async function seed(count) {
   console.log(`Seeding ${count} containers...`);
 
-  const types = ['Plastique', 'Verre', 'Papier', 'Organique', 'Metal'];
-  const statuts = ['ACTIVE', 'INACTIVE'];
+  const types = ['plastique', 'papier', 'verre', 'compost'];
+  const statuts = ['normal', 'plein', 'en_maintenance', 'desactive'];
 
   const batchSize = 1000;
   let created = 0;
@@ -25,20 +25,20 @@ async function seed(count) {
     const data = new Array(thisBatch).fill(0).map((_, i) => {
       const code = baseCode + created + i + 1;
       return {
-        type_Dechet: sample(types),
-        Statut: sample(statuts),
-        id_Zone: `Z${randInt(1, 200)}`,
-        capacite_i: randInt(50, 500),
-        code_conteneur: code,
+        type: sample(types),
+        status: sample(statuts),
+        zoneId: `Z${randInt(1, 200)}`,
+        capacity: randInt(50, 500),
+        code: code,
         latitude: parseFloat((48 + Math.random()).toFixed(6)),
         longitude: parseFloat((2 + Math.random()).toFixed(6)),
-        photo_url: null
+        photoUrl: null
       };
     });
 
     // use createMany for performance
     try {
-      await prisma.conteneur.createMany({ data, skipDuplicates: true });
+      await prisma.container.createMany({ data, skipDuplicates: true });
       created += thisBatch;
       console.log(`Inserted ${created}/${count}`);
     } catch (err) {
@@ -46,7 +46,7 @@ async function seed(count) {
       // fallback: insert one by one to get more details
       for (const item of data) {
         try {
-          await prisma.conteneur.create({ data: item });
+          await prisma.container.create({ data: item });
           created++;
         } catch (e) {
           // log and skip duplicates
