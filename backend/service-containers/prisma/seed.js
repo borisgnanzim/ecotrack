@@ -29,6 +29,7 @@ async function seed(count) {
         status: sample(statuts),
         zoneId: `Z${randInt(1, 200)}`,
         capacity: randInt(50, 500),
+        fillLevel: randInt(0, 100),
         code: code,
         latitude: parseFloat((48 + Math.random()).toFixed(6)),
         longitude: parseFloat((2 + Math.random()).toFixed(6)),
