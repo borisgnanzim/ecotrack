@@ -28,6 +28,13 @@ class ContainerRepository {
     });
   }
 
+  async getMaxCode() {
+    const result = await prisma.container.aggregate({
+      _max: { code: true },
+    });
+    return result._max.code ?? 0;
+  }
+
   async update(id, data) {
     return prisma.container.update({
       where: { id },

@@ -17,10 +17,15 @@ class ContainerService {
   }
 
   async createContainer(data) {
-    // Règle métier : unicité du code
-    const exists = await ContainerRepository.findByCode(data.code);
-    if (exists) {
-      throw new ConflictError('Un conteneur avec ce code existe déjà');
+    // Générer un code unique si l'appelant ne le fournit pas
+    if (!data.code) {
+      const maxCode = await ContainerRepository.getMaxCode();
+      data.code = maxCode + 1;
+    } else {
+      const exists = await ContainerRepository.findByCode(data.code);
+      if (exists) {
+        throw new ConflictError('Un conteneur avec ce code existe déjà');
+      }
     }
 
     return ContainerRepository.create(data);
