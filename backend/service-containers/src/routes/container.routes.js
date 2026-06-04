@@ -78,10 +78,13 @@ router.get('/', containerController.getAll);
  *               items:
  *                 $ref: '#/components/schemas/Conteneur'
  *             example:
- *               - id_conteneur: 1
- *                 type_Dechet: plastique
- *                 Statut: normal
- *                 capacite_i: 100
+ *               - id: "550e8400-e29b-41d4-a716-446655440000"
+ *                 type: plastique
+ *                 status: active
+ *                 zoneId: "123e4567-e89b-12d3-a456-426614174000"
+ *                 capacity: 100
+ *                 code: 1001
+ *                 fillLevel: 42
  *                 latitude: 14.6937
  *                 longitude: -16.4441
  *                 createdAt: "2026-03-01T08:00:00Z"
@@ -108,11 +111,10 @@ router.get('/', containerController.getAll);
  *           schema:
  *             $ref: '#/components/schemas/ConteneurCreate'
  *           example:
- *             type_Dechet: plastique
- *             Statut: normal
- *             id_Zone: zoneB
- *             capacite_i: 100
- *             code_conteneur: 1005
+ *             type: plastique
+ *             zoneId: "123e4567-e89b-12d3-a456-426614174000"
+ *             capacity: 100
+ *             code: 1005
  *             latitude: 14.6937
  *             longitude: -16.4441
  *     responses:
@@ -127,7 +129,7 @@ router.get('/', containerController.getAll);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       409:
- *         description: ❌ code_conteneur existe déjà
+ *         description: ❌ code existe déjà
  *         content:
  *           application/json:
  *             schema:
@@ -342,9 +344,9 @@ router.get('/:id', containerController.getById);
  *           schema:
  *             $ref: '#/components/schemas/ConteneurUpdate'
  *           example:
- *             type_Dechet: papier
- *             Statut: plein
- *             capacite_i: 120
+ *             type: papier
+ *             status: maintenance
+ *             capacity: 120
  *     responses:
  *       200:
  *         description: ✅ Conteneur mis à jour

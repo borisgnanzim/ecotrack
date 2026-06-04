@@ -1,7 +1,7 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3001;
 
 const options = {
   definition: {
@@ -63,128 +63,176 @@ const options = {
           type: "object",
           description: "Conteneur de déchets",
           properties: {
-            id_conteneur: { 
-              type: "integer",
-              description: "ID unique du conteneur",
-              example: 1
-            },
-            type_Dechet: { 
+            id: {
               type: "string",
-              enum: ["plastique", "papier", "verre", "compost"],
+              format: "uuid",
+              description: "ID unique du conteneur",
+              example: "550e8400-e29b-41d4-a716-446655440000"
+            },
+            type: {
+              type: "string",
               description: "Type de déchet accepté",
               example: "plastique"
             },
-            Statut: { 
+            status: {
               type: "string",
-              enum: ["normal", "plein", "en_maintenance", "desactive"],
               description: "État du conteneur",
-              example: "normal"
+              example: "active",
+              nullable: true
             },
-            id_Zone: { 
+            zoneId: {
               type: "string",
-              description: "Identifiant de la zone géographique",
-              example: "zoneB"
+              description: "Identifiant de la zone géographique (UUID)",
+              example: "123e4567-e89b-12d3-a456-426614174000"
             },
-            capacite_i: { 
+            capacity: {
               type: "integer",
               description: "Capacité en litres",
-              example: 100
+              example: 100,
+              nullable: true
             },
-            code_conteneur: { 
+            code: {
               type: "integer",
               description: "Code d'identification unique du conteneur",
               example: 1001
             },
-            latitude: { 
+            fillLevel: {
+              type: "integer",
+              minimum: 0,
+              maximum: 100,
+              description: "Niveau de remplissage courant (%)",
+              example: 42
+            },
+            latitude: {
               type: "number",
               format: "double",
               description: "Latitude GPS",
-              example: 14.6937
+              example: 14.6937,
+              nullable: true
             },
-            longitude: { 
+            longitude: {
               type: "number",
               format: "double",
               description: "Longitude GPS",
-              example: -16.4441
+              example: -16.4441,
+              nullable: true
             },
-            photo_url: { 
+            photoUrl: {
               type: "string",
               description: "URL de la photo du conteneur",
               example: "/uploads/conteneur-1709955930123.jpg",
               nullable: true
             },
-            createdAt: { 
+            createdAt: {
               type: "string",
               format: "date-time",
               description: "Date de création",
               example: "2026-03-01T08:00:00Z"
             },
-            updatedAt: { 
+            updatedAt: {
               type: "string",
               format: "date-time",
               description: "Date dernière modification",
               example: "2026-03-09T10:30:00Z"
             }
           },
-          required: ["id_conteneur", "type_Dechet", "id_Zone", "code_conteneur"]
+          required: ["id", "type", "zoneId", "code"]
         },
         ConteneurCreate: {
           type: "object",
           description: "Payload pour créer un conteneur",
           properties: {
-            type_Dechet: { 
+            type: {
               type: "string",
-              enum: ["plastique", "papier", "verre", "compost"],
+              description: "Type de déchet (min 3 caractères)",
               example: "plastique"
             },
-            Statut: { 
+            zoneId: {
               type: "string",
-              enum: ["normal", "plein", "en_maintenance", "desactive"],
-              example: "normal"
+              format: "uuid",
+              description: "UUID de la zone",
+              example: "123e4567-e89b-12d3-a456-426614174000"
             },
-            id_Zone: { 
-              type: "string",
-              example: "zoneB"
-            },
-            capacite_i: { 
+            capacity: {
               type: "integer",
+              description: "Capacité en litres (positive)",
               example: 100
             },
-            code_conteneur: { 
+            code: {
               type: "integer",
+              description: "Code unique (auto-généré si absent)",
               example: 1005
             },
-            latitude: { 
+            fillLevel: {
+              type: "integer",
+              minimum: 0,
+              maximum: 100,
+              description: "Niveau initial de remplissage (%)",
+              example: 0
+            },
+            latitude: {
               type: "number",
+              minimum: -90,
+              maximum: 90,
               example: 14.6937
             },
-            longitude: { 
+            longitude: {
               type: "number",
+              minimum: -180,
+              maximum: 180,
               example: -16.4441
+            },
+            status: {
+              type: "string",
+              example: "active"
             }
           },
-          required: ["type_Dechet", "id_Zone", "code_conteneur"]
+          required: ["type", "zoneId", "capacity", "latitude", "longitude"]
         },
         ConteneurUpdate: {
           type: "object",
-          description: "Payload pour mettre à jour un conteneur",
+          description: "Payload pour mettre à jour un conteneur (tous les champs optionnels)",
           properties: {
-            type_Dechet: { 
+            type: {
               type: "string",
-              enum: ["plastique", "papier", "verre", "compost"]
+              description: "Type de déchet (min 3 caractères)",
+              example: "papier"
             },
-            Statut: { 
+            zoneId: {
               type: "string",
-              enum: ["normal", "plein", "en_maintenance", "desactive"]
+              format: "uuid",
+              example: "123e4567-e89b-12d3-a456-426614174000"
             },
-            capacite_i: { 
-              type: "integer"
+            capacity: {
+              type: "integer",
+              example: 120
             },
-            latitude: { 
-              type: "number"
+            fillLevel: {
+              type: "integer",
+              minimum: 0,
+              maximum: 100,
+              example: 75
             },
-            longitude: { 
-              type: "number"
+            latitude: {
+              type: "number",
+              minimum: -90,
+              maximum: 90,
+              example: 14.6937
+            },
+            longitude: {
+              type: "number",
+              minimum: -180,
+              maximum: 180,
+              example: -16.4441
+            },
+            status: {
+              type: "string",
+              example: "maintenance"
+            },
+            photoUrl: {
+              type: "string",
+              format: "uri",
+              example: "https://example.com/photo.jpg"
             }
           }
         },
@@ -192,42 +240,51 @@ const options = {
           type: "object",
           description: "Relevé historique de remplissage",
           properties: {
-            id: { 
-              type: "integer",
-              example: 5234
+            id: {
+              type: "string",
+              format: "uuid",
+              example: "550e8400-e29b-41d4-a716-446655440001"
             },
-            niveau: { 
+            fillLevel: {
               type: "integer",
               minimum: 0,
               maximum: 100,
               description: "Pourcentage de remplissage",
               example: 75
             },
-            recordedAt: { 
+            recordedAt: {
               type: "string",
               format: "date-time",
               description: "Date du relevé",
               example: "2026-03-09T10:45:30Z"
             },
-            conteneurId: { 
-              type: "integer",
-              example: 1
+            containerId: {
+              type: "string",
+              format: "uuid",
+              example: "550e8400-e29b-41d4-a716-446655440000"
             }
           },
-          required: ["id", "niveau", "recordedAt", "conteneurId"]
+          required: ["id", "fillLevel", "recordedAt", "containerId"]
         },
         FillHistoryCreate: {
           type: "object",
           description: "Payload pour enregistrer un relevé de remplissage",
           properties: {
-            niveau: { 
+            fillLevel: {
               type: "integer",
               minimum: 0,
               maximum: 100,
+              description: "Niveau de remplissage en %",
               example: 75
+            },
+            recordedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Date du relevé (optionnel, défaut: maintenant)",
+              example: "2026-06-03T10:45:30Z"
             }
           },
-          required: ["niveau"]
+          required: ["fillLevel"]
         },
         Statistics: {
           type: "object",
