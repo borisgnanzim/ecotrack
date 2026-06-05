@@ -26,29 +26,40 @@
 
         <div class="stats-grid">
           <StatCard
-            label="Conteneurs actifs"
-            :value="stats.containers"
-            color="text-emerald-600"
-          />
-
-          <StatCard
-            label="Alertes"
-            :value="stats.alerts"
-            color="text-amber-600"
-          />
-
-          <StatCard
-            label="Signalements"
-            :value="stats.reports"
-            color="text-red-600"
-          />
-
-          <StatCard
-            label="Tournées"
-            :value="stats.routes"
-            color="text-slate-600"
+            v-for="card in statsCards"
+            :key="card.label"
+            :label="card.label"
+            :value="card.value"
+            :color="card.color"
           />
         </div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section class="analytics-section">
+
+        <div class="charts-grid">
+
+          <div class="card chart-card">
+            <div class="chart-header">
+              <h3>Répartition des déchets</h3>
+              <span>100 conteneurs</span>
+            </div>
+
+            <div ref="typeChart" class="chart"></div>
+          </div>
+
+          <div class="card chart-card">
+            <div class="chart-header">
+              <h3>État du parc</h3>
+              <span>Surveillance temps réel</span>
+            </div>
+
+            <div ref="statusChart" class="chart"></div>
+          </div>
+
+        </div>
+
       </section>
 
       <!-- Map -->
@@ -74,52 +85,54 @@
       </section>
 
       <!-- Table -->
-      <section class="card">
+      <section class="card table-card">
         <h2>État des conteneurs</h2>
 
-        <table class="table">
-          <thead>
-            <tr>
-                <th>Code</th>
-              <th>Zone</th>
-              <th>Type</th>
-              <th>Capacité</th>
-              <th>Remplissage</th>
-              <th>Statut</th>
-              <th>MAJ</th>
-            </tr>
-          </thead>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                  <th>Code</th>
+                <th>Zone</th>
+                <th>Type</th>
+                <th>Capacité</th>
+                <th>Remplissage</th>
+                <th>Statut</th>
+                <th>Ajouté le</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            <tr v-for="c in containers" :key="c.id_container">
-              <td class="code">{{ c.code_container }}</td>
-              <td>{{ c.id_zone }}</td>
-              <td>{{ c.type_dechet }}</td>
-              <td>{{ c.capacite_i }} L</td>
+            <tbody>
+              <tr v-for="c in containers" :key="c.id">
+                <td class="code">{{ c.code }}</td>
+                <td>{{ c.zoneId }}</td>
+                <td>{{ c.type }}</td>
+                <td>{{ c.capacity }} L</td>
 
-              <!-- Fill -->
-              <td>
-                <div class="progress">
-                  <div
-                    class="progress-bar"
-                    :class="fillColor(c.fill)"
-                    :style="{ width: c.fill + '%' }"
-                  ></div>
-                </div>
-                <span class="percent">{{ c.fill }}%</span>
-              </td>
+                <!-- Fill -->
+                <td>
+                  <div class="progress">
+                    <div
+                      class="progress-bar"
+                      :class="fillColor(c.fillLevel)"
+                      :style="{ width: (c.fillLevel ?? 0) + '%' }"
+                    ></div>
+                  </div>
+                  <span class="percent">{{ c.fillLevel ?? 0 }}%</span>
+                </td>
 
-              <!-- Status -->
-              <td>
-                <span :class="statusClass(c.status)">
-                  {{ c.status }}
-                </span>
-              </td>
+                <!-- Status -->
+                <td>
+                  <span :class="statusClass(c.status)">
+                    {{ formatTextStatus(c.status) }}
+                  </span>
+                </td>
 
-              <td class="updated-at">{{ c.updatedAt }}</td>
-            </tr>
-          </tbody>
-        </table>
+                <td class="updated-at">{{ formatDate(c.updatedAt) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
       </section>
 
@@ -130,10 +143,11 @@
 <script>
 import AppHeader from "../AppHeader/AppHeader.vue";
 import StatCard from "./StatCard.vue";
-import containerService from "@/services/container/containerService"
+import containerService from "@/services/container/containerService";
+import * as echarts from "echarts";
 
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 export default {
   name: "DashboardPage",
@@ -145,163 +159,362 @@ export default {
 
   data() {
     return {
-      ourContainers: [],
+      ourStats: {},
+      containers: [],
 
-      // MOCK STATS
-      stats: {
-        containers: 128,
-        alerts: 12,
-        reports: 5,
-        routes: 3
-      },
+      typeChart: null,
+      statusChart: null,
+      map: null
+    };
+  },
 
-      // MOCK TABLE - données simulées proches d'Argenteuil
-      containers: [
+  computed: {
+    statsCards() {
+      return [
         {
-          id_container: 1,
-          code_container: "CTR-ARG-001",
-          id_zone: "Centre-ville",
-          type_dechet: "OM",
-          capacite_i: 120,
-          fill: 45,
-          status: "OK",
-          latitude: 48.9472,
-          longitude: 2.2467,
-          photo_url: "",
-          createdAt: "2026-06-01",
-          updatedAt: "2026-06-02",
+          label: "Conteneurs",
+          value: this.ourStats.total ?? 0,
+          color: "text-emerald-600"
         },
+
         {
-          id_container: 2,
-          code_container: "CTR-ARG-014",
-          id_zone: "Les Coteaux",
-          type_dechet: "Verre",
-          capacite_i: 240,
-          fill: 82,
-          status: "ALERTE",
-          latitude: 48.9515,
-          longitude: 2.2598,
-          photo_url: "",
-          createdAt: "2026-05-28",
-          updatedAt: "2026-06-02",
+          label: "Normaux",
+          value: this.ourStats.statusCount?.normal ?? 0,
+          color: "text-green-600"
         },
+
         {
-          id_container: 3,
-          code_container: "CTR-ARG-078",
-          id_zone: "Val Nord",
-          type_dechet: "Plastique",
-          capacite_i: 120,
-          fill: 97,
-          status: "URGENT",
-          latitude: 48.9408,
-          longitude: 2.2333,
-          photo_url: "",
-          createdAt: "2026-05-30",
-          updatedAt: "2026-06-01",
+          label: "Pleins",
+          value: this.ourStats.statusCount?.plein ?? 0,
+          color: "text-red-600"
         },
+
         {
-          id_container: 4,
-          code_container: "CTR-ARG-032",
-          id_zone: "Gare",
-          type_dechet: "Papier",
-          capacite_i: 240,
-          fill: 63,
-          status: "OK",
-          latitude: 48.9459,
-          longitude: 2.2399,
-          photo_url: "",
-          createdAt: "2026-05-15",
-          updatedAt: "2026-06-02",
-        },
-        {
-          id_container: 5,
-          code_container: "CTR-ARG-055",
-          id_zone: "Rue de la Paix",
-          type_dechet: "OM",
-          capacite_i: 120,
-          fill: 22,
-          status: "OK",
-          latitude: 48.9499,
-          longitude: 2.2435,
-          photo_url: "",
-          createdAt: "2026-04-10",
-          updatedAt: "2026-06-02",
+          label: "Capacité",
+          value: `${(
+            this.ourStats.totalCapacity ?? 0
+          ).toLocaleString()} L`,
+          color: "text-slate-600"
         }
-      ]
+      ];
     }
   },
 
-  mounted() {
-    this.initMap()
+  async mounted() {
+    await this.fetchContainers();
+    await this.fetchStats();
+
+    this.$nextTick(() => {
+      this.initMap();
+      this.initCharts();
+    });
+  },
+
+  beforeUnmount() {
+    this.typeChart?.dispose();
+    this.statusChart?.dispose();
+    this.map?.remove();
   },
 
   methods: {
 
+    async fetchContainers() {
+      try {
+        const response = await containerService.getAll();
+        this.containers = response.data || [];
+      } catch (error) {
+        console.error("Erreur récupération des conteneurs :", error);
+        this.containers = [];
+      }
+    },
+
+    async fetchStats() {
+      try {
+        const response = await containerService.getStats();
+        this.ourStats = response.data || {};
+      } catch (error) {
+        console.error("Erreur récupération statistiques :", error);
+        this.ourStats = {};
+      }
+    },
+
     fillColor(value) {
-      if (value < 70) return "green"
-      if (value < 90) return "orange"
-      return "red"
+      if (value < 70) return "green";
+      if (value < 90) return "orange";
+      return "red";
     },
 
     statusClass(status) {
       return {
         badge: true,
-        ok: status === "OK",
-        alert: status === "ALERTE",
-        urgent: status === "URGENT"
+        ok: status === "normal" || status === "OK",
+        alert: status === "plein" || status === "ALERTE",
+        urgent:
+          status === "en_maintenance" ||
+          status === "URGENT"
+      };
+    },
+
+    formatDate(date) {
+      if (!date) return "-";
+
+      return new Date(date).toLocaleDateString("fr-FR");
+    },
+
+    formatTextStatus(status) {
+      switch (status) {
+        case "normal":
+        case "OK":
+          return "Normal";
+
+        case "plein":
+        case "ALERTE":
+          return "Plein";
+
+        case "en_maintenance":
+        case "maintenance":
+          return "En maintenance";
+
+        case "desactive":
+        case "disabled":
+          return "Désactivé";
+
+        default:
+          return status;
       }
     },
 
-    // Méthode pour initialiser la carte et afficher les conteneurs
+    initCharts() {
+      this.initTypeChart();
+      this.initStatusChart();
+
+      window.addEventListener("resize", () => {
+        this.typeChart?.resize();
+        this.statusChart?.resize();
+      });
+    },
+
+    initTypeChart() {
+
+      const data = Object.entries(
+        this.ourStats.parType || {}
+      ).map(([name, value]) => ({
+        name:
+          name.charAt(0).toUpperCase() +
+          name.slice(1),
+        value
+      }));
+
+      const chart = echarts.init(
+        this.$refs.typeChart
+      );
+
+      chart.setOption({
+        tooltip: {
+          trigger: "item"
+        },
+
+        legend: {
+          bottom: 0
+        },
+
+        series: [
+          {
+            name: "Types",
+            type: "pie",
+            radius: ["45%", "75%"],
+
+            label: {
+              formatter: "{b}\n{d}%"
+            },
+
+            data
+          }
+        ]
+      });
+
+      this.typeChart = chart;
+    },
+
+    initStatusChart() {
+
+      const stats = this.ourStats.statusCount || {};
+
+      const chart = echarts.init(
+        this.$refs.statusChart
+      );
+
+      chart.setOption({
+        tooltip: {
+          trigger: "axis"
+        },
+
+        grid: {
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20,
+          containLabel: true
+        },
+
+        xAxis: {
+          type: "value"
+        },
+
+        yAxis: {
+          type: "category",
+          data: [
+            "Normal",
+            "Maintenance",
+            "Désactivé",
+            "Plein"
+          ]
+        },
+
+        series: [
+          {
+            type: "bar",
+            barWidth: 18,
+
+            data: [
+              {
+                value: stats.normal || 0,
+                itemStyle: {
+                  color: "#10b981"
+                }
+              },
+
+              {
+                value:
+                  stats.en_maintenance || 0,
+                itemStyle: {
+                  color: "#3b82f6"
+                }
+              },
+
+              {
+                value: stats.desactive || 0,
+                itemStyle: {
+                  color: "#64748b"
+                }
+              },
+
+              {
+                value: stats.plein || 0,
+                itemStyle: {
+                  color: "#ef4444"
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      this.statusChart = chart;
+    },
+
     initMap() {
-      // Centrer sur Argenteuil
-      const center = [48.9472, 2.2467]
-      const map = L.map('map').setView(center, 13)
 
-      // Layer OpenStreetMap (GRATUIT)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map)
+      const center = [48.8566, 2.3522];
 
-      // Ajouter un marker animé pour chaque conteneur simulé
-      const latlngs = []
+      const map = L.map("map").setView(
+        center,
+        12
+      );
+
+      L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            "&copy; OpenStreetMap contributors"
+        }
+      ).addTo(map);
+
+      setTimeout(
+        () => map.invalidateSize(),
+        0
+      );
+
+      const latlngs = [];
+
       this.containers.forEach((c) => {
-        if (!c.latitude || !c.longitude) return
-        const lat = c.latitude
-        const lng = c.longitude
-        latlngs.push([lat, lng])
 
-        const color = c.fill < 70 ? '#10b981' : c.fill < 90 ? '#f59e0b' : '#ef4444'
-        const circle = L.circleMarker([lat, lng], {
-          radius: 10,
-          color: '#ffffff',
-          weight: 2,
-          fillColor: color,
-          fillOpacity: 0.95,
-          className: 'pulse-circle-marker'
-        }).addTo(map)
+        if (!c.latitude || !c.longitude) {
+          return;
+        }
 
-        const popup = `
-          <div style="font-weight:600; margin-bottom:6px">${c.code_container}</div>
-          <div style="font-size:13px; color:#475569">${c.type_dechet} • ${c.id_zone}</div>
-          <div style="margin-top:8px; font-size:13px">Remplissage: <strong>${c.fill}%</strong></div>
-          <div style="font-size:12px; color:#64748b">Dernière MAJ: ${c.updatedAt}</div>
-        `
+        const fill = c.fillLevel ?? 0;
 
-        circle.bindPopup(popup)
-      })
+        const color =
+          fill < 70
+            ? "#10b981"
+            : fill < 90
+            ? "#f59e0b"
+            : "#ef4444";
 
-      // Ajuster la vue pour englober tous les marqueurs
+        latlngs.push([
+          c.latitude,
+          c.longitude
+        ]);
+
+        const marker = L.marker(
+          [c.latitude, c.longitude],
+          {
+            icon: L.divIcon({
+              className: "container-marker",
+
+              html: `
+                <div class="marker-wrapper">
+                  <div class="radar radar-1" style="color:${color}"></div>
+                  <div class="radar radar-2" style="color:${color}"></div>
+                  <div class="radar radar-3" style="color:${color}"></div>
+
+                  <div
+                    class="marker-core"
+                    style="
+                      background:${color};
+                      color:${color};
+                    "
+                  ></div>
+                </div>
+              `,
+
+              iconSize: [40, 40],
+              iconAnchor: [20, 20]
+            })
+          }
+        ).addTo(map);
+
+        marker.bindPopup(`
+          <div style="font-weight:600;">
+            ${c.code}
+          </div>
+
+          <div style="margin-top:6px;">
+            ${c.type}
+          </div>
+
+          <div>
+            Remplissage :
+            <strong>${fill}%</strong>
+          </div>
+        `);
+      });
+
       if (latlngs.length) {
-        const bounds = L.latLngBounds(latlngs)
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
+        map.fitBounds(
+          L.latLngBounds(latlngs),
+          {
+            padding: [50, 50],
+            maxZoom: 15
+          }
+        );
       }
 
-      this.map = map
+      this.map = map;
     }
-
   }
-}
+};
 </script>
 
 <style scoped>
@@ -353,7 +566,19 @@ export default {
   border-radius: 18px;
   margin-top: 20px;
   border: 1px solid rgba(148, 163, 184, 0.18);
+
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.05);
+
+  transition:
+    transform .35s ease,
+    box-shadow .35s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px) scale(1.01);
+
+  box-shadow:
+    0 30px 60px rgba(15, 23, 42, 0.10);
 }
 
 .stats-section {
@@ -411,6 +636,17 @@ export default {
 
 .map-card {
   padding: 24px;
+}
+.map-card,
+.table-card {
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.map-card:hover,
+.table-card:hover {
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
 }
 
 .section-header {
@@ -490,9 +726,45 @@ export default {
 .progress {
   width: 100%;
   height: 8px;
+
   background: #e2e8f0;
-  border-radius: 10px;
+
+  border-radius: 999px;
+
   overflow: hidden;
+
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  position: relative;
+}
+
+.progress-bar::after {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: -100%;
+
+  width: 100%;
+  height: 100%;
+
+  background: rgba(255,255,255,.35);
+
+  animation: shimmer 2.2s infinite;
+}
+
+@keyframes shimmer {
+  from {
+    left: -100%;
+  }
+
+  to {
+    left: 150%;
+  }
 }
 
 .progress-bar {
@@ -546,14 +818,35 @@ export default {
   margin-bottom: 10px;
 }
 
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.stats-header-small {
+  margin-bottom: 14px;
+}
+
+.section-title-sm {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
 
 .map {
-  position: relative; /* créer un stacking context local pour Leaflet */
+  position: relative;
   z-index: 0;
-  height: 360px;
+
+  height: 420px;
   width: 100%;
+
   border-radius: 18px;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
+
+  overflow: hidden;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(15,23,42,.04);
 }
 
 .map-legend {
@@ -576,4 +869,234 @@ export default {
 .green-dot { background:#10b981 }
 .orange-dot { background:#f59e0b }
 .red-dot { background:#ef4444 }
+
+.table-wrapper {
+  max-height: 520px;
+  overflow-y: auto;
+
+  margin-top: 16px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+
+  z-index: 20;
+
+  background: white;
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table tbody tr {
+  transition:
+    background .25s ease,
+    transform .25s ease;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+  transform: scale(1.005);
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+  transform: scale(1.005);
+}
+
+/* CSS DES GRAPHIQUES */
+.analytics-section {
+  margin-top: 24px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.chart-card {
+  padding: 24px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 20px;
+}
+
+.chart-header h3 {
+  margin: 0;
+
+  font-size: 18px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.chart-header span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.chart {
+  width: 100%;
+  height: 360px;
+}
+
+@media (max-width: 900px) {
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart {
+    height: 300px;
+  }
+
+}
+
+.stats-grid .card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-grid .card::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 4px;
+  height: 100%;
+
+  background: #10b981;
+}
+</style>
+
+<style>
+/* =========================
+   LEAFLET CONTAINER MARKERS
+   ========================= */
+
+.container-marker {
+  background: transparent !important;
+  border: none !important;
+  transition:
+    transform .3s ease,
+    filter .3s ease;
+}
+
+.container-marker:hover {
+  transform: scale(1.35);
+  filter: brightness(1.15);
+  z-index: 9999;
+}
+
+.marker-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.marker-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+
+  box-shadow:
+    0 0 0 6px rgba(255,255,255,.25),
+    0 0 15px currentColor,
+    0 0 25px currentColor;
+
+  animation:
+    corePulse 2s infinite ease-in-out,
+    floatMarker 3s infinite ease-in-out;
+}
+
+.radar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.radar-1 {
+  animation: radarPulse 2s infinite;
+}
+
+.radar-2 {
+  animation: radarPulse 2s infinite .7s;
+}
+
+.radar-3 {
+  animation: radarPulse 2s infinite 1.4s;
+}
+
+@keyframes radarPulse {
+  0% {
+    width: 14px;
+    height: 14px;
+    opacity: .9;
+  }
+
+  100% {
+    width: 70px;
+    height: 70px;
+    opacity: 0;
+  }
+}
+
+@keyframes corePulse {
+  0%,100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+
+@keyframes floatMarker {
+  0%,100% {
+    margin-top: 0;
+  }
+
+  50% {
+    margin-top: -4px;
+  }
+}
 </style>

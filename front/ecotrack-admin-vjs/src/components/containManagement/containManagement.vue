@@ -523,6 +523,8 @@ export default {
         const response =  await containerService.getAll()
         this.ourContainers = response.data
 
+        console.log("Conteneurs récupérés : ", this.ourContainers)
+
       } catch (err){
         const message =
           err.response?.data?.message ||
