@@ -374,7 +374,21 @@ router.get('/:id', containerController.getById);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/:id', authMiddleware, validate(UpdateContainerDTO), containerController.update);
+
+router.put('/:id',
+  (req, res, next) => {
+    next();
+  },
+  authMiddleware,
+  (req, res, next) => {
+    next();
+  },
+  validate(UpdateContainerDTO),
+  (req, res, next) => {
+    next();
+  },
+  containerController.update
+);
 
 /**
  * @swagger

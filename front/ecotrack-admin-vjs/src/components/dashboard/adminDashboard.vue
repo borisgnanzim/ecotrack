@@ -130,6 +130,7 @@
 <script>
 import AppHeader from "../AppHeader/AppHeader.vue";
 import StatCard from "./StatCard.vue";
+import containerService from "@/services/container/containerService"
 
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
@@ -144,6 +145,7 @@ export default {
 
   data() {
     return {
+      ourContainers: [],
 
       // MOCK STATS
       stats: {

@@ -299,8 +299,8 @@
 
           <input v-model="form.capacity" placeholder="Capacité (L)" class="input" />
 
-          <select v-model="form.status" class="input">
-            <option value="">Statut</option>
+          <select v-model="form.status" class="input" :class="{ 'text-slate-400': !form.status }">
+            <option value="" disabled>Statut</option>
             <option v-for="status in statusOptions" :key="status.value" :value="status.value">
               {{ status.label }}
             </option>
@@ -479,8 +479,9 @@ export default {
         zoneId: "",
         type: "",
         capacity: "",
-        status: "normal",
+        status: "",
         photoUrl: null,
+        address: "",
         latitude: null,
         longitude: null
       },
@@ -539,11 +540,13 @@ export default {
         zoneId: "",
         type: "",
         capacity: "",
-        status: "normal",
+        status: "",
         photoUrl: null,
+        address: "",
         latitude: null,
         longitude: null
       }
+      this.suggestions = []
       this.isEdit = false
       this.selectedContainer = null
     },
@@ -567,8 +570,21 @@ export default {
 
       // debounce (important pour éviter spam API)
       this.timeout = setTimeout(async () => {
-        this.suggestions = await streetService.searchAddress(this.form.address)
+        this.suggestions = await this.loadAddressSuggestions(this.form.address)
       }, 300)
+    },
+
+    async loadAddressSuggestions(address) {
+      if (!address || !address.toString().trim()) {
+        return []
+      }
+
+      try {
+        return await streetService.searchAddress(address)
+      } catch (e) {
+        console.error('Erreur loadAddressSuggestions', e)
+        return []
+      }
     },
 
     selectAddress(s) {
@@ -603,8 +619,11 @@ export default {
           latitude: geo?.latitude || null,
           longitude: geo?.longitude || null,
         }
-        // const myAdress = await streetMapService.reverseGeocode(geo.latitude, geo.longitude)
-        // const simpleAddress = await streetMapService.reverseGeocodeShort(geo.latitude, geo.longitude)
+
+        if (!payload.status) {
+          delete payload.status
+        }
+
         await containerService.create(payload)
 
         this.toast.success("Conteneur créé avec succès.")
@@ -647,11 +666,14 @@ export default {
           latitude: geo?.latitude || this.selectedContainer.latitude,
           longitude: geo?.longitude || this.selectedContainer.longitude
         }
-        console.log(payload)
-        // await containerService.update(
-        //   this.selectedContainer.id_conteneur,
-        //   payload
-        // )
+        if (!payload.status) {
+          delete payload.status
+        }
+
+        await containerService.update(
+          this.selectedContainer.id,
+          payload
+        )
 
         this.closeCreate()
         this.fetchAllContainers()
@@ -661,19 +683,31 @@ export default {
       }
     },
 
-    openEdit(container) {
+    async openEdit(container) {
       this.isEdit = true
       this.selectedContainer = container
       this.form = {
         zoneId: container.zoneId || '',
         type: container.type || '',
         capacity: container.capacity || '',
-        status: container.status || 'normal',
+        status: container.status || '',
         address: container.address || '',
         latitude: container.latitude || null,
         longitude: container.longitude || null
       }
       this.showCreate = true
+
+      if (container.latitude && container.longitude) {
+        try {
+          const reversedAddress = await streetMapService.reverseGeocodeShort(container.latitude, container.longitude)
+          if (reversedAddress) {
+            this.form.address = reversedAddress
+            this.suggestions = await this.loadAddressSuggestions(reversedAddress)
+          }
+        } catch (e) {
+          console.error('Erreur reverseGeocode openEdit', e)
+        }
+      }
     },
 
     openInspect(container) {
@@ -687,12 +721,13 @@ export default {
 
     async confirmDelete() {
       try {
-        await containerService.remove(this.showDelete)
+        await containerService.delete(this.showDelete)
+        this.toast.success("Conteneur supprimé avec succès.")
         this.closeDelete()
         this.fetchAllContainers()
       } catch (e) {
         console.error(e)
-        alert("Impossible de supprimer")
+        this.toast.error("Erreur lors de la suppression du conteneur.")
       }
     },
 
