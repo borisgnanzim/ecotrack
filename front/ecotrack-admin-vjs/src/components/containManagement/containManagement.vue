@@ -435,6 +435,7 @@ import AppHeader from "@/components/AppHeader/AppHeader.vue"
 import containerService from "@/services/container/containerService"
 import streetMapService from "@/services/apiStreet/streetMapService"
 import streetService from "@/services/apiStreet/streetService"
+import { useToast } from "vue-toastification"
 
 const CONTAINERS_STATUS = [
   { value: 'normal', label: 'Normal' },
@@ -463,6 +464,7 @@ export default {
   data() {
 
     return {
+      toast: useToast(),
       ourContainers: [],
       loading: true,
 
@@ -605,11 +607,14 @@ export default {
         // const simpleAddress = await streetMapService.reverseGeocodeShort(geo.latitude, geo.longitude)
         await containerService.create(payload)
 
+        this.toast.success("Conteneur créé avec succès.")
+
         this.closeCreate()
         this.fetchAllContainers()
 
       } catch (e) {
         console.error("Erreur création", e)
+        this.toast.error("Erreur lors de la création du conteneur.")
       }
     },
 
