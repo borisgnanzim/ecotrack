@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Création d’un conteneur
 export const CreateContainerDTO = z.object({
   type: z.string().min(3, 'Type de déchet requis'),
-  zoneId: z.string().uuid('Zone ID doit être un UUID'),
+  zoneId: z.string().min(1, 'Zone ID requis'),
   capacity: z.number().positive('Capacité doit être positive'),
   code: z.number().int().positive('Code doit être un entier positif').optional(),
   fillLevel: z.number().int('fillLevel doit être un entier').min(0, 'fillLevel minimum 0').max(100, 'fillLevel maximum 100').optional(),
@@ -16,7 +16,7 @@ export const CreateContainerDTO = z.object({
 // Mise à jour d’un conteneur
 export const UpdateContainerDTO = z.object({
   type: z.string().min(3).optional(),
-  zoneId: z.string().uuid().optional(),
+  zoneId: z.string().min(1).optional(),
   capacity: z.number().positive().optional(),
   fillLevel: z.number().int('fillLevel doit être un entier').min(0, 'fillLevel minimum 0').max(100, 'fillLevel maximum 100').optional(),
   latitude: z.number().min(-90).max(90).optional(),
