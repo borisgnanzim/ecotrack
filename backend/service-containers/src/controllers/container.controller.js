@@ -28,6 +28,7 @@ class ContainerController {
       const container = await ContainerService.createContainer(data);
       res.status(201).json(container);
     } catch (error) {
+      console.error('❌ [CREATE] erreur:', error.message);
       next(error);
     }
   }

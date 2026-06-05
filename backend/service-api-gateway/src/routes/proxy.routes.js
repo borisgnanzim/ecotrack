@@ -1291,11 +1291,16 @@ router.use(
  *       413:
  *         description: Fichier trop volumineux
  */
-router.use('/containers', auth, createProxyMiddleware({
+router.use('/containers', auth, (req, res, next) => {
+  next();
+}, createProxyMiddleware({
   target: PROXY_CONFIG.containers.url,
   changeOrigin: true,
   pathRewrite: {
     '^/containers': '/containers'
+  },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
   },
   onError: (err, req, res) => {
     console.error('Proxy Error - Containers Service:', err);

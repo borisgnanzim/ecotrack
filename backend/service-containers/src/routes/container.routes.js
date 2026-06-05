@@ -135,7 +135,20 @@ router.get('/', containerController.getAll);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/', authMiddleware, validate(CreateContainerDTO), containerController.create);
+router.post('/',
+  (req, res, next) => {
+    next();
+  },
+  authMiddleware,
+  (req, res, next) => {
+    next();
+  },
+  validate(CreateContainerDTO),
+  (req, res, next) => {
+    next();
+  },
+  containerController.create
+);
 
 /**
  * @swagger
