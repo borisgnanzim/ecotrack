@@ -194,4 +194,46 @@ router.get('/avatar/:id', avatarController.getAvatar);
 
 router.put('/', profileController.updateProfile);
 
+/**
+ * @openapi
+ * /users/profile/password:
+ *   put:
+ *     summary: Update authenticated user's password
+ *     description: Allows the authenticated user to change their password by providing the old password and the new password with confirmation.
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *               - newPasswordConfirm
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 example: "CurrentPassword123!"
+ *               newPassword:
+ *                 type: string
+ *                 example: "NewSecurePassword456#"
+ *               newPasswordConfirm:
+ *                 type: string
+ *                 example: "NewSecurePassword456#"
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Bad request - Invalid input data or new passwords do not match
+ *       401:
+ *         description: Unauthorized - Missing or invalid token, or old password incorrect
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/password', profileController.changePassword);
+
 module.exports = router;

@@ -9,19 +9,19 @@ module.exports = async (prisma) => {
         userId: alice ? alice.id : null,
         title: 'Bienvenue',
         message: 'Bienvenue sur Ecotrack, Alice !',
-        type: 'info'
+        type: 'INFO'
       },
       {
         userId: bob ? bob.id : null,
         title: 'Mise à jour du profil',
         message: "Votre profil a été mis à jour avec succès.",
-        type: 'success'
+        type: 'SUCCESS'
       },
       {
         userId: alice ? alice.id : null,
         title: 'Maintenance planifiée',
         message: "Une maintenance est prévue ce soir à minuit.",
-        type: 'warning'
+        type: 'WARNING'
       }
     ]
   });

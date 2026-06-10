@@ -103,6 +103,22 @@ const updateProfileSchema = z.object({
   message: 'Au moins un champ doit être fourni pour la mise à jour'
 });
 
+// Password Change Schema
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Ancien mot de passe requis'),
+  newPassword: z.string()
+    .min(6, 'Le nouveau mot de passe doit contenir au moins 6 caractères')
+    .max(100, 'Le nouveau mot de passe est trop long (max 100 caractères)')
+    .regex(/[A-Z]/, 'Le nouveau mot de passe doit contenir au moins une majuscule', { path: ['newPassword', 'uppercase'] })
+    .regex(/[a-z]/, 'Le nouveau mot de passe doit contenir au moins une minuscule', { path: ['newPassword', 'lowercase'] })
+    .regex(/[^A-Za-z0-9]/, 'Le nouveau mot de passe doit contenir au moins un caractère spécial', { path: ['newPassword', 'specialChar'] }),
+  newPasswordConfirm: z.string()
+}).refine((data) => data.newPassword === data.newPasswordConfirm, {
+  message: 'Les nouveaux mots de passe ne correspondent pas',
+  path: ['newPasswordConfirm']
+});
+
+
 // Notification Schemas
 const createNotificationSchema = z.object({
   userId: z.union([z.string(), z.number()]).optional(),
@@ -141,6 +157,9 @@ module.exports = {
 
   // Profile
   updateProfileSchema,
+
+  // Password
+  changePasswordSchema,
 
   // Notification
   createNotificationSchema,

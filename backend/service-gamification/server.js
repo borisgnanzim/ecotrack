@@ -3,6 +3,31 @@ const app = require("./app");
 
 const port = process.env.PORT || 3015;
 
-app.listen(port, () => {
-  console.log(`Gamification service running on port ${port}`);
+
+
+async function startServer() {
+  try {
+    // Initialiser Kafka
+    await initializeKafka();
+    //setupKafkaShutdown();
+
+    await connectDb(); // Wait DB connection before listening
+    app.listen(port, () => {
+      console.log(`✅ Service Gamification running on port ${port}`);
+    });
+  } catch (err) {
+    console.error('Impossible de démarrer le serveur, la connexion à la BD a échoué.', err);
+    process.exit(1);
+  }
+}
+
+
+// Optional: handle unhandled rejections / exceptions to avoid silent crashes
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
 });

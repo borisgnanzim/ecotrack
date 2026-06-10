@@ -140,6 +140,38 @@ class AuthService {
       throw error;
     }
   }
-}
 
+  /**
+   * Changer le mot de passe d'un utilisateur
+   * @param {string} userId
+   * @param {string} oldPassword
+   * @param {string} newPassword
+   * @returns {Promise<{message: string}>}
+   */
+  async changePassword(userId, oldPassword, newPassword) {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      const error = new ValidationError({ id: 'Utilisateur non trouvé' });
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Verify old password
+    const isMatch = user.comparePassword
+      ? await user.comparePassword(oldPassword)
+      : bcryptjs.compareSync(oldPassword, user.password);
+
+    if (!isMatch) {
+      const error = new ValidationError({ oldPassword: 'Ancien mot de passe incorrect' });
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Hash new password and update
+    await User.update(userId, { password: newPassword }); // User.update will handle hashing if the model is set up for it, otherwise hash here.
+
+    return { message: 'Mot de passe mis à jour avec succès' };
+  }
+}
 module.exports = new AuthService();

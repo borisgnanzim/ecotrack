@@ -55,12 +55,21 @@ exports.uploadAvatar = async (req, res, next) => {
  * Récupérer l'avatar d'un utilisateur
  * GET /users/avatar/:id
  */
+
 exports.getAvatar = async (req, res, next) => {
   try {
-    // Récupérer l'ID desde les params ou depuis l'utilisateur authentifié
+    // Récupérer l'ID depuis les params ou l'utilisateur authentifié
     const userId = req.params.id || (req.user && req.user.id);
+
     if (!userId) {
       const error = new ValidationError({ id: 'ID utilisateur manquant' });
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Empêcher les tentatives de path traversal
+    if (!/^[a-zA-Z0-9_-]+$/.test(userId)) {
+      const error = new ValidationError({ id: 'ID utilisateur invalide' });
       error.statusCode = 400;
       throw error;
     }
@@ -69,17 +78,48 @@ exports.getAvatar = async (req, res, next) => {
     const filename = `${userId}.webp`;
     const filepath = path.join(avatarsDir, filename);
 
-    let fileToSend;
-    if (fs.existsSync(filepath)) {
-      fileToSend = filepath;
-    } else {
+    let fileToSend = filepath;
+
+    // Vérification asynchrone du fichier
+    try {
+      await fs.access(filepath);
+    } catch {
       fileToSend = path.join(process.cwd(), 'uploads', 'defaults', 'default_avatar.svg');
     }
 
-    // Ajouter les headers de cache et servir le fichier
+    // Cache 24h
     res.set('Cache-Control', 'public, max-age=86400');
     res.sendFile(fileToSend);
   } catch (err) {
     next(err);
   }
 };
+// exports.getAvatar = async (req, res, next) => {
+//   try {
+//     // Récupérer l'ID desde les params ou depuis l'utilisateur authentifié
+//     const userId = req.params.id || (req.user && req.user.id);
+//     if (!userId) {
+//       const error = new ValidationError({ id: 'ID utilisateur manquant' });
+//       error.statusCode = 400;
+//       throw error;
+//     }
+
+//     const avatarsDir = path.join(process.cwd(), 'uploads', 'avatars');
+//     const filename = `${userId}.webp`;
+//     const filepath = path.join(avatarsDir, filename);
+
+//     let fileToSend;
+//     if (fs.existsSync(filepath)) {
+//       fileToSend = filepath;
+//     } else {
+//       fileToSend = path.join(process.cwd(), 'uploads', 'defaults', 'default_avatar.svg');
+//     }
+
+//     // Ajouter les headers de cache et servir le fichier
+//     res.set('Cache-Control', 'public, max-age=86400');
+//     res.sendFile(fileToSend);
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
