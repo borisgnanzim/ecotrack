@@ -8,9 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const gamificationRoutes = require('./src/routes/gamificationRoutes');
-
-app.use('/api/gamification', gamificationRoutes);
+// Utilisation du routeur centralisé (index.js du dossier routes)
+app.use('/api/gamification', require('./src/routes'));
 
 app.get('/health', (req, res) => {
   res.json({

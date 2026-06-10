@@ -1558,6 +1558,9 @@ router.use('/routes', auth, createProxyMiddleware({
   pathRewrite: {
     '^/routes': '/routes'
   },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
   onError: (err, req, res) => {
     console.error('Proxy Error - Routes Service:', err);
     res.status(503).json({
@@ -2098,6 +2101,9 @@ router.use('/analytics', auth, createProxyMiddleware({
   pathRewrite: {
     '^/analytics': '/analytics'
   },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
   onError: (err, req, res) => {
     console.error('Proxy Error - Analytics Service:', err);
     res.status(503).json({
@@ -2232,10 +2238,33 @@ router.use('/iot', auth, createProxyMiddleware({
   pathRewrite: {
     '^/iot': '/iot'
   },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
   onError: (err, req, res) => {
     console.error('Proxy Error - IoT Service:', err);
     res.status(503).json({
       error: 'Service IoT indisponible',
+      statusCode: 503,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+// Service Gamification
+router.use('/gamification', auth, createProxyMiddleware({
+  target: PROXY_CONFIG.gamification?.url || 'http://localhost:3015',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/gamification': '/api/gamification'
+  },
+  onProxyReq: (proxyReq, req) => {
+    proxyBodyWriter(proxyReq, req);
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy Error - Gamification Service:', err);
+    res.status(503).json({
+      error: 'Service Gamification indisponible',
       statusCode: 503,
       timestamp: new Date().toISOString()
     });
