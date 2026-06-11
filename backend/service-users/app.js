@@ -8,8 +8,12 @@ const profileRoutes = require('./src/routes/profileRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const errorMiddleware = require('./src/middleware/errorMiddleware');
 const path = require('path');
+const helmet = require('helmet');
+
 
 const app = express();
+// use of helmet for security headers
+app.use(helmet());
 
 // Parse ALLOWED_ORIGINS from environment (comma-separated list)
 const getDefaultOrigins = () => [

@@ -5,6 +5,8 @@ const { errorHandler } = require('./src/middlewares/errorHandler');
 const { swaggerUi, swaggerSpec } = require('./swagger');
 
 const app = express();
+// use of helmet for security headers
+app.use(helmet());
 
 // Parse ALLOWED_ORIGINS from environment (comma-separated list)
 const getDefaultOrigins = () => [
