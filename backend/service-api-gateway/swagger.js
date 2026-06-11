@@ -22,6 +22,7 @@ const options = {
         | 🗂️ **Containers** | [${process.env.CONTAINERS_SERVICE_URL || 'http://localhost:3012'}](${process.env.CONTAINERS_SERVICE_URL || 'http://localhost:3012'}/api-docs) | Gestion des conteneurs |
         | 🛣️ **Routes** | [${process.env.ROUTES_SERVICE_URL || 'http://localhost:3013'}](${process.env.ROUTES_SERVICE_URL || 'http://localhost:3013'}/api-docs) | Gestion des routes |
         | 📊 **Analytics** | [${process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3014'}](${process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3014'}/api-docs) | Analyses et rapports |
+        | 🏆 **Gamification** | [${process.env.GAMIFICATION_SERVICE_URL || 'http://localhost:3015'}](${process.env.GAMIFICATION_SERVICE_URL || 'http://localhost:3015'}/api-docs) | Points, badges et défis |
 
         ## 🔐 Authentification
 
@@ -300,6 +301,44 @@ const options = {
             }
           }
         },
+        Points: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string', format: 'uuid' },
+            totalPoints: { type: 'integer', example: 1250 },
+            level: { type: 'integer', example: 5 },
+            history: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  action: { type: 'string', example: 'recycling_verified' },
+                  points: { type: 'integer', example: 50 },
+                  date: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        },
+        Badge: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string', example: 'Eco-Héros' },
+            description: { type: 'string', example: 'A recyclé plus de 100kg de plastique' },
+            iconUrl: { type: 'string', format: 'uri' },
+            earnedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        LeaderboardEntry: {
+          type: 'object',
+          properties: {
+            rank: { type: 'integer', example: 1 },
+            userId: { type: 'string', format: 'uuid' },
+            firstname: { type: 'string', example: 'Alice' },
+            totalPoints: { type: 'integer', example: 5400 }
+          }
+        },
         HealthResponse: {
           type: 'object',
           properties: {
@@ -430,6 +469,10 @@ const options = {
       {
         name: '🔔 Notifications',
         description: 'Gestion des notifications'
+      },
+      {
+        name: '🏆 Gamification',
+        description: 'Système de récompenses et engagement communautaire'
       },
       {
         name: '❤️ Health',

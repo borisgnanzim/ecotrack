@@ -72,10 +72,7 @@ app.use(applyRateLimit);
 // ===========================
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'EcoTrack API Gateway',
-  swaggerOptions: {
-    url: 'http://localhost:3010/api-docs'
-  }
+  customSiteTitle: 'EcoTrack API Gateway'
 }));
 
 

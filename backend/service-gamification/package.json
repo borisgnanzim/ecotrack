@@ -26,6 +26,8 @@
     "express": "^5.2.1",
     "kafkajs": "^2.2.4",
     "pg": "^8.21.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   }
 }

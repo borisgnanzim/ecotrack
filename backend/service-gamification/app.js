@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { errorHandler } = require('./src/middlewares/errorHandler');
+const { swaggerUi, swaggerSpec } = require('./swagger');
 
 const app = express();
 
@@ -49,6 +50,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+
+// Documentation Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Utilisation du routeur centralisé (index.js du dossier routes)
 app.use('/api/gamification', require('./src/routes'));

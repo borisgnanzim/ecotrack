@@ -2252,6 +2252,86 @@ router.use('/iot', auth, createProxyMiddleware({
 }));
 
 // Service Gamification
+
+/**
+ * @swagger
+ * /gamification/points:
+ *   get:
+ *     summary: 🏆 Récupérer les points de l'utilisateur
+ *     description: Retourne le solde de points actuel, le niveau et l'historique récent des gains.
+ *     tags: [🏆 Gamification]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Points'
+ *
+ * /gamification/badges:
+ *   get:
+ *     summary: 🎖️ Récupérer les badges de l'utilisateur
+ *     description: Liste tous les badges obtenus par l'utilisateur connecté.
+ *     tags: [🏆 Gamification]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des badges
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Badge'
+ *
+ * /gamification/leaderboard:
+ *   get:
+ *     summary: 📊 Consulter le classement mondial
+ *     description: Récupère le top 50 des utilisateurs ayant le plus de points.
+ *     tags: [🏆 Gamification]
+ *     responses:
+ *       200:
+ *         description: Classement récupéré
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/LeaderboardEntry'
+ *
+ * /gamification/points/award:
+ *   post:
+ *     summary: ➕ Attribuer des points (Admin/Système)
+ *     description: Permet d'attribuer manuellement des points à un utilisateur. Réservé aux administrateurs ou appels internes.
+ *     tags: [🏆 Gamification]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, points, actionType]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *               points:
+ *                 type: integer
+ *                 example: 100
+ *               actionType:
+ *                 type: string
+ *                 example: 'manual_bonus'
+ *     responses:
+ *       201:
+ *         description: Points attribués avec succès
+ *       403:
+ *         description: Droits insuffisants
+ */
 router.use('/gamification', auth, createProxyMiddleware({
   target: PROXY_CONFIG.gamification?.url || 'http://localhost:3015',
   changeOrigin: true,
