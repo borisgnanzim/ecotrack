@@ -2,14 +2,15 @@ require("dotenv").config();
 const app = require("./app");
 
 const port = process.env.PORT || 3015;
-
-
+const { connectDb } = require('./src/config/postgres');
+const { initializeKafka, setupKafkaShutdown } = require('./kafka/init');
 
 async function startServer() {
   try {
     // Initialiser Kafka
     await initializeKafka();
-    //setupKafkaShutdown();
+    setupKafkaShutdown();
+
 
     await connectDb(); // Wait DB connection before listening
     app.listen(port, () => {
@@ -21,6 +22,7 @@ async function startServer() {
   }
 }
 
+startServer();
 
 // Optional: handle unhandled rejections / exceptions to avoid silent crashes
 process.on('unhandledRejection', (reason) => {

@@ -1,16 +1,49 @@
 /**
  * Service de gestion des points et récompenses
  */
+const { prisma } = require('../config/postgres');
+const GamificationPublisher = require('../../kafka/gamificationPublisher');
+const BadgeService = require('./badgeService');
+
 class PointsService {
-  static async addPoints(userId, action, points) {
-    // TODO: Logique pour ajouter des points en base de données
-    // Calcul des points selon l'action si points non fournis
-    return { userId, action, pointsAdded: points || 10, totalPoints: 100 };
+  static async addPoints(userId, actionType, points = 10) {
+    // Add points to UserAction history
+    const userAction = await prisma.userAction.create({
+      data: {
+        userId,
+        actionType,
+        points,
+      },
+    });
+
+    // Calculate total points for the user
+    const totalPointsResult = await prisma.userAction.aggregate({
+      _sum: {
+        points: true,
+      },
+      where: {
+        userId,
+      },
+    });
+    const totalPoints = totalPointsResult._sum.points || 0;
+
+    // Publish Kafka event
+    await GamificationPublisher.publishPointsAwarded(userId, actionType, points, totalPoints);
+
+    // Check for badges
+    await BadgeService.checkAndAwardBadges(userId, totalPoints);
+
+    return { userId, actionType, pointsAdded: points, totalPoints };
   }
 
   static async getUserTotalPoints(userId) {
-    // TODO: Récupérer le cumul des points depuis la DB
-    return 1500; 
+    const totalPointsResult = await prisma.userAction.aggregate({
+      _sum: {
+        points: true,
+      },
+      where: { userId },
+    });
+    return totalPointsResult._sum.points || 0;
   }
 
   static async awardReward(userId, reward) {

@@ -196,7 +196,7 @@ router.put('/', profileController.updateProfile);
 
 /**
  * @openapi
- * /users/profile/password:
+ * /users/profile/update-password:
  *   put:
  *     summary: Update authenticated user's password
  *     description: Allows the authenticated user to change their password by providing the old password and the new password with confirmation.
@@ -234,6 +234,6 @@ router.put('/', profileController.updateProfile);
  *       500:
  *         description: Internal server error
  */
-router.put('/password', profileController.changePassword);
+router.put('/update-password', profileController.changePassword);
 
 module.exports = router;

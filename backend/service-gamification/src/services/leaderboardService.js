@@ -1,13 +1,23 @@
 /**
  * Service de gestion des classements
  */
+const { prisma } = require('../config/postgres');
+
 class LeaderboardService {
   static async getLeaderboard(limit) {
-    // TODO: Requête complexe pour classer les utilisateurs par points décroissants
-    return [
-      { rank: 1, userId: 'u1', points: 5000 },
-      { rank: 2, userId: 'u2', points: 4500 }
-    ].slice(0, limit);
+    const leaderboard = await prisma.userAction.groupBy({
+      by: ['userId'],
+      _sum: {
+        points: true,
+      },
+      orderBy: {
+        _sum: {
+          points: 'desc',
+        },
+      },
+      take: limit,
+    });
+    return leaderboard.map((entry, index) => ({ rank: index + 1, userId: entry.userId, points: entry._sum.points }));
   }
 }
 

@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 
+require('dotenv').config(); // Ensure environment variables are loaded
+
 const prisma = new PrismaClient();
 
 async function connectDb() {
@@ -12,4 +14,4 @@ async function connectDb() {
   }
 }
 
-module.exports = { prisma, connectDb };
+module.exports = { connectDb, prisma };
