@@ -36,7 +36,7 @@ const router = express.Router();
  *                 example: 50
  *               actionType:
  *                 type: string
- *                 description: Type d'action ayant généré les points (ex: 'container_report', 'challenge_completed')
+ *                 description: "Type d'action ayant généré les points (ex: 'container_report', 'challenge_completed')"
  *                 example: "container_report"
  *     responses:
  *       200:

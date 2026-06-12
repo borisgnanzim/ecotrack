@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { errorHandler } = require('./src/middlewares/errorHandler');
 const { swaggerUi, swaggerSpec } = require('./swagger');
+const helmet = require('helmet');
 
 const app = express();
 // use of helmet for security headers
