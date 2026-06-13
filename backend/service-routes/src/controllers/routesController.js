@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const { nearestNeighbor, twoOpt, distance } = require("../services/routeOptimizer");
+const { RoutePublisher } = require("../../kafka/publishers/routePublisher");
 
 exports.createRoute = async (req, res) => {
   try {
@@ -30,6 +31,8 @@ exports.createRoute = async (req, res) => {
         estimatedTime: estimatedTime !== undefined ? parseInt(estimatedTime, 10) : undefined,
       },
     });
+
+    RoutePublisher.publishRouteCreated(route).catch(() => {});
 
     res.status(201).json(route);
   } catch (error) {
@@ -106,6 +109,12 @@ exports.updateRoute = async (req, res) => {
       data,
     });
 
+    RoutePublisher.publishRouteUpdated({ id: route.id, changes: data, updatedAt: route.updatedAt }).catch(() => {});
+
+    if (route.status === "completed") {
+      RoutePublisher.publishRouteCompleted(route.id, route.steps?.length ?? 0, route.totalDistance).catch(() => {});
+    }
+
     res.json(route);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -119,6 +128,8 @@ exports.deleteRoute = async (req, res) => {
     await prisma.route.delete({
       where: { id },
     });
+
+    RoutePublisher.publishRouteDeleted(id).catch(() => {});
 
     res.json({ message: "Route supprimée" });
   } catch (error) {
