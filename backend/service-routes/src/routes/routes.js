@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/routesController");
+const controller = require("../controllers/route.controller");
 const { authMiddleware, roleMiddleware } = require("../middlewares/authMiddleware");
+const { validate } = require("../middlewares/validate.middleware");
+const { CreateRouteDto, UpdateRouteDto, AssignAgentDto } = require("../dtos/route.dto");
+const { WRITE_ROLES } = require("../constants/route.constants");
 
 /**
  * @swagger
@@ -201,7 +204,7 @@ router.get("/:id/map", authMiddleware, controller.getRouteMap);
  *             schema:
  *               $ref: '#/components/schemas/Error403'
  */
-router.post("/", authMiddleware, roleMiddleware("admin", "manager"), controller.createRoute);
+router.post("/", authMiddleware, roleMiddleware(...WRITE_ROLES), validate(CreateRouteDto), controller.createRoute);
 
 /**
  * @swagger
@@ -255,7 +258,7 @@ router.post("/", authMiddleware, roleMiddleware("admin", "manager"), controller.
  *             schema:
  *               $ref: '#/components/schemas/Error404'
  */
-router.put("/:id", authMiddleware, roleMiddleware("admin", "manager"), controller.updateRoute);
+router.put("/:id", authMiddleware, roleMiddleware(...WRITE_ROLES), validate(UpdateRouteDto), controller.updateRoute);
 
 /**
  * @swagger
@@ -302,7 +305,7 @@ router.put("/:id", authMiddleware, roleMiddleware("admin", "manager"), controlle
  *             schema:
  *               $ref: '#/components/schemas/Error404'
  */
-router.delete("/:id", authMiddleware, roleMiddleware("admin", "manager"), controller.deleteRoute);
+router.delete("/:id", authMiddleware, roleMiddleware(...WRITE_ROLES), controller.deleteRoute);
 
 /**
  * @swagger
@@ -353,7 +356,7 @@ router.delete("/:id", authMiddleware, roleMiddleware("admin", "manager"), contro
  *             schema:
  *               $ref: '#/components/schemas/Error404'
  */
-router.put("/:id/assign", authMiddleware, roleMiddleware("admin", "manager"), controller.assignAgent);
+router.put("/:id/assign", authMiddleware, roleMiddleware(...WRITE_ROLES), validate(AssignAgentDto), controller.assignAgent);
 
 /**
  * @swagger
@@ -405,7 +408,7 @@ router.put("/:id/assign", authMiddleware, roleMiddleware("admin", "manager"), co
  *             schema:
  *               $ref: '#/components/schemas/Error404'
  */
-router.post("/:id/optimize", authMiddleware, roleMiddleware("admin", "manager"), controller.optimizeRoute);
+router.post("/:id/optimize", authMiddleware, roleMiddleware(...WRITE_ROLES), controller.optimizeRoute);
 
 /**
  * @swagger
@@ -460,6 +463,6 @@ router.post("/:id/optimize", authMiddleware, roleMiddleware("admin", "manager"),
  *             schema:
  *               $ref: '#/components/schemas/Error404'
  */
-router.post("/:id/validate", authMiddleware, roleMiddleware("admin", "manager"), controller.validateRoute);
+router.post("/:id/validate", authMiddleware, roleMiddleware(...WRITE_ROLES), controller.validateRoute);
 
 module.exports = router;
