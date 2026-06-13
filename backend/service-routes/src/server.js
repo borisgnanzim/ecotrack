@@ -6,17 +6,18 @@ const { initializeRoutesSubscriber } = require('../kafka/subscribers/routeSubscr
 const PORT = process.env.PORT || 3003;
 
 async function startServer() {
+  // Start HTTP server first, regardless of Kafka state
+  app.listen(PORT, () => {
+    console.log(`Routes service running on port ${PORT}`);
+  });
+
+  // Kafka init is best-effort — service remains functional without it
   try {
     await initializeKafka();
     await initializeRoutesSubscriber();
     setupKafkaShutdown();
-
-    app.listen(PORT, () => {
-      console.log(`Routes service running on port ${PORT}`);
-    });
   } catch (error) {
-    console.error('❌ Erreur au démarrage du service routes:', error.message);
-    process.exit(1);
+    console.warn('⚠️  Kafka indisponible, service démarre sans Kafka:', error.message);
   }
 }
 

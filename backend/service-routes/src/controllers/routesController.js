@@ -5,13 +5,13 @@ exports.createRoute = async (req, res) => {
   try {
     const {
       date,
-      start_time,
-      end_time,
-      agent_id,
+      startTime,
+      endTime,
+      agentId,
       status,
-      total_distance,
-      estimated_time,
-      containers_list,
+      totalDistance,
+      estimatedTime,
+      containerIds,
     } = req.body;
 
     if (!date) {
@@ -21,15 +21,13 @@ exports.createRoute = async (req, res) => {
     const route = await prisma.route.create({
       data: {
         date: new Date(date),
-        start_time: start_time ? new Date(start_time) : null,
-        end_time: end_time ? new Date(end_time) : null,
-        agent_id: agent_id !== undefined && agent_id !== null ? agent_id : null,
-        status,
-        containers_list: Array.isArray(containers_list)
-          ? containers_list.map((id) => parseInt(id, 10))
-          : [],
-        total_distance: total_distance !== undefined ? parseFloat(total_distance) : undefined,
-        estimated_time: estimated_time !== undefined ? parseInt(estimated_time, 10) : undefined,
+        startTime: startTime ? new Date(startTime) : null,
+        endTime: endTime ? new Date(endTime) : null,
+        agentId: agentId || null,
+        status: status || "planned",
+        containerIds: Array.isArray(containerIds) ? containerIds : [],
+        totalDistance: totalDistance !== undefined ? parseFloat(totalDistance) : undefined,
+        estimatedTime: estimatedTime !== undefined ? parseInt(estimatedTime, 10) : undefined,
       },
     });
 
@@ -80,28 +78,24 @@ exports.updateRoute = async (req, res) => {
     const { id } = req.params;
     const {
       date,
-      start_time,
-      end_time,
-      agent_id,
+      startTime,
+      endTime,
+      agentId,
       status,
-      total_distance,
-      estimated_time,
-      containers_list,
+      totalDistance,
+      estimatedTime,
+      containerIds,
     } = req.body;
 
     const data = {};
     if (date !== undefined) data.date = new Date(date);
-    if (start_time !== undefined) data.start_time = start_time ? new Date(start_time) : null;
-    if (end_time !== undefined) data.end_time = end_time ? new Date(end_time) : null;
-    if (agent_id !== undefined) data.agent_id = agent_id !== null ? agent_id : null;
+    if (startTime !== undefined) data.startTime = startTime ? new Date(startTime) : null;
+    if (endTime !== undefined) data.endTime = endTime ? new Date(endTime) : null;
+    if (agentId !== undefined) data.agentId = agentId || null;
     if (status !== undefined) data.status = status;
-    if (containers_list !== undefined) {
-      data.containers_list = Array.isArray(containers_list)
-        ? containers_list.map((id) => parseInt(id, 10))
-        : [];
-    }
-    if (total_distance !== undefined) data.total_distance = parseFloat(total_distance);
-    if (estimated_time !== undefined) data.estimated_time = parseInt(estimated_time, 10);
+    if (containerIds !== undefined) data.containerIds = Array.isArray(containerIds) ? containerIds : [];
+    if (totalDistance !== undefined) data.totalDistance = parseFloat(totalDistance);
+    if (estimatedTime !== undefined) data.estimatedTime = parseInt(estimatedTime, 10);
 
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ error: "Aucun champ à mettre à jour" });
@@ -126,7 +120,7 @@ exports.deleteRoute = async (req, res) => {
       where: { id },
     });
 
-    res.json({ message: "Route deleted" });
+    res.json({ message: "Route supprimée" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -135,11 +129,11 @@ exports.deleteRoute = async (req, res) => {
 exports.assignAgent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { agent_id } = req.body;
+    const { agentId } = req.body;
 
     const route = await prisma.route.update({
       where: { id },
-      data: { agent_id: agent_id !== undefined ? agent_id : null },
+      data: { agentId: agentId || null },
     });
 
     res.json(route);
@@ -161,44 +155,39 @@ exports.optimizeRoute = async (req, res) => {
       return res.status(404).json({ error: "Route non trouvée" });
     }
 
-    const routeContainerIds = Array.isArray(route.containers_list) && route.containers_list.length > 0
-      ? route.containers_list
-      : route.steps.map((step) => step.container_id);
+    const routeContainerIds =
+      Array.isArray(route.containerIds) && route.containerIds.length > 0
+        ? route.containerIds
+        : route.steps.map((step) => step.containerId);
 
     const criticalContainers = await prisma.container.findMany({
-      where: {
-        fill_level: {
-          gt: 80,
-        },
-      },
+      where: { fillLevel: { gt: 80 } },
     });
 
-    const criticalIds = criticalContainers.map((container) => container.id_conteneur);
+    const criticalIds = criticalContainers.map((c) => c.id);
     const allContainerIds = Array.from(new Set([...routeContainerIds, ...criticalIds]));
 
-    if (!allContainerIds || allContainerIds.length === 0) {
+    if (allContainerIds.length === 0) {
       return res.status(400).json({ error: "Aucun conteneur à optimiser" });
     }
 
     const containers = await prisma.container.findMany({
-      where: {
-        id_conteneur: { in: allContainerIds },
-      },
+      where: { id: { in: allContainerIds } },
     });
 
-    if (!containers || containers.length === 0) {
+    if (containers.length === 0) {
       return res.status(400).json({ error: "Conteneurs introuvables pour cette route" });
     }
 
-    const containerMap = new Map(containers.map((container) => [container.id_conteneur, container]));
+    const containerMap = new Map(containers.map((c) => [c.id, c]));
     const points = allContainerIds
-      .map((containerId) => containerMap.get(containerId))
+      .map((cid) => containerMap.get(cid))
       .filter(Boolean)
-      .map((container) => ({
-        id: container.id_conteneur,
-        latitude: container.latitude ?? 0,
-        longitude: container.longitude ?? 0,
-        fill_level: container.fill_level ?? 0,
+      .map((c) => ({
+        id: c.id,
+        latitude: c.latitude ?? 0,
+        longitude: c.longitude ?? 0,
+        fillLevel: c.fillLevel ?? 0,
       }));
 
     if (points.length < 2) {
@@ -211,13 +200,12 @@ exports.optimizeRoute = async (req, res) => {
     const stepData = optimizedRoute.map((point, index) => {
       const dist = index === 0 ? 0 : distance(optimizedRoute[index - 1], point);
       const travelTime = dist / 0.5; // 30 km/h = 0.5 km/min
-      const stopTime = 5; // 5 minutes per container
-      const timeFromPrevious = index === 0 ? stopTime : travelTime + stopTime;
+      const timeFromPrevious = index === 0 ? 5 : travelTime + 5;
       return {
-        container_id: point.id,
-        step_order: index + 1,
-        distance_from_previous: index === 0 ? null : parseFloat(dist.toFixed(2)),
-        estimated_time_from_previous: Math.round(timeFromPrevious),
+        containerId: point.id,
+        stepOrder: index + 1,
+        distanceFromPrevious: index === 0 ? null : parseFloat(dist.toFixed(2)),
+        estimatedTimeFromPrevious: Math.round(timeFromPrevious),
       };
     });
 
@@ -226,28 +214,21 @@ exports.optimizeRoute = async (req, res) => {
       return sum + distance(optimizedRoute[index - 1], point);
     }, 0);
 
-    const totalTime = stepData.reduce((sum, step) => sum + step.estimated_time_from_previous, 0);
+    const totalTime = stepData.reduce((sum, step) => sum + step.estimatedTimeFromPrevious, 0);
 
-    const updateData = {
-      total_distance: parseFloat(totalDistance.toFixed(2)),
-      estimated_time: totalTime,
-      containers_list: allContainerIds,
-      steps: {
-        create: stepData,
-      },
-    };
-
-    if (route.start_time) {
-      updateData.end_time = new Date(route.start_time.getTime() + totalTime * 60000); // add minutes
-    }
-
-    await prisma.routeStep.deleteMany({
-      where: { route_id: id },
-    });
+    await prisma.routeStep.deleteMany({ where: { routeId: id } });
 
     await prisma.route.update({
       where: { id },
-      data: updateData,
+      data: {
+        totalDistance: parseFloat(totalDistance.toFixed(2)),
+        estimatedTime: totalTime,
+        containerIds: allContainerIds,
+        ...(route.startTime && {
+          endTime: new Date(route.startTime.getTime() + totalTime * 60000),
+        }),
+        steps: { create: stepData },
+      },
     });
 
     const updatedRoute = await prisma.route.findUnique({
@@ -286,42 +267,34 @@ exports.validateRoute = async (req, res) => {
 
     const validations = [];
 
-    // Check if route has steps
     if (!route.steps || route.steps.length === 0) {
       validations.push({ type: "error", message: "La route n'a pas d'étapes définies" });
     }
 
-    // Check total time < 8 hours (480 minutes)
-    if (route.estimated_time && route.estimated_time > 480) {
+    if (route.estimatedTime && route.estimatedTime > 480) {
       validations.push({ type: "warning", message: "Le temps estimé dépasse 8 heures" });
     }
 
-    // Check if all containers have valid coordinates
     const invalidContainers = route.steps.filter(
       (step) => !step.container || step.container.latitude == null || step.container.longitude == null
     );
     if (invalidContainers.length > 0) {
       validations.push({
         type: "error",
-        message: `Conteneurs sans coordonnées valides: ${invalidContainers.map(s => s.container_id).join(', ')}`
+        message: `Conteneurs sans coordonnées valides: ${invalidContainers.map((s) => s.containerId).join(", ")}`,
       });
     }
 
-    // Check if start_time and end_time are consistent
-    if (route.start_time && route.end_time && route.estimated_time) {
-      const calculatedEnd = new Date(route.start_time.getTime() + route.estimated_time * 60000);
-      if (Math.abs(route.end_time.getTime() - calculatedEnd.getTime()) > 60000) { // 1 min tolerance
+    if (route.startTime && route.endTime && route.estimatedTime) {
+      const calculatedEnd = new Date(route.startTime.getTime() + route.estimatedTime * 60000);
+      if (Math.abs(route.endTime.getTime() - calculatedEnd.getTime()) > 60000) {
         validations.push({ type: "warning", message: "L'heure de fin ne correspond pas au temps estimé" });
       }
     }
 
-    const isValid = !validations.some(v => v.type === "error");
+    const isValid = !validations.some((v) => v.type === "error");
 
-    res.json({
-      route_id: id,
-      is_valid: isValid,
-      validations,
-    });
+    res.json({ route_id: id, is_valid: isValid, validations });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -343,7 +316,7 @@ exports.getRouteMap = async (req, res) => {
       return res.status(404).json({ error: "Route non trouvée" });
     }
 
-    const orderedSteps = [...route.steps].sort((a, b) => a.step_order - b.step_order);
+    const orderedSteps = [...route.steps].sort((a, b) => a.stepOrder - b.stepOrder);
     const features = orderedSteps
       .filter((step) => step.container && step.container.latitude != null && step.container.longitude != null)
       .map((step) => ({
@@ -353,15 +326,15 @@ exports.getRouteMap = async (req, res) => {
           coordinates: [step.container.longitude, step.container.latitude],
         },
         properties: {
-          step_order: step.step_order,
-          container_id: step.container.id_conteneur,
-          fill_level: step.container.fill_level,
-          address: step.container.id_Zone,
+          stepOrder: step.stepOrder,
+          containerId: step.container.id,
+          fillLevel: step.container.fillLevel,
+          zoneId: step.container.zoneId,
           status: route.status,
         },
       }));
 
-    const lineCoordinates = features.map((feature) => feature.geometry.coordinates);
+    const lineCoordinates = features.map((f) => f.geometry.coordinates);
 
     const geojson = {
       type: "FeatureCollection",
@@ -369,16 +342,13 @@ exports.getRouteMap = async (req, res) => {
         ...features,
         {
           type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: lineCoordinates,
-          },
+          geometry: { type: "LineString", coordinates: lineCoordinates },
           properties: {
-            route_id: route.id,
-            agent_id: route.agent_id,
+            routeId: route.id,
+            agentId: route.agentId,
             status: route.status,
-            total_distance: route.total_distance,
-            estimated_time: route.estimated_time,
+            totalDistance: route.totalDistance,
+            estimatedTime: route.estimatedTime,
           },
         },
       ],
@@ -395,9 +365,7 @@ exports.getAgentRoutes = async (req, res) => {
     const { agentId } = req.params;
 
     const routes = await prisma.route.findMany({
-      where: {
-        agent_id: agentId,
-      },
+      where: { agentId },
       include: {
         steps: { include: { container: true } },
         agent: true,

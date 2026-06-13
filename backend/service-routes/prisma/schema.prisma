@@ -8,10 +8,10 @@ datasource db {
 }
 
 enum RouteStatus {
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  planned
+  in_progress
+  completed
+  cancelled
 }
 
 // User - Reference to service-users (UUID)
@@ -60,9 +60,9 @@ model Route {
   date            DateTime
   startTime       DateTime?
   endTime         DateTime?
-  agentId         String       @db.Uuid
+  agentId         String?      @db.Uuid
   agent           User?        @relation("UserRoutes", fields: [agentId], references: [id], onDelete: SetNull)
-  status          RouteStatus  @default(PLANNED)
+  status          RouteStatus  @default(planned)
   containerIds    String[]     @default([])  // List of container IDs
   totalDistance   Float?
   estimatedTime   Int?         // en minutes

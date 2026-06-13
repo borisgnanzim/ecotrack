@@ -27,7 +27,6 @@ async function main() {
           username: `agent${i}`,
           name: `Agent ${i}`,
           email: `agent${i}@ecotrack.local`,
-          password: `password${i}`,
           points: Math.floor(Math.random() * 500),
           address: `Rue ${i}, Ville`,
           avatar: null,
@@ -42,44 +41,45 @@ async function main() {
     containers.push(
       await prisma.container.create({
         data: {
-          type_Dechet: wasteTypes[i % wasteTypes.length],
-          Statut: i % 2 === 0 ? 'active' : 'inactive',
-          id_Zone: zones[i % zones.length],
-          capacite_i: 100 + i * 5,
-          code_containers: 1000 + i,
+          type: wasteTypes[i % wasteTypes.length],
+          status: i % 2 === 0 ? 'active' : 'inactive',
+          zoneId: zones[i % zones.length],
+          capacity: 100 + i * 5,
+          code: 1000 + i,
           latitude: 48.8 + Math.random() * 0.4,
           longitude: 2.2 + Math.random() * 0.4,
-          photo_url: `https://example.com/container-${i}.png`,
-          fill_level: Math.floor(Math.random() * 100),
+          photoUrl: `https://example.com/container-${i}.png`,
+          fillLevel: Math.floor(Math.random() * 100),
         },
       }),
     );
   }
 
-  const containerIds = containers.map((container) => container.id_conteneur);
+  const containerIds = containers.map((c) => c.id);
 
   const routePromises = [];
   for (let i = 1; i <= 100; i += 1) {
-    const selectedContainers = containerIds
+    const selectedIds = containerIds
+      .slice()
       .sort(() => Math.random() - 0.5)
       .slice(0, Math.floor(Math.random() * 6) + 1);
 
-    const agent = i % 5 === 0 ? null : users[(i - 1) % users.length].id;
+    const agentId = i % 5 === 0 ? null : users[(i - 1) % users.length].id;
 
     routePromises.push(
       prisma.route.create({
         data: {
           date: randomDate(60),
-          agent_id: agent,
+          agentId,
           status: statuses[i % statuses.length],
-          containers_list: selectedContainers,
-          total_distance: parseFloat((Math.random() * 120).toFixed(2)),
-          estimated_time: Math.floor(Math.random() * 180) + 30,
+          containerIds: selectedIds,
+          totalDistance: parseFloat((Math.random() * 120).toFixed(2)),
+          estimatedTime: Math.floor(Math.random() * 180) + 30,
           steps: {
-            create: selectedContainers.map((containerId, stepIndex) => ({
-              container_id: containerId,
-              step_order: stepIndex + 1,
-              distance_from_previous:
+            create: selectedIds.map((containerId, stepIndex) => ({
+              containerId,
+              stepOrder: stepIndex + 1,
+              distanceFromPrevious:
                 stepIndex === 0 ? null : parseFloat((Math.random() * 10).toFixed(2)),
             })),
           },
@@ -89,7 +89,7 @@ async function main() {
   }
 
   await Promise.all(routePromises);
-  console.log('Seed completed: 100 routes created');
+  console.log('Seed completed: 5 users, 20 containers, 100 routes created');
 }
 
 main()
