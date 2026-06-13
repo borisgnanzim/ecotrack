@@ -465,4 +465,78 @@ router.post("/:id/optimize", authMiddleware, roleMiddleware(...WRITE_ROLES), con
  */
 router.post("/:id/validate", authMiddleware, roleMiddleware(...WRITE_ROLES), controller.validateRoute);
 
+/**
+ * @swagger
+ * /routes/{id}/export:
+ *   get:
+ *     summary: Télécharger la feuille de route en PDF
+ *     description: Génère et retourne un PDF avec l'itinéraire complet, la liste des conteneurs et les heures estimées.
+ *     tags: [Routes]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Fichier PDF de la feuille de route
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Non authentifié
+ *       404:
+ *         description: Route non trouvée
+ */
+router.get("/:id/export", authMiddleware, controller.exportPDF);
+
+/**
+ * @swagger
+ * /routes/{id}/send:
+ *   post:
+ *     summary: Envoyer la feuille de route par email à l'agent
+ *     description: Génère le PDF et l'envoie par email à l'agent assigné à la route.
+ *     tags: [Routes]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Email envoyé ou rapport d'état
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Feuille de route générée"
+ *                 email:
+ *                   type: object
+ *                   properties:
+ *                     sent:
+ *                       type: boolean
+ *                     to:
+ *                       type: string
+ *                     reason:
+ *                       type: string
+ *       401:
+ *         description: Non authentifié
+ *       404:
+ *         description: Route non trouvée
+ */
+router.post("/:id/send", authMiddleware, roleMiddleware(...WRITE_ROLES), controller.exportAndEmail);
+
 module.exports = router;

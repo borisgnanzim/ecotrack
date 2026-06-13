@@ -1,5 +1,7 @@
 const routeService = require('../services/route.service');
 const { RoutePublisher } = require('../kafka/publishers/route.publisher');
+const { generateRoutePDF } = require('../services/pdf.service');
+const { sendRoutePDF } = require('../services/email.service');
 
 const handleError = (res, err) => {
   if (err.status) return res.status(err.status).json({ error: err.message });
@@ -72,5 +74,28 @@ exports.validateRoute = async (req, res) => {
 exports.getRouteMap = async (req, res) => {
   try {
     res.json(await routeService.getMap(req.params.id));
+  } catch (err) { handleError(res, err); }
+};
+
+exports.exportPDF = async (req, res) => {
+  try {
+    const route = await routeService.getById(req.params.id);
+    const pdf = await generateRoutePDF(route);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="route-${route.id}.pdf"`,
+      'Content-Length': pdf.length,
+    });
+    res.send(pdf);
+  } catch (err) { handleError(res, err); }
+};
+
+exports.exportAndEmail = async (req, res) => {
+  try {
+    const route = await routeService.getById(req.params.id);
+    const pdf = await generateRoutePDF(route);
+    const result = await sendRoutePDF(route, pdf);
+    res.json({ message: 'Feuille de route générée', email: result });
   } catch (err) { handleError(res, err); }
 };
