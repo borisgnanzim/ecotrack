@@ -11,8 +11,8 @@ const PROXY_CONFIG = {
   },
   containers: {
     url: process.env.CONTAINERS_SERVICE_URL || 'http://localhost:3012',
-    description: 'Service de gestion des conteneurs',
-    routes: ['/containers']
+    description: 'Service de gestion des conteneurs et zones',
+    routes: ['/containers', '/zones']
   },
   routes: {
     url: process.env.ROUTES_SERVICE_URL || 'http://localhost:3013',

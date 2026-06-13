@@ -7,19 +7,25 @@ export const KAFKA_TOPICS = {
   CONTAINER_DELETED: 'container-deleted',
   CONTAINER_STATUS_CHANGED: 'container-status-changed',
   CONTAINER_FILL_LEVEL: 'container-fill-level',
-  
+
+  // Événements Zones
+  ZONE_CREATED: 'zone-created',
+  ZONE_UPDATED: 'zone-updated',
+  ZONE_DELETED: 'zone-deleted',
+  ZONE_CONTAINERS_ASSIGNED: 'zone-containers-assigned',
+
   // Événements Utilisateurs
   USER_CREATED: 'user-created',
   USER_UPDATED: 'user-updated',
   USER_ROLE_CHANGED: 'user-role-changed',
   USER_DELETED: 'user-deleted',
-  
+
   // Événements Routes
   ROUTE_CREATED: 'route-created',
   ROUTE_UPDATED: 'route-updated',
   ROUTE_DELETED: 'route-deleted',
   ROUTE_COMPLETED: 'route-completed',
-  
+
   // Events globaux
   SYSTEM_EVENT: 'system-event',
 };
@@ -40,4 +46,8 @@ export const PUBLISHED_TOPICS = [
   KAFKA_TOPICS.CONTAINER_DELETED,
   KAFKA_TOPICS.CONTAINER_STATUS_CHANGED,
   KAFKA_TOPICS.CONTAINER_FILL_LEVEL,
+  KAFKA_TOPICS.ZONE_CREATED,
+  KAFKA_TOPICS.ZONE_UPDATED,
+  KAFKA_TOPICS.ZONE_DELETED,
+  KAFKA_TOPICS.ZONE_CONTAINERS_ASSIGNED,
 ];

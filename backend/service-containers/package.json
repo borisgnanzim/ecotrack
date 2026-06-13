@@ -25,6 +25,7 @@
   "type": "module",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "adm-zip": "^0.5.17",
     "axios": "1.16.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
@@ -34,6 +35,8 @@
     "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4",
     "multer": "^2.0.2",
+    "shapefile": "^0.6.6",
+    "shp-write": "^0.3.2",
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
