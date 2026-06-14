@@ -1314,6 +1314,119 @@ router.use('/containers', auth, (req, res, next) => {
 
 /**
  * @swagger
+ * /zones:
+ *   get:
+ *     summary: Lister toutes les zones géographiques
+ *     tags: [Zones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des zones avec statistiques agrégées
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *
+ * /zones/stats:
+ *   get:
+ *     summary: Statistiques globales de toutes les zones
+ *     tags: [Zones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistiques globales (total zones, conteneurs, taux moyen)
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *
+ * /zones/choropleth:
+ *   get:
+ *     summary: Carte choroplèthe — GeoJSON par taux de remplissage
+ *     tags: [Zones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: GeoJSON FeatureCollection avec fillCategory par zone
+ *       401:
+ *         description: Token JWT manquant ou invalide
+ *
+ * /zones/export/geojson:
+ *   get:
+ *     summary: Exporter les zones au format GeoJSON
+ *     tags: [Zones]
+ *     responses:
+ *       200:
+ *         description: Fichier zones.geojson
+ *
+ * /zones/export/shapefile:
+ *   get:
+ *     summary: Exporter les zones au format Shapefile (ZIP)
+ *     tags: [Zones]
+ *     responses:
+ *       200:
+ *         description: Archive ZIP contenant le shapefile
+ *
+ * /zones/{id}:
+ *   get:
+ *     summary: Détail d'une zone avec statistiques et conteneurs
+ *     tags: [Zones]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: ZB12
+ *     responses:
+ *       200:
+ *         description: Zone trouvée
+ *       404:
+ *         description: Zone non trouvée
+ *
+ * /zones/{id}/containers:
+ *   get:
+ *     summary: Conteneurs appartenant à la zone
+ *     tags: [Zones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Liste des conteneurs de la zone
+ *       404:
+ *         description: Zone non trouvée
+ */
+router.use('/zones', auth, createProxyMiddleware({
+  target: PROXY_CONFIG.containers.url,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/zones': '/zones'
+  },
+  onProxyReq: (proxyReq, req) => {
+    // Pour multipart (import shapefile/geojson), ne pas réécrire le body
+    // http-proxy-middleware stream le corps brut directement
+    const contentType = proxyReq.getHeader('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
+      proxyBodyWriter(proxyReq, req);
+    }
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy Error - Zones Service:', err);
+    res.status(503).json({
+      error: 'Service Zones indisponible',
+      statusCode: 503,
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+/**
+ * @swagger
  * /routes:
  *   get:
  *     summary: Récupérer la liste des routes

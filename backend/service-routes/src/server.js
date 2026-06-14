@@ -1,22 +1,21 @@
 require("dotenv").config();
 const app = require("./app");
-const { initializeKafka, setupKafkaShutdown } = require('../kafka/init.js');
-const { initializeRoutesSubscriber } = require('../kafka/subscribers/routeSubscriber.js');
+const { initializeKafka, setupKafkaShutdown } = require('./kafka/init');
+const { initializeRoutesSubscriber } = require('./kafka/subscribers/route.subscriber');
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3013;
 
 async function startServer() {
+  app.listen(PORT, () => {
+    console.log(`Routes service running on port ${PORT}`);
+  });
+
   try {
     await initializeKafka();
     await initializeRoutesSubscriber();
     setupKafkaShutdown();
-
-    app.listen(PORT, () => {
-      console.log(`Routes service running on port ${PORT}`);
-    });
   } catch (error) {
-    console.error('❌ Erreur au démarrage du service routes:', error.message);
-    process.exit(1);
+    console.warn('⚠️  Kafka indisponible, service démarre sans Kafka:', error.message);
   }
 }
 

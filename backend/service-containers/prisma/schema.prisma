@@ -7,12 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Zone - Zone géographique de collecte
+model Zone {
+  id          String      @id                   // ex: "ZB12", "ZONE-NORD"
+  name        String      @unique
+  city        String
+  district    String?
+  description String?
+  isActive    Boolean     @default(true)
+  polygon     Json?                              // GeoJSON Polygon / MultiPolygon
+  latitude    Float?                             // Coordonnée centroïde
+  longitude   Float?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  containers  Container[]
+
+  @@map("zones")
+}
+
 // Container - Conteneurs intelligents avec capteurs IoT
 model Container {
   id            String        @id @default(uuid()) @db.Uuid
   type          String        // Type de déchet (recyclage, organique, etc)
   status        String?       // Statut du conteneur (active, maintenance, etc)
-  zoneId        String        // ID de la zone
+  zoneId        String?       // FK vers Zone.id (null = non assigné)
+  zone          Zone?         @relation(fields: [zoneId], references: [id], onDelete: SetNull)
   capacity      Int?          // Capacité maximale en litres
   code          Int           @unique // Code unique du conteneur
   fillLevel     Int           @default(0) // Niveau de remplissage courant (0-100%)

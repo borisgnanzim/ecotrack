@@ -1,5 +1,6 @@
 import express from "express";
 import containerRoutes from "./routes/container.routes.js";
+import zoneRoutes from "./routes/zone.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
 import helmet from "helmet";
 import compression from "compression";
@@ -66,6 +67,7 @@ app.get("/health", (req, res) => {
 
 // ===== API Routes =====
 app.use("/containers", containerRoutes);
+app.use("/zones", zoneRoutes);
 
 // ===== Swagger UI =====
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
