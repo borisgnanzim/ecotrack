@@ -15,22 +15,20 @@ enum AlertType {
   MAINTENANCE
 }
 
-// Measurement - Données brutes des capteurs
 model Measurement {
-  id            String    @id @default(uuid()) @db.Uuid
-  containerId   String    @db.Uuid
-  fillLevel     Int       // Niveau de remplissage (0-100)
-  temperature   Float?    // Température en °C
-  humidity      Float?    // Humidité relative (%)
-  createdAt     DateTime  @default(now())
-  anomaly       Boolean   @default(false)
+  id          String   @id @default(uuid()) @db.Uuid
+  containerId String   @db.Uuid
+  fillLevel   Int
+  temperature Float?
+  humidity    Float?
+  anomaly     Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   @@index([containerId])
   @@index([createdAt])
   @@map("measurements")
 }
 
-// SensorStatus - Dernier statut connu d'un capteur
 model SensorStatus {
   id              String    @id @default(uuid()) @db.Uuid
   containerId     String    @db.Uuid @unique
@@ -44,15 +42,14 @@ model SensorStatus {
   @@map("sensor_statuses")
 }
 
-// Alert - Alertes générées
 model Alert {
-  id            String    @id @default(uuid()) @db.Uuid
-  containerId   String    @db.Uuid
-  type          AlertType
-  message       String
-  createdAt     DateTime  @default(now())
-  resolved      Boolean   @default(false)
-  resolvedAt    DateTime?
+  id          String    @id @default(uuid()) @db.Uuid
+  containerId String    @db.Uuid
+  type        AlertType
+  message     String
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([containerId])
   @@index([type])
