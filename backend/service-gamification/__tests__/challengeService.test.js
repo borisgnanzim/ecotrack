@@ -1,11 +1,26 @@
 const ChallengeService = require('../src/services/challengeService'); // Assuming a ChallengeService exists
 const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
+const PointsService = require('../src/services/pointsService');
 
-jest.mock('@prisma/client');
+jest.mock('@prisma/client', () => {
+  const mPrisma = {
+    challenge: {
+      create: jest.fn(),
+    },
+    challengeParticipation: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+  };
+  return { PrismaClient: jest.fn(() => mPrisma) };
+});
+
 jest.mock('../kafka/gamificationPublisher', () => ({
   publishGamificationEvent: jest.fn(),
 }));
+jest.mock('../src/services/pointsService');
 
 describe('ChallengeService', () => {
   let mockPrisma;
@@ -130,8 +145,6 @@ describe('ChallengeService', () => {
         status: 'completed',
       });
 
-      // Mock PointsService.addPoints
-      const PointsService = require('../src/services/pointsService');
       PointsService.addPoints.mockResolvedValue(true);
 
       // Assuming ChallengeService has an updateChallengeProgress method

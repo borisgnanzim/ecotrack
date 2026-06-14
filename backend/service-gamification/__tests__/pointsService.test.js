@@ -2,7 +2,16 @@ const PointsService = require('../src/services/pointsService');
 const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
 
-jest.mock('@prisma/client');
+jest.mock('@prisma/client', () => {
+  const mPrisma = {
+    userAction: {
+      create: jest.fn(),
+      aggregate: jest.fn(),
+    },
+  };
+  return { PrismaClient: jest.fn(() => mPrisma) };
+});
+
 jest.mock('../kafka/gamificationPublisher', () => ({
   publishGamificationEvent: jest.fn(),
 }));

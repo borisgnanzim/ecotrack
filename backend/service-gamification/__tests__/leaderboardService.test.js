@@ -1,7 +1,14 @@
 const LeaderboardService = require('../src/services/leaderboardService'); // Assuming a LeaderboardService exists
 const { PrismaClient } = require('@prisma/client');
 
-jest.mock('@prisma/client');
+jest.mock('@prisma/client', () => {
+  const mPrisma = {
+    userAction: {
+      groupBy: jest.fn(),
+    },
+  };
+  return { PrismaClient: jest.fn(() => mPrisma) };
+});
 
 describe('LeaderboardService', () => {
   let mockPrisma;

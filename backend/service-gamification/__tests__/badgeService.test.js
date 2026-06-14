@@ -2,7 +2,19 @@ const BadgeService = require('../src/services/badgeService'); // Assuming a Badg
 const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
 
-jest.mock('@prisma/client');
+jest.mock('@prisma/client', () => {
+  const mPrisma = {
+    userBadge: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
+    badge: {
+      findUnique: jest.fn(),
+    },
+  };
+  return { PrismaClient: jest.fn(() => mPrisma) };
+});
+
 jest.mock('../kafka/gamificationPublisher', () => ({
   publishGamificationEvent: jest.fn(),
 }));

@@ -26,6 +26,11 @@ jest.mock('@prisma/client', () => {
     PrismaClient: jest.fn(() => mockPrismaClient),
   };
 });
+
+jest.mock('../kafka/gamificationPublisher', () => ({
+  publishGamificationEvent: jest.fn(),
+}));
+
 describe('Service Gamification', () => {
   it('should return health status', async () => {
     const response = await request(app).get('/health');
