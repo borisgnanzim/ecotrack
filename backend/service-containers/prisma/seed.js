@@ -12,18 +12,41 @@ const sample = (arr) => arr[Math.floor(Math.random() * arr.length)];
 // ── Reference data ────────────────────────────────────────────────────────────
 
 const ZONES = [
-  { id: 'ZD-PLAT',  name: 'Zone Plateau',         city: 'Dakar',   district: 'Plateau',           latitude: 14.6937, longitude: -17.4441 },
-  { id: 'ZD-MEDI',  name: 'Zone Médina',           city: 'Dakar',   district: 'Médina',            latitude: 14.6954, longitude: -17.4558 },
-  { id: 'ZD-GUEL',  name: 'Zone Gueule Tapée',     city: 'Dakar',   district: 'Gueule Tapée',      latitude: 14.6898, longitude: -17.4505 },
-  { id: 'ZD-REBT',  name: 'Zone Rebeuss',          city: 'Dakar',   district: 'Rebeuss',           latitude: 14.6876, longitude: -17.4419 },
-  { id: 'ZD-BELA',  name: 'Zone Bel Air',          city: 'Dakar',   district: 'Bel Air',           latitude: 14.6802, longitude: -17.4356 },
-  { id: 'ZD-HANN',  name: 'Zone Hann Bel Air',     city: 'Dakar',   district: 'Hann',              latitude: 14.7158, longitude: -17.4121 },
-  { id: 'ZP-KEUR',  name: 'Zone Keur Massar',      city: 'Pikine',  district: 'Keur Massar',       latitude: 14.7528, longitude: -17.3264 },
-  { id: 'ZP-THIA',  name: 'Zone Thiaroye',         city: 'Pikine',  district: 'Thiaroye',          latitude: 14.7463, longitude: -17.3812 },
-  { id: 'ZP-GUID',  name: 'Zone Guédiawaye',       city: 'Guédiawaye', district: 'Sam Notaire',    latitude: 14.7736, longitude: -17.4012 },
-  { id: 'ZR-SAND',  name: 'Zone Sand',             city: 'Rufisque', district: 'Sand',             latitude: 14.7197, longitude: -17.2747 },
-  { id: 'ZD-ALMAD', name: 'Zone Almadies',         city: 'Dakar',   district: 'Almadies',          latitude: 14.7457, longitude: -17.5145 },
-  { id: 'ZD-NGOR',  name: 'Zone Ngor-Yoff',        city: 'Dakar',   district: 'Ngor',              latitude: 14.7599, longitude: -17.5232 },
+  // ── Paris ────────────────────────────────────────────────────────────────────
+  { id: 'FR-PAR-01', name: 'Paris Centre',        city: 'Paris',     district: '1er-4e arrondissement', latitude: 48.8566, longitude: 2.3522  },
+  { id: 'FR-PAR-02', name: 'Paris Rive Gauche',   city: 'Paris',     district: '5e-7e arrondissement',  latitude: 48.8490, longitude: 2.3360  },
+  { id: 'FR-PAR-03', name: 'Paris Nord',          city: 'Paris',     district: '18e-19e arrondissement',latitude: 48.8843, longitude: 2.3530  },
+  { id: 'FR-PAR-04', name: 'Paris Est',           city: 'Paris',     district: '11e-12e arrondissement',latitude: 48.8534, longitude: 2.3835  },
+  { id: 'FR-PAR-05', name: 'Paris Ouest',         city: 'Paris',     district: '16e-17e arrondissement',latitude: 48.8652, longitude: 2.2885  },
+
+  // ── Lyon ─────────────────────────────────────────────────────────────────────
+  { id: 'FR-LYO-01', name: 'Lyon Presqu\'île',    city: 'Lyon',      district: '1er-2e arrondissement', latitude: 45.7600, longitude: 4.8340  },
+  { id: 'FR-LYO-02', name: 'Lyon Part-Dieu',      city: 'Lyon',      district: '3e arrondissement',     latitude: 45.7605, longitude: 4.8591  },
+  { id: 'FR-LYO-03', name: 'Lyon Confluence',     city: 'Lyon',      district: '2e arrondissement',     latitude: 45.7440, longitude: 4.8155  },
+
+  // ── Marseille ─────────────────────────────────────────────────────────────────
+  { id: 'FR-MRS-01', name: 'Marseille Vieux-Port',city: 'Marseille', district: '1er-7e arrondissement', latitude: 43.2965, longitude: 5.3698  },
+  { id: 'FR-MRS-02', name: 'Marseille Nord',      city: 'Marseille', district: '13e-15e arrondissement',latitude: 43.3350, longitude: 5.4020  },
+  { id: 'FR-MRS-03', name: 'Marseille Sud',       city: 'Marseille', district: '8e-9e arrondissement',  latitude: 43.2600, longitude: 5.3900  },
+
+  // ── Toulouse ──────────────────────────────────────────────────────────────────
+  { id: 'FR-TLS-01', name: 'Toulouse Centre',     city: 'Toulouse',  district: 'Capitole',              latitude: 43.6047, longitude: 1.4442  },
+  { id: 'FR-TLS-02', name: 'Toulouse Minimes',    city: 'Toulouse',  district: 'Minimes',               latitude: 43.6200, longitude: 1.4380  },
+
+  // ── Nice ──────────────────────────────────────────────────────────────────────
+  { id: 'FR-NCE-01', name: 'Nice Vieux-Nice',     city: 'Nice',      district: 'Vieux-Nice',            latitude: 43.6961, longitude: 7.2767  },
+  { id: 'FR-NCE-02', name: 'Nice Promenade',      city: 'Nice',      district: 'Promenade des Anglais', latitude: 43.6952, longitude: 7.2637  },
+
+  // ── Bordeaux ──────────────────────────────────────────────────────────────────
+  { id: 'FR-BOD-01', name: 'Bordeaux Centre',     city: 'Bordeaux',  district: 'Triangle d\'or',        latitude: 44.8378, longitude: -0.5792 },
+  { id: 'FR-BOD-02', name: 'Bordeaux Chartrons',  city: 'Bordeaux',  district: 'Chartrons',             latitude: 44.8530, longitude: -0.5700 },
+
+  // ── Nantes ────────────────────────────────────────────────────────────────────
+  { id: 'FR-NAN-01', name: 'Nantes Centre',       city: 'Nantes',    district: 'Centre-ville',          latitude: 47.2184, longitude: -1.5536 },
+  { id: 'FR-NAN-02', name: 'Nantes Ile de Nantes',city: 'Nantes',    district: 'Île de Nantes',         latitude: 47.2040, longitude: -1.5580 },
+
+  // ── Strasbourg ────────────────────────────────────────────────────────────────
+  { id: 'FR-STR-01', name: 'Strasbourg Centre',   city: 'Strasbourg',district: 'Grande Île',            latitude: 48.5734, longitude: 7.7521  },
 ];
 
 const CONTAINER_TYPES = ['plastique', 'papier', 'verre', 'compost'];
