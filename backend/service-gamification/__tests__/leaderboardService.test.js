@@ -1,13 +1,14 @@
 const LeaderboardService = require('../src/services/leaderboardService'); // Assuming a LeaderboardService exists
 const { PrismaClient } = require('@prisma/client');
 
+const mockUserActionGroupBy = jest.fn();
+
 jest.mock('@prisma/client', () => {
-  const mPrisma = {
-    userAction: {
-      groupBy: jest.fn(),
-    },
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      userAction: { groupBy: mockUserActionGroupBy },
+    })),
   };
-  return { PrismaClient: jest.fn(() => mPrisma) };
 });
 
 describe('LeaderboardService', () => {
@@ -16,7 +17,7 @@ describe('LeaderboardService', () => {
   beforeEach(() => {
     mockPrisma = new PrismaClient();
     // Reset mocks before each test
-    mockPrisma.userAction.groupBy.mockClear();
+    mockUserActionGroupBy.mockClear();
   });
 
   describe('Leaderboard', () => {
@@ -25,13 +26,12 @@ describe('LeaderboardService', () => {
         { userId: 'user-1', _sum: { points: 500 } },
         { userId: 'user-2', _sum: { points: 400 } },
       ];
-
-      mockPrisma.userAction.groupBy.mockResolvedValue(mockRankings);
+      mockUserActionGroupBy.mockResolvedValue(mockRankings);
 
       // Assuming LeaderboardService has a getLeaderboard method
       const result = await LeaderboardService.getLeaderboard();
 
-      expect(mockPrisma.userAction.groupBy).toHaveBeenCalledWith({
+      expect(mockUserActionGroupBy).toHaveBeenCalledWith({
         by: ['userId'],
         _sum: { points: true },
         orderBy: { _sum: { points: 'desc' } },

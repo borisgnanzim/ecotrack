@@ -3,18 +3,28 @@ const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
 const PointsService = require('../src/services/pointsService');
 
+var mockChallengeCreate = jest.fn();
+var mockChallengeParticipationCreate = jest.fn();
+var mockChallengeParticipationFindUnique = jest.fn();
+var mockChallengeParticipationUpdate = jest.fn();
+
+// Add mock for userChallenge
+var mockUserChallengeFindUnique = jest.fn();
+
 jest.mock('@prisma/client', () => {
-  const mPrisma = {
-    challenge: {
-      create: jest.fn(),
-    },
-    challengeParticipation: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      challenge: { create: mockChallengeCreate, findUnique: jest.fn() }, // Added findUnique for challenge if needed
+      challengeParticipation: { 
+        create: mockChallengeParticipationCreate, 
+        findUnique: mockChallengeParticipationFindUnique, 
+        update: mockChallengeParticipationUpdate 
+      },
+    })),
   };
-  return { PrismaClient: jest.fn(() => mPrisma) };
+});
+jest.mock('../src/services/challengeService', () => {
+  return { ...jest.requireActual('../src/services/challengeService'), prisma: { userChallenge: { findUnique: mockUserChallengeFindUnique } } };
 });
 
 jest.mock('../kafka/gamificationPublisher', () => ({
@@ -28,10 +38,11 @@ describe('ChallengeService', () => {
   beforeEach(() => {
     mockPrisma = new PrismaClient();
     // Reset mocks before each test
-    mockPrisma.challenge.create.mockClear();
-    mockPrisma.challengeParticipation.create.mockClear();
-    mockPrisma.challengeParticipation.findUnique.mockClear();
-    mockPrisma.challengeParticipation.update.mockClear();
+    mockChallengeCreate.mockClear();
+    mockChallengeParticipationCreate.mockClear();
+    mockChallengeParticipationFindUnique.mockClear();
+    mockChallengeParticipationUpdate.mockClear();
+    mockUserChallengeFindUnique.mockClear(); // Clear mock for userChallenge
     GamificationPublisher.publishGamificationEvent.mockClear();
   });
 
@@ -44,8 +55,7 @@ describe('ChallengeService', () => {
         startDate: new Date(),
         endDate: new Date(Date.now() + 86400000), // 1 day later
       };
-
-      mockPrisma.challenge.create.mockResolvedValue({
+      mockChallengeCreate.mockResolvedValue({
         id: 'challenge-1',
         ...challengeData,
         createdAt: new Date(),
@@ -54,7 +64,7 @@ describe('ChallengeService', () => {
       // Assuming ChallengeService has a createChallenge method
       const result = await ChallengeService.createChallenge(challengeData);
 
-      expect(mockPrisma.challenge.create).toHaveBeenCalledWith({
+      expect(mockChallengeCreate).toHaveBeenCalledWith({
         data: challengeData,
       });
       expect(result).toMatchObject({ id: 'challenge-1', ...challengeData });
@@ -64,19 +74,19 @@ describe('ChallengeService', () => {
       const userId = 'test-user-123';
       const challengeId = 'challenge-1';
 
-      mockPrisma.challengeParticipation.create.mockResolvedValue({
-        id: 'participation-1',
+      mockChallengeParticipationCreate.mockResolvedValue({
+        id: 'participation-1', userId, challengeId, progress: 0, status: 'in_progress', joinedAt: new Date(),
+      });
+
+      expect(mockChallengeParticipationCreate).toHaveBeenCalledWith({
         userId,
         challengeId,
-        progress: 0,
-        status: 'in_progress',
-        joinedAt: new Date(),
       });
 
       // Assuming ChallengeService has a joinChallenge method
       const result = await ChallengeService.joinChallenge(userId, challengeId);
 
-      expect(mockPrisma.challengeParticipation.create).toHaveBeenCalledWith({
+      expect(mockChallengeParticipationCreate).toHaveBeenCalledWith({
         data: {
           userId,
           challengeId,
@@ -92,7 +102,7 @@ describe('ChallengeService', () => {
       const challengeId = 'challenge-1';
       const newProgress = 6;
 
-      mockPrisma.challengeParticipation.findUnique.mockResolvedValue({
+      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
         id: 'participation-1',
         userId,
         challengeId,
@@ -100,8 +110,7 @@ describe('ChallengeService', () => {
         status: 'in_progress',
         challenge: { objective: 10, reward: 100 },
       });
-
-      mockPrisma.challengeParticipation.update.mockResolvedValue({
+      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
         id: 'participation-1',
         userId,
         challengeId,
@@ -112,11 +121,11 @@ describe('ChallengeService', () => {
       // Assuming ChallengeService has an updateChallengeProgress method
       const result = await ChallengeService.updateChallengeProgress(userId, challengeId, newProgress);
 
-      expect(mockPrisma.challengeParticipation.findUnique).toHaveBeenCalledWith({
+      expect(mockUserChallengeFindUnique).toHaveBeenCalledWith({ // Assert on mockUserChallengeFindUnique
         where: { userId_challengeId: { userId, challengeId } },
         include: { challenge: true },
       });
-      expect(mockPrisma.challengeParticipation.update).toHaveBeenCalledWith({
+      expect(mockChallengeParticipationUpdate).toHaveBeenCalledWith({
         where: { userId_challengeId: { userId, challengeId } },
         data: { progress: newProgress },
       });
@@ -128,7 +137,7 @@ describe('ChallengeService', () => {
       const challengeId = 'challenge-1';
       const rewardPoints = 100;
 
-      mockPrisma.challengeParticipation.findUnique.mockResolvedValue({
+      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
         id: 'participation-1',
         userId,
         challengeId,
@@ -136,8 +145,7 @@ describe('ChallengeService', () => {
         status: 'in_progress',
         challenge: { objective: 10, reward: rewardPoints },
       });
-
-      mockPrisma.challengeParticipation.update.mockResolvedValue({
+      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
         id: 'participation-1',
         userId,
         challengeId,
