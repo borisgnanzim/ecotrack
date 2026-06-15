@@ -60,7 +60,7 @@ jobs:
         working-directory: ./backend/${{ matrix.service }}
         run: snyk test --severity-threshold=high
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_SECRET: ${{ secrets.SNYK_SECRET }}
 
     # Job séparé pour le frontend
   frontend-security:
@@ -107,14 +107,14 @@ jobs:
         working-directory: ./front/${{ matrix.frontend }}
         run: snyk test --severity-threshold=high
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_SECRET: ${{ secrets.SNYK_SECRET }}
 
       # Analyse statique du code
       - name: Frontend SAST Scan
         working-directory: ./front/${{ matrix.frontend }}
         run: snyk code test
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_SECRET: ${{ secrets.SNYK_SECRET }}
 
       # Vérification que l'application compile
       - name: Build Frontend
