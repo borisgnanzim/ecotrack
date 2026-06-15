@@ -23,7 +23,7 @@ class BadgeService {
     });
 
     if (existingAward) {
-      return null; // Badge already awarded
+      throw new Error('Badge already awarded to this user.');
     }
 
     const awardedBadge = await prisma.userBadge.create({
