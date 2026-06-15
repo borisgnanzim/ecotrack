@@ -1,0 +1,63 @@
+name: Deploy Admin Space App (VueJS)
+
+on:
+
+  # Déployer uniquement si DevSecOps est validé
+  workflow_run:
+    workflows:
+      - DevSecOps
+    types:
+      - completed
+
+jobs:
+
+  deploy:
+
+    # Aucun déploiement si les analyses de sécurité échouent
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    strategy:
+      matrix:
+        frontend:
+          - ecotrack-admin-vjs
+          - ecotrack-citoyen-vjs
+    
+    steps:
+
+      # Récupération du commit validé
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Installation de Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+        
+      # Installation des dépendances
+      - name: Install dependencies
+        working-directory: ./front/${{ matrix.frontend }}
+        run: npm ci
+
+      # Build
+      - name: Build VueJS app
+        working-directory: ./front/${{ matrix.frontend }}
+        run: npm run build
+
+      # Vérification du build
+      - name: Verify build
+        working-directory: ./front/${{ matrix.frontend }}
+        run: ls -la dist
+
+      # Déploiement réel à remplacer par votre cible
+      - name: Deploy application
+        run: |
+          echo "Ready for deployment"

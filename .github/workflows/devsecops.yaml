@@ -1,0 +1,122 @@
+name: DevSecOps
+
+on:
+
+  # Exécuter les analyses de sécurité
+  # uniquement si les tests sont validés
+  workflow_run:
+    workflows:
+      - Run Tests
+    types:
+      - completed
+
+jobs:
+
+  security:
+
+    # Continuer uniquement si les tests ont réussi
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      # Scanner chaque microservice séparément
+      matrix:
+        service:
+          - service-users
+          - service-gamification
+          - service-containers
+          - service-analytics
+          - service-routes
+          - service-api-gateway
+
+    steps:
+
+      # Récupération du commit exact testé
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Installation de Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Installation des dépendances du microservice
+      - name: Install dependencies
+        working-directory: ./backend/${{ matrix.service }}
+        run: npm ci
+
+      # Installation de Snyk
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # Analyse des dépendances
+      - name: SCA Scan
+        working-directory: ./backend/${{ matrix.service }}
+        run: snyk test --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    # Job séparé pour le frontend
+  frontend-security:
+
+    # Exécuter ce job uniquement si les tests sont passés
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      # Scanner les deux applications frontend
+      matrix:
+        frontend:
+          - ecotrack-admin-vjs
+          - ecotrack-citoyen-vjs
+
+    steps:
+
+      # Récupération du commit validé par les tests
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Installation de Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Installation des dépendances
+      - name: Install Frontend
+        working-directory: ./front/${{ matrix.frontend }}
+        run: npm ci
+
+      # Installation de Snyk
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # Analyse des dépendances frontend
+      - name: Frontend SCA Scan
+        working-directory: ./front/${{ matrix.frontend }}
+        run: snyk test --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Analyse statique du code
+      - name: Frontend SAST Scan
+        working-directory: ./front/${{ matrix.frontend }}
+        run: snyk code test
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Vérification que l'application compile
+      - name: Build Frontend
+        working-directory: ./front/${{ matrix.frontend }}
+        run: npm run build
