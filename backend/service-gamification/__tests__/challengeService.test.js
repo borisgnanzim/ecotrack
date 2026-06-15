@@ -1,49 +1,30 @@
-const ChallengeService = require('../src/services/challengeService'); // Assuming a ChallengeService exists
-const { PrismaClient } = require('@prisma/client');
-const GamificationPublisher = require('../kafka/gamificationPublisher');
+const ChallengeService = require('../src/services/challengeService');
+
+jest.mock('../src/config/postgres', () => ({
+  prisma: {
+    challenge: { create: jest.fn() },
+    userChallenge: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('../src/services/pointsService', () => ({
+  addPoints: jest.fn().mockResolvedValue(undefined),
+}));
+
+const { prisma } = require('../src/config/postgres');
 const PointsService = require('../src/services/pointsService');
 
-var mockChallengeCreate = jest.fn();
-var mockChallengeParticipationCreate = jest.fn();
-var mockChallengeParticipationFindUnique = jest.fn();
-var mockChallengeParticipationUpdate = jest.fn();
-
-// Add mock for userChallenge
-var mockUserChallengeFindUnique = jest.fn();
-
-jest.mock('@prisma/client', () => {
-  return {
-    PrismaClient: jest.fn().mockImplementation(() => ({
-      challenge: { create: mockChallengeCreate, findUnique: jest.fn() }, // Added findUnique for challenge if needed
-      challengeParticipation: { 
-        create: mockChallengeParticipationCreate, 
-        findUnique: mockChallengeParticipationFindUnique, 
-        update: mockChallengeParticipationUpdate 
-      },
-    })),
-  };
-});
-jest.mock('../src/services/challengeService', () => {
-  return { ...jest.requireActual('../src/services/challengeService'), prisma: { userChallenge: { findUnique: mockUserChallengeFindUnique } } };
-});
-
-jest.mock('../kafka/gamificationPublisher', () => ({
-  publishGamificationEvent: jest.fn(),
-}));
-jest.mock('../src/services/pointsService');
-
 describe('ChallengeService', () => {
-  let mockPrisma;
-
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    // Reset mocks before each test
-    mockChallengeCreate.mockClear();
-    mockChallengeParticipationCreate.mockClear();
-    mockChallengeParticipationFindUnique.mockClear();
-    mockChallengeParticipationUpdate.mockClear();
-    mockUserChallengeFindUnique.mockClear(); // Clear mock for userChallenge
-    GamificationPublisher.publishGamificationEvent.mockClear();
+    prisma.challenge.create.mockClear();
+    prisma.userChallenge.findUnique.mockClear();
+    prisma.userChallenge.create.mockClear();
+    prisma.userChallenge.update.mockClear();
+    PointsService.addPoints.mockClear();
   });
 
   describe('Challenge Management', () => {
@@ -51,22 +32,15 @@ describe('ChallengeService', () => {
       const challengeData = {
         title: 'Test Challenge',
         description: 'Complete this challenge',
-        pointsReward: 100,
+        rewardPoints: 100,
         startDate: new Date(),
-        endDate: new Date(Date.now() + 86400000), // 1 day later
+        endDate: new Date(Date.now() + 86400000),
       };
-      mockChallengeCreate.mockResolvedValue({
-        id: 'challenge-1',
-        ...challengeData,
-        createdAt: new Date(),
-      });
+      prisma.challenge.create.mockResolvedValue({ id: 'challenge-1', ...challengeData });
 
-      // Assuming ChallengeService has a createChallenge method
       const result = await ChallengeService.createChallenge(challengeData);
 
-      expect(mockChallengeCreate).toHaveBeenCalledWith({
-        data: challengeData,
-      });
+      expect(prisma.challenge.create).toHaveBeenCalledWith({ data: challengeData });
       expect(result).toMatchObject({ id: 'challenge-1', ...challengeData });
     });
 
@@ -74,62 +48,70 @@ describe('ChallengeService', () => {
       const userId = 'test-user-123';
       const challengeId = 'challenge-1';
 
-      mockChallengeParticipationCreate.mockResolvedValue({
-        id: 'participation-1', userId, challengeId, progress: 0, status: 'in_progress', joinedAt: new Date(),
-      });
-
-      expect(mockChallengeParticipationCreate).toHaveBeenCalledWith({
+      prisma.userChallenge.findUnique.mockResolvedValue(null);
+      prisma.userChallenge.create.mockResolvedValue({
+        id: 'participation-1',
         userId,
         challengeId,
+        currentProgress: 0,
+        isCompleted: false,
       });
 
-      // Assuming ChallengeService has a joinChallenge method
       const result = await ChallengeService.joinChallenge(userId, challengeId);
 
-      expect(mockChallengeParticipationCreate).toHaveBeenCalledWith({
-        data: {
-          userId,
-          challengeId,
-          progress: 0,
-          status: 'in_progress',
-        },
+      expect(prisma.userChallenge.findUnique).toHaveBeenCalledWith({
+        where: { userId_challengeId: { userId, challengeId } },
+      });
+      expect(prisma.userChallenge.create).toHaveBeenCalledWith({
+        data: { userId, challengeId },
       });
       expect(result).toMatchObject({ id: 'participation-1', userId, challengeId });
+    });
+
+    test('should return existing participation when already joined', async () => {
+      const userId = 'test-user-123';
+      const challengeId = 'challenge-1';
+      const existing = { id: 'participation-1', userId, challengeId, currentProgress: 2 };
+
+      prisma.userChallenge.findUnique.mockResolvedValue(existing);
+
+      const result = await ChallengeService.joinChallenge(userId, challengeId);
+
+      expect(prisma.userChallenge.create).not.toHaveBeenCalled();
+      expect(result).toEqual(existing);
     });
 
     test('should update challenge progress', async () => {
       const userId = 'test-user-123';
       const challengeId = 'challenge-1';
-      const newProgress = 6;
 
-      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
+      prisma.userChallenge.findUnique.mockResolvedValue({
         id: 'participation-1',
         userId,
         challengeId,
-        progress: 5,
-        status: 'in_progress',
-        challenge: { objective: 10, reward: 100 },
+        currentProgress: 5,
+        isCompleted: false,
+        challenge: { targetValue: 10, rewardPoints: 100 },
       });
-      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
+      prisma.userChallenge.update.mockResolvedValue({
         id: 'participation-1',
-        userId,
-        challengeId,
-        progress: newProgress,
-        status: 'in_progress',
+        currentProgress: 6,
+        isCompleted: false,
+        challenge: { rewardPoints: 100 },
       });
 
-      // Assuming ChallengeService has an updateChallengeProgress method
-      const result = await ChallengeService.updateChallengeProgress(userId, challengeId, newProgress);
+      const result = await ChallengeService.updateChallengeProgress(userId, challengeId, 1);
 
-      expect(mockUserChallengeFindUnique).toHaveBeenCalledWith({ // Assert on mockUserChallengeFindUnique
+      expect(prisma.userChallenge.findUnique).toHaveBeenCalledWith({
         where: { userId_challengeId: { userId, challengeId } },
         include: { challenge: true },
       });
-      expect(mockChallengeParticipationUpdate).toHaveBeenCalledWith({
-        where: { userId_challengeId: { userId, challengeId } },
-        data: { progress: newProgress },
+      expect(prisma.userChallenge.update).toHaveBeenCalledWith({
+        where: { id: 'participation-1' },
+        data: { currentProgress: 6, isCompleted: false, completedAt: null },
+        include: { challenge: true },
       });
-      expect(result).toMatchObject({ progress: newProgress });
+      expect(result).toMatchObject({ currentProgress: 6 });
     });
 
     test('should award points when challenge is completed', async () => {
@@ -137,29 +119,28 @@ describe('ChallengeService', () => {
       const challengeId = 'challenge-1';
       const rewardPoints = 100;
 
-      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
+      prisma.userChallenge.findUnique.mockResolvedValue({
         id: 'participation-1',
         userId,
         challengeId,
-        progress: 9,
-        status: 'in_progress',
-        challenge: { objective: 10, reward: rewardPoints },
+        currentProgress: 9,
+        isCompleted: false,
+        challenge: { targetValue: 10, rewardPoints },
       });
-      mockUserChallengeFindUnique.mockResolvedValue({ // Use mockUserChallengeFindUnique
+      prisma.userChallenge.update.mockResolvedValue({
         id: 'participation-1',
-        userId,
-        challengeId,
-        progress: 10,
-        status: 'completed',
+        currentProgress: 10,
+        isCompleted: true,
+        challenge: { rewardPoints },
       });
 
-      PointsService.addPoints.mockResolvedValue(true);
+      await ChallengeService.updateChallengeProgress(userId, challengeId, 1);
 
-      // Assuming ChallengeService has an updateChallengeProgress method
-      await ChallengeService.updateChallengeProgress(userId, challengeId, 10);
-
-      expect(PointsService.addPoints).toHaveBeenCalledWith(userId, 'challenge_completed', rewardPoints);
-      expect(GamificationPublisher.publishGamificationEvent).toHaveBeenCalledWith('challenge_completed', { userId, challengeId, reward: rewardPoints });
+      expect(PointsService.addPoints).toHaveBeenCalledWith(
+        userId,
+        `challenge_completed_${challengeId}`,
+        rewardPoints
+      );
     });
   });
 });

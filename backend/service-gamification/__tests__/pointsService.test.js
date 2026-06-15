@@ -1,34 +1,30 @@
 const PointsService = require('../src/services/pointsService');
-const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
 
-// Define mocks using 'var' or ensure they are available before the hoisted jest.mock call
-var mockUserActionCreate = jest.fn();
-var mockUserActionAggregate = jest.fn();
-
-jest.mock('@prisma/client', () => {
-  return {
-    PrismaClient: jest.fn().mockImplementation(() => ({
-      userAction: { 
-        create: mockUserActionCreate, 
-        aggregate: mockUserActionAggregate },
-    })),
-  };
-});
-
-jest.mock('../kafka/gamificationPublisher', () => ({
-  publishGamificationEvent: jest.fn(),
+jest.mock('../src/config/postgres', () => ({
+  prisma: {
+    userAction: {
+      create: jest.fn(),
+      aggregate: jest.fn(),
+    },
+  },
 }));
 
-describe('PointsService', () => {
-  let mockPrisma;
+jest.mock('../kafka/gamificationPublisher', () => ({
+  publishPointsAwarded: jest.fn(),
+}));
 
+jest.mock('../src/services/badgeService', () => ({
+  checkAndAwardBadges: jest.fn().mockResolvedValue(undefined),
+}));
+
+const { prisma } = require('../src/config/postgres');
+
+describe('PointsService', () => {
   beforeEach(() => {
-    mockPrisma = new PrismaClient();
-    // Reset mocks before each test
-    mockUserActionCreate.mockClear();
-    mockUserActionAggregate.mockClear();
-    GamificationPublisher.publishGamificationEvent.mockClear();
+    prisma.userAction.create.mockClear();
+    prisma.userAction.aggregate.mockClear();
+    GamificationPublisher.publishPointsAwarded.mockClear();
   });
 
   describe('Points Management', () => {
@@ -36,40 +32,39 @@ describe('PointsService', () => {
       const userId = 'test-user-123';
       const action = 'report';
       const points = 10;
+      const totalPoints = 10;
 
-      mockUserActionCreate.mockResolvedValue({
+      prisma.userAction.create.mockResolvedValue({
         id: '1',
         userId,
-        action,
+        actionType: action,
         points,
         timestamp: new Date(),
       });
+      prisma.userAction.aggregate.mockResolvedValue({ _sum: { points: totalPoints } });
 
-      // Assuming PointsService has an addPoints method
       await PointsService.addPoints(userId, action, points);
 
-      expect(mockUserActionCreate).toHaveBeenCalledWith({
-        data: {
-          userId,
-          actionType: action,
-          points,
-        },
+      expect(prisma.userAction.create).toHaveBeenCalledWith({
+        data: { userId, actionType: action, points },
       });
-      expect(GamificationPublisher.publishGamificationEvent).toHaveBeenCalledWith('points_awarded', { userId, points, actionType: action });
+      expect(GamificationPublisher.publishPointsAwarded).toHaveBeenCalledWith(
+        userId,
+        action,
+        points,
+        totalPoints
+      );
     });
 
     test('should calculate total points correctly', async () => {
       const userId = 'test-user-123';
       const totalPoints = 150;
 
-      mockUserActionAggregate.mockResolvedValue({
-        _sum: { points: totalPoints },
-      });
+      prisma.userAction.aggregate.mockResolvedValue({ _sum: { points: totalPoints } });
 
-      // Assuming PointsService has a getUserTotalPoints method
       const result = await PointsService.getUserTotalPoints(userId);
 
-      expect(mockUserActionAggregate).toHaveBeenCalledWith({
+      expect(prisma.userAction.aggregate).toHaveBeenCalledWith({
         where: { userId },
         _sum: { points: true },
       });
