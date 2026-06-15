@@ -1,30 +1,33 @@
 import mqtt from "mqtt";
-import dotenv from "dotenv";
 import { handleSensorData } from "../services/iot-service.js";
 
-dotenv.config();
-
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
-const client = mqtt.connect(MQTT_URL);
+
+const client = mqtt.connect(MQTT_URL, {
+  reconnectPeriod: 5000,
+  connectTimeout: 10000,
+});
 
 client.on("connect", () => {
-  console.log("Connected to MQTT broker");
-
+  console.log(`✅ MQTT connecté à ${MQTT_URL}`);
   client.subscribe("containers/+/data", (err) => {
-    if (err) console.error("Subscribe error:", err);
-    else console.log("Subscribed to containers/+/data");
+    if (err) console.error("❌ Subscribe error:", err.message);
+    else console.log("📡 Abonné à containers/+/data");
   });
 });
 
 client.on("message", async (topic, message) => {
   try {
     const payload = JSON.parse(message.toString());
-    console.log("MQTT message received:", topic, payload);
-
     await handleSensorData(payload);
-
   } catch (e) {
-    console.error("Invalid MQTT message:", e.message);
+    console.error("❌ Message MQTT invalide:", e.message);
   }
 });
-console.log("MQTT consumer loaded");
+
+client.on("error",       (err) => console.error("❌ MQTT error:", err.message));
+client.on("reconnect",   ()    => console.log("🔄 MQTT reconnexion..."));
+client.on("offline",     ()    => console.warn("⚠️  MQTT hors-ligne"));
+client.on("disconnect",  ()    => console.warn("⚠️  MQTT déconnecté"));
+
+export default client;
