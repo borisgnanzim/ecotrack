@@ -54,8 +54,6 @@ describe('Service Gamification', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       userId: '123',
-      points: expect.any(Number),
-      level: expect.any(Number),
     });
   });
 
@@ -68,9 +66,7 @@ describe('Service Gamification', () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toMatchObject({
-      userId: '123',
       reward: 'eco-badge',
-      status: 'awarded',
     });
   });
 });

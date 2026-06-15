@@ -2,14 +2,18 @@ const PointsService = require('../src/services/pointsService');
 const { PrismaClient } = require('@prisma/client');
 const GamificationPublisher = require('../kafka/gamificationPublisher');
 
+// Define mocks using 'var' or ensure they are available before the hoisted jest.mock call
+var mockUserActionCreate = jest.fn();
+var mockUserActionAggregate = jest.fn();
+
 jest.mock('@prisma/client', () => {
-  const mPrisma = {
-    userAction: {
-      create: jest.fn(),
-      aggregate: jest.fn(),
-    },
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      userAction: { 
+        create: mockUserActionCreate, 
+        aggregate: mockUserActionAggregate },
+    })),
   };
-  return { PrismaClient: jest.fn(() => mPrisma) };
 });
 
 jest.mock('../kafka/gamificationPublisher', () => ({
@@ -22,8 +26,8 @@ describe('PointsService', () => {
   beforeEach(() => {
     mockPrisma = new PrismaClient();
     // Reset mocks before each test
-    mockPrisma.userAction.create.mockClear();
-    mockPrisma.userAction.aggregate.mockClear();
+    mockUserActionCreate.mockClear();
+    mockUserActionAggregate.mockClear();
     GamificationPublisher.publishGamificationEvent.mockClear();
   });
 
@@ -33,7 +37,7 @@ describe('PointsService', () => {
       const action = 'report';
       const points = 10;
 
-      mockPrisma.userAction.create.mockResolvedValue({
+      mockUserActionCreate.mockResolvedValue({
         id: '1',
         userId,
         action,
@@ -44,7 +48,7 @@ describe('PointsService', () => {
       // Assuming PointsService has an addPoints method
       await PointsService.addPoints(userId, action, points);
 
-      expect(mockPrisma.userAction.create).toHaveBeenCalledWith({
+      expect(mockUserActionCreate).toHaveBeenCalledWith({
         data: {
           userId,
           actionType: action,
@@ -58,14 +62,14 @@ describe('PointsService', () => {
       const userId = 'test-user-123';
       const totalPoints = 150;
 
-      mockPrisma.userAction.aggregate.mockResolvedValue({
+      mockUserActionAggregate.mockResolvedValue({
         _sum: { points: totalPoints },
       });
 
       // Assuming PointsService has a getUserTotalPoints method
       const result = await PointsService.getUserTotalPoints(userId);
 
-      expect(mockPrisma.userAction.aggregate).toHaveBeenCalledWith({
+      expect(mockUserActionAggregate).toHaveBeenCalledWith({
         where: { userId },
         _sum: { points: true },
       });
