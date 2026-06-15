@@ -110,6 +110,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       # Analyse statique du code
+      # Avec modif de snyk_key
       - name: Frontend SAST Scan
         working-directory: ./front/${{ matrix.frontend }}
         run: snyk code test
