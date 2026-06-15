@@ -122,3 +122,108 @@ jobs:
       - name: Build Frontend
         working-directory: ./front/${{ matrix.frontend }}
         run: npm run build
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Scan des images Docker de nos microservices
+  # Construit chaque image à partir de son Dockerfile et analyse avec Snyk
+  # continue-on-error : les vulnérabilités héritées de l'image de base (node:22-alpine)
+  # ne bloquent pas le pipeline — elles sont rapportées pour correction progressive
+  # ──────────────────────────────────────────────────────────────────────────
+  container-security:
+
+    name: Container — ${{ matrix.service }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - service-users
+          - service-gamification
+          - service-containers
+          - service-analytics
+          - service-routes
+          - service-api-gateway
+          - service-iot
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # Construction de l'image à partir du Dockerfile du microservice
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ecotrack/${{ matrix.service }}:${{ github.sha }} \
+            ./backend/${{ matrix.service }}
+
+      # Scan Snyk de l'image construite
+      # --file pointe vers le Dockerfile pour des recommandations de remédiation
+      - name: Snyk container scan
+        run: |
+          snyk container test \
+            ecotrack/${{ matrix.service }}:${{ github.sha }} \
+            --file=./backend/${{ matrix.service }}/Dockerfile \
+            --severity-threshold=high \
+            --json-file-output=snyk-container-${{ matrix.service }}.json || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      # Sauvegarde du rapport JSON pour analyse ultérieure
+      - name: Upload container scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-container-${{ matrix.service }}
+          path: snyk-container-${{ matrix.service }}.json
+          retention-days: 30
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Scan des images d'infrastructure tierces (docker-compose.yml)
+  # redis, kafka, zookeeper — images que nous n'avons pas buildées nous-mêmes
+  # ──────────────────────────────────────────────────────────────────────────
+  infra-container-security:
+
+    name: Container — ${{ matrix.image.label }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - { ref: "node:22-alpine",                  label: "node-22-alpine" }
+          - { ref: "redis:7-alpine",                  label: "redis-7-alpine" }
+          - { ref: "confluentinc/cp-kafka:7.5.0",     label: "kafka-7-5" }
+          - { ref: "confluentinc/cp-zookeeper:7.5.0", label: "zookeeper-7-5" }
+
+    steps:
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # Scan direct de l'image tierce — aucun build requis
+      - name: Snyk container scan — ${{ matrix.image.ref }}
+        run: |
+          snyk container test ${{ matrix.image.ref }} \
+            --severity-threshold=high \
+            --json-file-output=snyk-infra-${{ matrix.image.label }}.json || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload infrastructure scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: snyk-infra-${{ matrix.image.label }}
+          path: snyk-infra-${{ matrix.image.label }}.json
+          retention-days: 30
