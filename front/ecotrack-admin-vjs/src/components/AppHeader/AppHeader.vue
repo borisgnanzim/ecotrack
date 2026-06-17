@@ -84,7 +84,8 @@ export default {
           { label: "Dashboard", path: "/dashboard" },
           { label: "Conteneurs", path: "/contain-management" },
           { label: "Utilisateurs", path: "/user-management" },
-          { label: "Les tournées", path: "/manage-routes" }
+          { label: "Les tournées", path: "/manage-routes" },
+          { label: "Zones", path: "/manage-zones" }
         )
       }
 
@@ -103,6 +104,7 @@ export default {
         case '/contain-management': return 'Gestion des conteneurs'
         case '/user-management': return 'Gestion des utilisateurs'
         case '/manage-routes': return 'Gestion des tournées'
+        case '/manage-zones': return 'Gestion des zones'
         case '/my-routes': return 'Mes tournées'
         default: return 'ECOTRACK'
       }
@@ -114,6 +116,7 @@ export default {
         case '/contain-management': return 'Suivi des conteneurs'
         case '/user-management': return 'Gestion des comptes utilisateurs'
         case '/manage-routes': return 'Planification des tournées et affectation'
+        case '/manage-zones': return 'Gestion des zones de collecte'
         case '/my-routes': return 'Suivi de vos tournées en cours'
         default: return ''
       }

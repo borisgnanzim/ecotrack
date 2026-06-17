@@ -101,6 +101,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/manage-zones',
+      name: 'manage-zones',
+      component: () => import('../components/ManageZones/ManageZones.vue'),
+      meta: {
+        title: 'Manage Zones | Eko',
+        requiresAuth: true,
+        roles: ['admin'],
+      },
+    },
+    {
       // Route pour accès réfusé
       path: '/forbidden',
       name: 'forbidden',
