@@ -584,10 +584,10 @@ export default {
 
 .search-wrapper { position: relative; max-width: 340px; width: 100%; }
 .search-icon {
-  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-  color: #94a3b8; font-size: 14px; pointer-events: none;
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; font-size: 15px; pointer-events: none; z-index: 1;
 }
-.search-input { padding-left: 36px; background: #f8fafc; }
+.search-input { padding-left: 42px !important; background: #f8fafc; }
 
 .filter-select { width: 150px; font-size: 13px; }
 
