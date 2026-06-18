@@ -288,7 +288,26 @@
             </ul>
           </div>
 
-          <input v-model="form.zoneId" placeholder="Zone (ex: Centre-ville)" class="input" />
+          <div class="relative">
+            <input
+              v-model="zoneSearch"
+              @input="onSearchZone"
+              @blur="hideZoneSuggestions"
+              placeholder="Rechercher une zone..."
+              class="input"
+              autocomplete="off"
+            />
+            <ul v-if="zoneSuggestions.length" class="suggestions">
+              <li
+                v-for="z in zoneSuggestions"
+                :key="z.id"
+                @mousedown.prevent="selectZone(z)"
+              >
+                <span class="font-medium">{{ z.name }}</span>
+                <span class="text-slate-400 text-xs ml-2">{{ z.city }}</span>
+              </li>
+            </ul>
+          </div>
 
           <select v-model="form.type" class="input">
             <option value="">Type de déchet</option>
@@ -435,6 +454,7 @@ import AppHeader from "@/components/AppHeader/AppHeader.vue"
 import containerService from "@/services/container/containerService"
 import streetMapService from "@/services/apiStreet/streetMapService"
 import streetService from "@/services/apiStreet/streetService"
+import zoneService from "@/services/zones/zoneService"
 import { useToast } from "vue-toastification"
 
 const CONTAINERS_STATUS = [
@@ -466,6 +486,9 @@ export default {
     return {
       toast: useToast(),
       ourContainers: [],
+      zones: [],
+      zoneSearch: '',
+      zoneSuggestions: [],
       loading: true,
 
       showCreate: false,
@@ -514,6 +537,7 @@ export default {
 
   mounted() {
     this.fetchAllContainers()
+    this.fetchZones()
   },
 
   methods: {
@@ -537,6 +561,39 @@ export default {
       }
     },
 
+    async fetchZones() {
+      try {
+        const res = await zoneService.getAll()
+        this.zones = res.data.filter(z => z.isActive)
+      } catch {
+        // silencieux — les suggestions resteront vides
+      }
+    },
+
+    onSearchZone() {
+      const term = this.zoneSearch.trim().toLowerCase()
+      this.form.zoneId = ''
+      if (!term) {
+        this.zoneSuggestions = []
+        return
+      }
+      this.zoneSuggestions = this.zones.filter(z =>
+        z.name.toLowerCase().includes(term) ||
+        z.city.toLowerCase().includes(term) ||
+        z.id.toLowerCase().includes(term)
+      ).slice(0, 6)
+    },
+
+    selectZone(z) {
+      this.form.zoneId = z.id
+      this.zoneSearch = `${z.name} — ${z.city}`
+      this.zoneSuggestions = []
+    },
+
+    hideZoneSuggestions() {
+      this.zoneSuggestions = []
+    },
+
     resetForm() {
       this.form = {
         zoneId: "",
@@ -549,6 +606,8 @@ export default {
         longitude: null
       }
       this.suggestions = []
+      this.zoneSearch = ''
+      this.zoneSuggestions = []
       this.isEdit = false
       this.selectedContainer = null
     },
@@ -697,6 +756,8 @@ export default {
         latitude: container.latitude || null,
         longitude: container.longitude || null
       }
+      const matchedZone = this.zones.find(z => z.id === container.zoneId)
+      this.zoneSearch = matchedZone ? `${matchedZone.name} — ${matchedZone.city}` : (container.zoneId || '')
       this.showCreate = true
 
       if (container.latitude && container.longitude) {

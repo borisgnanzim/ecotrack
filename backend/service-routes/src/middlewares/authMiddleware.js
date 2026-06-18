@@ -34,8 +34,12 @@ const roleMiddleware = (...allowedRoles) => {
       return res.status(401).json({ error: 'Authentification requise' });
     }
 
-    const userRole = req.user.role;
-    if (!allowedRoles.includes(userRole)) {
+    // JWT signé par service-users avec { roles: [...] } (tableau)
+    const userRoles = Array.isArray(req.user.roles)
+      ? req.user.roles
+      : req.user.role ? [req.user.role] : [];
+
+    if (!allowedRoles.some(r => userRoles.includes(r))) {
       return res.status(403).json({ error: `Accès refusé — rôle requis : ${allowedRoles.join(' ou ')}` });
     }
 
