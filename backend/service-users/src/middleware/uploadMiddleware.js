@@ -9,9 +9,11 @@ const fileFilter = (req, file, cb) => {
   else cb(new Error('Format non supporté. Formats acceptés: JPG, PNG, WebP'), false);
 };
 
+// Mitigation: limit the number of non-file form fields to prevent deep nesting attacks
+// SNYK recommends setting `limits.fields` in addition to upgrading multer.
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024, fields: 50 }, // 5MB and max 50 non-file fields
   fileFilter
 });
 
