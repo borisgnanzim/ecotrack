@@ -227,36 +227,3 @@ jobs:
           name: snyk-infra-${{ matrix.image.label }}
           path: snyk-infra-${{ matrix.image.label }}.json
           retention-days: 30
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # Promotion: si tout est passé, pousser le commit validé sur `main` pour déploiement
-  # NOTE: Requires a personal access token with `repo` scope stored in
-  #       repository secret `GITHUB_PUSH_TOKEN`.
-  # ──────────────────────────────────────────────────────────────────────────
-  promote:
-    name: Promote to main (if all security checks passed)
-    # run only when the triggering workflow_run concluded successfully
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Push commit to main
-        env:
-          GITHUB_PUSH_TOKEN: ${{ secrets.GITHUB_PUSH_TOKEN }}
-        run: |
-          # create a temp branch from the validated commit and push to main
-          git remote set-url origin https://x-access-token:${GITHUB_PUSH_TOKEN}@github.com/${{ github.repository }}.git
-          # Force-fast-forward merge main to the tested commit
-          git fetch origin main:refs/remotes/origin/main || true
-          git branch -f promoted ${GITHUB_REF##*/} || git branch promoted ${{ github.event.workflow_run.head_sha }}
-          git checkout promoted
-          git push origin promoted:main --force-with-lease
