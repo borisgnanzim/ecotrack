@@ -10,12 +10,30 @@ datasource db {
 model UserAction {
   id        String   @id @default(uuid())
   userId    String
-  actionType String // e.g., "report_container", "complete_challenge"
+  actionType ActionType @default(other) // normalized action type
   points    Int
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([actionType])
+}
+
+// Enum recommandée pour normaliser les types d'actions
+enum ActionType {
+  report_container
+  complete_challenge
+  submit_feedback
+  other
+}
+
+// Stocke le total de points d'un utilisateur pour faciliter les requêtes leaderboard
+model UserTotalPoints {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  totalPoints Int     @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@index([totalPoints])
 }
 
 model Badge {

@@ -5,6 +5,7 @@ import { checkOfflineSensors } from "./services/iot-service.js";
 import prisma from "./config/prisma.js";
 
 const app = express();
+app.use(helmet());
 app.use(express.json());
 
 // ── Health ─────────────────────────────────────────────────────────────────────
