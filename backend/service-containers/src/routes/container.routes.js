@@ -22,7 +22,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// Mitigation: limit non-file form fields to mitigate deep-nesting multipart attacks
+const upload = multer({ storage, limits: { fields: 50, fileSize: 5 * 1024 * 1024 } });
 
 /* =========================
    Routes Containers

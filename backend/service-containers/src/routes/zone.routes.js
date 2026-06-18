@@ -6,7 +6,8 @@ import { validate } from '../middlewares/validate.middleware.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+// Mitigation: limit non-file form fields to mitigate deep-nesting multipart attacks
+const upload = multer({ storage: multer.memoryStorage(), limits: { fields: 50, fileSize: 5 * 1024 * 1024 } });
 
 // ── Static routes (MUST be before /:id) ─────────────────────────────────────
 
