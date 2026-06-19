@@ -12,7 +12,9 @@ const CreateRouteDto = z.object({
   estimatedTime: z.number().int().positive().nullable().optional(),
 });
 
-const UpdateRouteDto = CreateRouteDto.partial();
+const UpdateRouteDto = CreateRouteDto.partial().extend({
+  status: z.enum(ROUTE_STATUS).optional(), // pas de default — évite d'injecter 'planned' à chaque update
+});
 
 const AssignAgentDto = z.object({
   agentId: z.string().uuid().nullable(),
