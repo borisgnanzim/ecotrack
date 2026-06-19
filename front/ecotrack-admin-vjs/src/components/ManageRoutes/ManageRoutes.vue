@@ -100,8 +100,9 @@
             <div
               v-for="r in displayedRoutes"
               :key="r.id"
-              class="tour-card"
+              class="tour-card tour-card-clickable"
               :class="{ 'tour-card-urgent': isUrgent(r) }"
+              @click="openDetail(r)"
             >
 
               <div class="flex justify-between items-start">
@@ -140,15 +141,15 @@
                   {{ r.steps.length }} conteneurs
                 </span>
                 <div class="flex gap-2">
-                  <button class="btn-mini" @click="optimizeRoute(r)" :disabled="r.status !== 'planned'" title="Optimiser l'ordre des étapes">
+                  <button class="btn-mini" @click.stop="optimizeRoute(r)" :disabled="r.status !== 'planned'" title="Optimiser l'ordre des étapes">
                     <i class="ri-route-line"></i>
                     Optimiser
                   </button>
-                  <button class="btn-mini" @click="openAssignModal(r)">
+                  <button class="btn-mini" @click.stop="openAssignModal(r)">
                     <i class="ri-user-add-line"></i>
                     Assigner agent
                   </button>
-                  <button class="btn-mini btn-mini-danger" @click="deleteRoute(r.id)">
+                  <button class="btn-mini btn-mini-danger" @click.stop="deleteRoute(r.id)">
                     <i class="ri-delete-bin-line"></i>
                   </button>
                 </div>
@@ -205,6 +206,133 @@
       </section>
 
     </main>
+
+    <!-- ── MODAL DÉTAIL TOURNÉE ──────────────────────────────────────────────── -->
+    <transition name="fade">
+      <div v-if="showDetail && detailRoute" class="modal-overlay" @click.self="showDetail = false">
+        <div class="assign-modal detail-modal">
+
+          <div class="modal-header">
+            <div>
+              <h3>
+                <i class="bi bi-truck me-2"></i>
+                Tournée du {{ formatDate(detailRoute.date) }}
+              </h3>
+              <p class="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                <span v-if="isUrgent(detailRoute)" class="badge badge-urgent" style="font-size:.75rem">
+                  <i class="ri-alarm-warning-line"></i> Urgent
+                </span>
+                <span class="badge" :class="statusClass(detailRoute.status)" style="font-size:.75rem">
+                  {{ statusLabel(detailRoute.status) }}
+                </span>
+              </p>
+            </div>
+            <button @click="showDetail = false" class="close-btn">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+
+          <div class="modal-content">
+
+            <!-- KPIs -->
+            <div class="detail-kpis">
+              <div class="detail-kpi">
+                <i class="ri-road-map-line"></i>
+                <span class="detail-kpi-val">{{ detailRoute.totalDistance ?? '—' }}</span>
+                <span class="detail-kpi-lbl">km</span>
+              </div>
+              <div class="detail-kpi">
+                <i class="ri-time-line"></i>
+                <span class="detail-kpi-val">{{ detailRoute.estimatedTime ?? '—' }}</span>
+                <span class="detail-kpi-lbl">min</span>
+              </div>
+              <div class="detail-kpi">
+                <i class="bi bi-box-seam"></i>
+                <span class="detail-kpi-val">{{ detailRoute.steps.length }}</span>
+                <span class="detail-kpi-lbl">arrêts</span>
+              </div>
+              <div class="detail-kpi">
+                <i class="ri-user-line"></i>
+                <span class="detail-kpi-val" style="font-size:.9rem">{{ getAgentName(detailRoute.agentId) }}</span>
+              </div>
+            </div>
+
+            <!-- Étapes -->
+            <h4 class="detail-section-title">
+              <i class="ri-list-ordered"></i>
+              Itinéraire
+            </h4>
+
+            <div v-if="!detailRoute.steps.length" class="text-center text-slate-400 py-6 text-sm">
+              Aucune étape — cliquez sur <strong>Optimiser</strong> pour générer l'itinéraire.
+            </div>
+
+            <div v-else class="steps-list">
+              <div
+                v-for="(step, idx) in sortedSteps(detailRoute)"
+                :key="step.id"
+                class="step-item"
+              >
+                <!-- Numéro + ligne verticale -->
+                <div class="step-left">
+                  <div class="step-num">{{ step.stepOrder }}</div>
+                  <div v-if="idx < detailRoute.steps.length - 1" class="step-line"></div>
+                </div>
+
+                <!-- Contenu -->
+                <div class="step-body">
+                  <div class="step-top">
+                    <span class="step-code">{{ step.container?.code ?? '—' }}</span>
+                    <span class="step-type">{{ step.container?.type ?? '—' }}</span>
+                    <span class="fill-badge ml-auto" :class="fillClass(step.container?.fillLevel)">
+                      {{ step.container?.fillLevel ?? 0 }}%
+                    </span>
+                  </div>
+
+                  <div class="fill-bar-wrap" style="margin: 6px 0 8px">
+                    <div
+                      class="fill-bar-inner"
+                      :class="fillClass(step.container?.fillLevel)"
+                      :style="{ width: (step.container?.fillLevel ?? 0) + '%' }"
+                    ></div>
+                  </div>
+
+                  <div class="step-meta" v-if="step.distanceFromPrevious || step.estimatedTimeFromPrevious">
+                    <span v-if="step.distanceFromPrevious">
+                      <i class="ri-arrow-right-line"></i>
+                      {{ step.distanceFromPrevious }} km
+                    </span>
+                    <span v-if="step.estimatedTimeFromPrevious">
+                      <i class="ri-time-line"></i>
+                      {{ step.estimatedTimeFromPrevious }} min
+                    </span>
+                    <span v-if="step.container?.zoneId" class="text-slate-400">
+                      <i class="ri-map-pin-line"></i>
+                      {{ step.container.zoneId }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="showDetail = false">Fermer</button>
+            <button
+              class="btn-primary"
+              style="font-size:.85rem; padding: 10px 16px"
+              :disabled="detailRoute.status !== 'planned'"
+              @click="optimizeRoute(detailRoute); showDetail = false"
+            >
+              <i class="ri-route-line"></i>
+              Optimiser
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </transition>
 
     <!-- ── MODAL CRÉER TOURNÉE ──────────────────────────────────────────────── -->
     <transition name="fade">
@@ -395,6 +523,9 @@ export default {
       today:           new Date().setHours(0, 0, 0, 0),
       routeTab:        'upcoming',
 
+      showDetail:      false,
+      detailRoute:     null,
+
       showCreate:      false,
       showAssignModal: false,
       selectedRoute:   null,
@@ -531,6 +662,15 @@ export default {
       this.zoneContainers = []
       this.containerFilter = 'all'
       this.showCreate = true
+    },
+
+    openDetail(r) {
+      this.detailRoute = r
+      this.showDetail = true
+    },
+
+    sortedSteps(route) {
+      return [...route.steps].sort((a, b) => a.stepOrder - b.stepOrder)
     },
 
     isUrgent(r) {
@@ -962,6 +1102,62 @@ textarea.input-modern { resize: vertical; }
   background: #fee2e2; color: #991b1b;
   display: inline-flex; align-items: center; gap: 4px;
 }
+
+/* Carte cliquable */
+.tour-card-clickable { cursor: pointer; }
+
+/* Modal détail — plus large */
+.detail-modal { max-width: 620px !important; }
+
+/* KPIs */
+.detail-kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 24px;
+}
+.detail-kpi {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 14px; padding: 12px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  text-align: center;
+}
+.detail-kpi i { font-size: 1.1rem; color: #059669; }
+.detail-kpi-val { font-size: 1rem; font-weight: 700; color: #0f172a; }
+.detail-kpi-lbl { font-size: .72rem; color: #94a3b8; font-weight: 500; }
+
+.detail-section-title {
+  font-size: .88rem; font-weight: 700; color: #475569;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 14px; text-transform: uppercase; letter-spacing: .04em;
+}
+
+/* Liste d'étapes */
+.steps-list { display: flex; flex-direction: column; }
+.step-item  { display: flex; gap: 12px; }
+
+.step-left  { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.step-num   {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #059669; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; font-weight: 700; flex-shrink: 0;
+}
+.step-line  { flex: 1; width: 2px; background: #e2e8f0; margin: 4px 0; min-height: 16px; }
+
+.step-body  {
+  flex: 1; padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 0;
+}
+.step-item:last-child .step-body { border-bottom: none; padding-bottom: 4px; }
+
+.step-top   { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.step-code  { font-weight: 700; font-size: .88rem; font-family: monospace; color: #0f172a; }
+.step-type  { font-size: .75rem; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 999px; }
+.step-meta  {
+  display: flex; align-items: center; gap: 12px;
+  font-size: .78rem; color: #94a3b8;
+}
+.step-meta i { font-size: .82rem; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
