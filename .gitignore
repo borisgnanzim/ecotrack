@@ -67,4 +67,4 @@ tmp/
 temp/
 
 # Prisma migrations
-prisma/migrations/
+prisma/migrations/snyk
