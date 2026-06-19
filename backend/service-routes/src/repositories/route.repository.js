@@ -2,19 +2,19 @@ const prisma = require('../config/prisma');
 
 const findAll = () =>
   prisma.route.findMany({
-    include: { steps: { include: { container: true } }, agent: true },
+    include: { steps: { include: { container: true } } },
   });
 
 const findById = (id) =>
   prisma.route.findUnique({
     where: { id },
-    include: { steps: { include: { container: true } }, agent: true },
+    include: { steps: { include: { container: true } } },
   });
 
 const findByAgentId = (agentId) =>
   prisma.route.findMany({
     where: { agentId },
-    include: { steps: { include: { container: true } }, agent: true },
+    include: { steps: { include: { container: true } } },
   });
 
 const findPlannedWithContainer = (containerId) =>

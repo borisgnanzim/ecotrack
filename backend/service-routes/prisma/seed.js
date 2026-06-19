@@ -17,24 +17,6 @@ async function main() {
   await prisma.routeStep.deleteMany();
   await prisma.route.deleteMany();
   await prisma.container.deleteMany();
-  await prisma.user.deleteMany();
-
-  const users = [];
-  for (let i = 1; i <= 5; i += 1) {
-    users.push(
-      await prisma.user.create({
-        data: {
-          username: `agent${i}`,
-          name: `Agent ${i}`,
-          email: `agent${i}@ecotrack.local`,
-          points: Math.floor(Math.random() * 500),
-          address: `Rue ${i}, Ville`,
-          avatar: null,
-          badges: [],
-        },
-      }),
-    );
-  }
 
   const containers = [];
   for (let i = 1; i <= 20; i += 1) {
@@ -64,13 +46,11 @@ async function main() {
       .sort(() => Math.random() - 0.5)
       .slice(0, Math.floor(Math.random() * 6) + 1);
 
-    const agentId = i % 5 === 0 ? null : users[(i - 1) % users.length].id;
-
     routePromises.push(
       prisma.route.create({
         data: {
           date: randomDate(60),
-          agentId,
+          agentId: null, // agents come from service-users, no local FK
           status: statuses[i % statuses.length],
           containerIds: selectedIds,
           totalDistance: parseFloat((Math.random() * 120).toFixed(2)),
@@ -89,7 +69,7 @@ async function main() {
   }
 
   await Promise.all(routePromises);
-  console.log('Seed completed: 5 users, 20 containers, 100 routes created');
+  console.log('Seed completed: 20 containers, 100 routes created');
 }
 
 main()

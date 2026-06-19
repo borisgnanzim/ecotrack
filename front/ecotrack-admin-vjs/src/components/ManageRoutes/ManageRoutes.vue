@@ -136,7 +136,7 @@
                 </span>
                 <span>
                   <i class="ri-user-line"></i>
-                  {{ r.agent ? r.agent.name : 'Non assigné' }}
+                  {{ getAgentName(r.agentId) }}
                 </span>
               </div>
 
@@ -476,6 +476,12 @@ export default {
       this.zoneContainers = []
       this.containerFilter = 'all'
       this.showCreate = true
+    },
+
+    getAgentName(agentId) {
+      if (!agentId) return 'Non assigné'
+      const agent = this.agentsList.find(a => a.id === agentId)
+      return agent ? agent.name : 'Agent inconnu'
     },
 
     fillFilterCount(filterValue) {
