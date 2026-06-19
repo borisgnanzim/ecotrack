@@ -66,19 +66,43 @@
 
         <!-- TOURNÉES -->
         <section class="card lg:col-span-2">
-          <h3 class="card-title">
-            <i class="ri-route-line"></i>
-            Tournées planifiées
-          </h3>
+
+          <!-- Onglets -->
+          <div class="tabs">
+            <button
+              class="tab-btn"
+              :class="{ active: routeTab === 'upcoming' }"
+              @click="routeTab = 'upcoming'"
+            >
+              <i class="ri-calendar-line"></i>
+              À venir
+              <span v-if="urgentCount" class="tab-badge-urgent">{{ urgentCount }}</span>
+              <span v-else class="tab-badge">{{ upcomingRoutes.length }}</span>
+            </button>
+            <button
+              class="tab-btn"
+              :class="{ active: routeTab === 'history' }"
+              @click="routeTab = 'history'"
+            >
+              <i class="ri-history-line"></i>
+              Historique
+              <span class="tab-badge">{{ historyRoutes.length }}</span>
+            </button>
+          </div>
 
           <div v-if="loadingRoutes" class="text-center text-slate-400 py-8">Chargement…</div>
 
-          <div v-else-if="routes.length === 0" class="text-center text-slate-400 py-8">
-            Aucune tournée. Créez-en une !
+          <div v-else-if="displayedRoutes.length === 0" class="text-center text-slate-400 py-8">
+            {{ routeTab === 'upcoming' ? 'Aucune tournée à venir.' : 'Aucun historique.' }}
           </div>
 
           <div v-else class="space-y-4">
-            <div v-for="r in routes" :key="r.id" class="tour-card">
+            <div
+              v-for="r in displayedRoutes"
+              :key="r.id"
+              class="tour-card"
+              :class="{ 'tour-card-urgent': isUrgent(r) }"
+            >
 
               <div class="flex justify-between items-start">
                 <div>
@@ -96,13 +120,18 @@
                     </span>
                   </p>
                 </div>
-                <span class="badge" :class="statusClass(r.status)">
-                  {{ statusLabel(r.status) }}
-                </span>
+                <div class="flex gap-2 items-center">
+                  <span v-if="isUrgent(r)" class="badge badge-urgent">
+                    <i class="ri-alarm-warning-line"></i> Urgent
+                  </span>
+                  <span class="badge" :class="statusClass(r.status)">
+                    {{ statusLabel(r.status) }}
+                  </span>
+                </div>
               </div>
 
               <div class="tour-load">
-                <div class="tour-load-bar" :style="{ width: avgFill(r) + '%' }" />
+                <div class="tour-load-bar" :class="{ 'tour-load-bar-urgent': isUrgent(r) }" :style="{ width: avgFill(r) + '%' }" />
               </div>
 
               <div class="tour-footer">
@@ -363,6 +392,9 @@ export default {
       loadingZones:  true,
       loadingAgents: true,
 
+      today:           new Date().setHours(0, 0, 0, 0),
+      routeTab:        'upcoming',
+
       showCreate:      false,
       showAssignModal: false,
       selectedRoute:   null,
@@ -389,9 +421,32 @@ export default {
 
   mounted() {
     this.fetchAll()
+    this._todayTimer = setInterval(() => {
+      this.today = new Date().setHours(0, 0, 0, 0)
+    }, 60000)
+  },
+
+  beforeUnmount() {
+    clearInterval(this._todayTimer)
   },
 
   computed: {
+    upcomingRoutes() {
+      return this.routes.filter(r => r.status === 'planned' || r.status === 'in_progress')
+    },
+
+    historyRoutes() {
+      return this.routes.filter(r => r.status === 'completed' || r.status === 'cancelled')
+    },
+
+    displayedRoutes() {
+      return this.routeTab === 'upcoming' ? this.upcomingRoutes : this.historyRoutes
+    },
+
+    urgentCount() {
+      return this.upcomingRoutes.filter(r => this.isUrgent(r)).length
+    },
+
     fillFilters() {
       return [
         { value: 'all',  label: 'Tous',     cls: 'filter-all'  },
@@ -476,6 +531,10 @@ export default {
       this.zoneContainers = []
       this.containerFilter = 'all'
       this.showCreate = true
+    },
+
+    isUrgent(r) {
+      return ['planned', 'in_progress'].includes(r.status) && new Date(r.date).getTime() < this.today
     },
 
     getAgentName(agentId) {
@@ -857,6 +916,52 @@ textarea.input-modern { resize: vertical; }
   background: #f8fafc; display: flex; align-items: center; justify-content: center;
 }
 .close-btn:hover { background: #e2e8f0; }
+
+/* Onglets */
+.tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+}
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: 12px 12px 0 0;
+  font-size: .9rem; font-weight: 600; color: #64748b;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.tab-btn:hover  { background: #f8fafc; color: #0f172a; }
+.tab-btn.active { color: #059669; border-bottom-color: #059669; background: transparent; }
+.tab-badge {
+  background: #e2e8f0; color: #475569;
+  border-radius: 999px; padding: 1px 8px;
+  font-size: .75rem; font-weight: 700;
+}
+.tab-badge-urgent {
+  background: #fee2e2; color: #991b1b;
+  border-radius: 999px; padding: 1px 8px;
+  font-size: .75rem; font-weight: 700;
+}
+
+/* Carte urgente */
+.tour-card-urgent {
+  border-color: #fca5a5 !important;
+  background: #fff8f8 !important;
+}
+.tour-card-urgent:hover {
+  box-shadow: 0 18px 48px rgba(239,68,68,.12) !important;
+}
+.tour-load-bar-urgent {
+  background: linear-gradient(90deg, #ef4444, #f97316) !important;
+}
+
+/* Badge Urgent */
+.badge-urgent {
+  background: #fee2e2; color: #991b1b;
+  display: inline-flex; align-items: center; gap: 4px;
+}
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

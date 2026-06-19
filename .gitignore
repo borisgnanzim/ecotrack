@@ -68,3 +68,6 @@ temp/
 
 # Prisma migrations
 prisma/migrations/snyk
+
+# Snyk
+snyk
