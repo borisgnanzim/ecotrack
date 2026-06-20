@@ -93,9 +93,10 @@ exports.exportPDF = async (req, res) => {
 
 exports.exportAndEmail = async (req, res) => {
   try {
+    const { agentName, agentEmail } = req.body;
     const route = await routeService.getById(req.params.id);
-    const pdf = await generateRoutePDF(route);
-    const result = await sendRoutePDF(route, pdf);
-    res.json({ message: 'Feuille de route générée', email: result });
+    const pdf = await generateRoutePDF(route, agentName);
+    const result = await sendRoutePDF(route, pdf, agentName, agentEmail);
+    res.json({ message: 'Feuille de tournée générée', email: result });
   } catch (err) { handleError(res, err); }
 };

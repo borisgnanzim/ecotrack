@@ -72,7 +72,7 @@
             <button
               class="tab-btn"
               :class="{ active: routeTab === 'upcoming' }"
-              @click="routeTab = 'upcoming'"
+              @click="routeTab = 'upcoming'; routeFilterStatus = ''"
             >
               <i class="ri-calendar-line"></i>
               À venir
@@ -82,7 +82,7 @@
             <button
               class="tab-btn"
               :class="{ active: routeTab === 'history' }"
-              @click="routeTab = 'history'"
+              @click="routeTab = 'history'; routeFilterStatus = ''"
             >
               <i class="ri-history-line"></i>
               Historique
@@ -90,15 +90,44 @@
             </button>
           </div>
 
+          <!-- Filtres -->
+          <div class="route-filters">
+            <div class="route-search-wrap">
+              <i class="ri-search-line route-search-icon"></i>
+              <input
+                v-model="routeSearch"
+                type="text"
+                class="route-search-input"
+                placeholder="Rechercher par date…"
+              />
+            </div>
+            <select v-model="routeFilterAgent" class="route-filter-select">
+              <option value="">Tous les agents</option>
+              <option v-for="a in agentsList" :key="a.id" :value="a.id">{{ a.name }}</option>
+            </select>
+            <select v-model="routeFilterStatus" class="route-filter-select">
+              <option value="">Tous les statuts</option>
+              <option v-for="s in tabStatuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+            </select>
+            <button
+              v-if="hasActiveFilters"
+              class="route-filter-clear"
+              @click="clearFilters"
+              title="Réinitialiser les filtres"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+
           <div v-if="loadingRoutes" class="text-center text-slate-400 py-8">Chargement…</div>
 
           <div v-else-if="displayedRoutes.length === 0" class="text-center text-slate-400 py-8">
-            {{ routeTab === 'upcoming' ? 'Aucune tournée à venir.' : 'Aucun historique.' }}
+            {{ hasActiveFilters ? 'Aucune tournée ne correspond aux filtres.' : routeTab === 'upcoming' ? 'Aucune tournée à venir.' : 'Aucun historique.' }}
           </div>
 
           <div v-else class="space-y-4">
             <div
-              v-for="r in displayedRoutes"
+              v-for="r in paginatedRoutes"
               :key="r.id"
               class="tour-card tour-card-clickable"
               :class="{ 'tour-card-urgent': isUrgent(r) }"
@@ -171,6 +200,29 @@
               </div>
 
             </div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="pagination">
+              <button class="page-btn" :disabled="routePage === 1" @click="routePage--">
+                <i class="ri-arrow-left-s-line"></i>
+              </button>
+              <button
+                v-for="p in totalPages" :key="p"
+                class="page-btn"
+                :class="{ 'page-btn-active': p === routePage }"
+                @click="routePage = p"
+              >
+                {{ p }}
+              </button>
+              <button class="page-btn" :disabled="routePage === totalPages" @click="routePage++">
+                <i class="ri-arrow-right-s-line"></i>
+              </button>
+              <span class="page-info">
+                {{ (routePage - 1) * routePageSize + 1 }}–{{ Math.min(routePage * routePageSize, displayedRoutes.length) }}
+                sur {{ displayedRoutes.length }}
+              </span>
+            </div>
+
           </div>
         </section>
 
@@ -315,6 +367,35 @@
               </div>
             </div>
 
+            <!-- Carte -->
+            <div v-if="detailRoute.steps.length" class="map-section">
+              <button class="map-toggle" @click="toggleMap(detailRoute)">
+                <i :class="showMap ? 'ri-map-2-fill' : 'ri-map-2-line'"></i>
+                {{ showMap ? 'Masquer la carte' : 'Voir sur la carte' }}
+                <i v-if="mapLoading" class="ri-loader-4-line spin ml-1"></i>
+              </button>
+              <div v-show="showMap" ref="mapContainer" class="map-container"></div>
+            </div>
+
+            <!-- Résultat validation -->
+            <div v-if="validationResult" class="validation-result">
+              <div class="validation-header" :class="validationResult.is_valid ? 'valid' : 'invalid'">
+                <i :class="validationResult.is_valid ? 'ri-checkbox-circle-fill' : 'ri-close-circle-fill'"></i>
+                {{ validationResult.is_valid ? 'Tournée valide — prête à démarrer' : 'Tournée invalide' }}
+              </div>
+              <div v-if="validationResult.validations.length" class="validation-messages">
+                <div
+                  v-for="(v, i) in validationResult.validations"
+                  :key="i"
+                  class="validation-msg"
+                  :class="v.type === 'error' ? 'msg-error' : 'msg-warning'"
+                >
+                  <i :class="v.type === 'error' ? 'ri-error-warning-fill' : 'ri-alert-fill'"></i>
+                  {{ v.message }}
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="modal-actions">
@@ -330,6 +411,30 @@
                 <i v-if="exportingPDF" class="ri-loader-4-line spin"></i>
                 <i v-else class="ri-file-pdf-line"></i>
                 PDF
+              </button>
+
+              <!-- Envoyer par email -->
+              <button
+                class="btn-mini"
+                :disabled="sendingEmail || !detailRoute.agentId"
+                :title="!detailRoute.agentId ? 'Aucun agent assigné' : 'Envoyer par email à l\'agent'"
+                @click="sendEmail(detailRoute)"
+              >
+                <i v-if="sendingEmail" class="ri-loader-4-line spin"></i>
+                <i v-else class="ri-mail-send-line"></i>
+                Email
+              </button>
+
+              <!-- Valider (planned uniquement) -->
+              <button
+                v-if="detailRoute.status === 'planned'"
+                class="btn-mini"
+                :disabled="validating"
+                @click="validateRoute(detailRoute)"
+              >
+                <i v-if="validating" class="ri-loader-4-line spin"></i>
+                <i v-else class="ri-shield-check-line"></i>
+                Valider
               </button>
 
               <!-- Optimiser (planned uniquement) -->
@@ -548,6 +653,8 @@ import routeService from "@/services/routes/routeService.js"
 import zoneService from "@/services/zones/zoneService.js"
 import userService from "@/services/manageusers/userService.js"
 import { useToast } from "vue-toastification"
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 export default {
   components: { AppHeader, BackButton },
@@ -564,8 +671,13 @@ export default {
       loadingZones:  true,
       loadingAgents: true,
 
-      today:           new Date().setHours(0, 0, 0, 0),
-      routeTab:        'upcoming',
+      today:             new Date().setHours(0, 0, 0, 0),
+      routeTab:          'upcoming',
+      routeSearch:       '',
+      routeFilterAgent:  '',
+      routeFilterStatus: '',
+      routePage:         1,
+      routePageSize:     5,
 
       showDetail:      false,
       detailRoute:     null,
@@ -578,6 +690,12 @@ export default {
       loadingContainers: false,
       containerFilter:   'all',
       exportingPDF:      false,
+      sendingEmail:      false,
+      validating:        false,
+      validationResult:  null,
+      showMap:           false,
+      mapLoading:        false,
+      _mapInstance:      null,
 
       createForm: {
         date:         '',
@@ -593,6 +711,14 @@ export default {
         notes:     '',
       },
     }
+  },
+
+  watch: {
+    showDetail(v) { if (!v) this._destroyMap() },
+    routeTab()          { this.routePage = 1 },
+    routeSearch()       { this.routePage = 1 },
+    routeFilterAgent()  { this.routePage = 1 },
+    routeFilterStatus() { this.routePage = 1 },
   },
 
   mounted() {
@@ -615,8 +741,42 @@ export default {
       return this.routes.filter(r => r.status === 'completed' || r.status === 'cancelled')
     },
 
+    tabStatuses() {
+      const all = [
+        { value: 'planned',     label: 'Planifiée' },
+        { value: 'in_progress', label: 'En cours' },
+        { value: 'completed',   label: 'Terminée' },
+        { value: 'cancelled',   label: 'Annulée' },
+      ]
+      return this.routeTab === 'upcoming'
+        ? all.filter(s => ['planned', 'in_progress'].includes(s.value))
+        : all.filter(s => ['completed', 'cancelled'].includes(s.value))
+    },
+
+    hasActiveFilters() {
+      return !!(this.routeSearch || this.routeFilterAgent || this.routeFilterStatus)
+    },
+
     displayedRoutes() {
-      return this.routeTab === 'upcoming' ? this.upcomingRoutes : this.historyRoutes
+      const base = this.routeTab === 'upcoming' ? this.upcomingRoutes : this.historyRoutes
+      return base.filter(r => {
+        if (this.routeSearch) {
+          const q = this.routeSearch.toLowerCase()
+          if (!this.formatDate(r.date).toLowerCase().includes(q)) return false
+        }
+        if (this.routeFilterAgent && r.agentId !== this.routeFilterAgent) return false
+        if (this.routeFilterStatus && r.status !== this.routeFilterStatus) return false
+        return true
+      })
+    },
+
+    totalPages() {
+      return Math.max(1, Math.ceil(this.displayedRoutes.length / this.routePageSize))
+    },
+
+    paginatedRoutes() {
+      const start = (this.routePage - 1) * this.routePageSize
+      return this.displayedRoutes.slice(start, start + this.routePageSize)
     },
 
     urgentCount() {
@@ -727,6 +887,96 @@ export default {
       }
     },
 
+    async toggleMap(route) {
+      this.showMap = !this.showMap
+      if (!this.showMap) { this._destroyMap(); return }
+
+      this.mapLoading = true
+      try {
+        const res = await routeService.getMap(route.id)
+        const geojson = res.data
+
+        await this.$nextTick()
+        const container = this.$refs.mapContainer
+        if (!container) return
+
+        this._destroyMap()
+        const map = L.map(container, { zoomControl: true })
+        this._mapInstance = map
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map)
+
+        const points = geojson.features.filter(f => f.geometry.type === 'Point')
+        const line   = geojson.features.find(f  => f.geometry.type === 'LineString')
+
+        if (line?.geometry?.coordinates?.length > 1) {
+          const latlngs = line.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+          L.polyline(latlngs, { color: '#059669', weight: 3, opacity: .8, dashArray: '6 4' }).addTo(map)
+        }
+
+        const bounds = []
+        points.forEach(f => {
+          const [lng, lat] = f.geometry.coordinates
+          const lvl = f.properties.fillLevel ?? 0
+          const color = lvl >= 80 ? '#ef4444' : lvl >= 50 ? '#f97316' : '#10b981'
+          const marker = L.circleMarker([lat, lng], {
+            radius: 10, fillColor: color, color: 'white',
+            weight: 2, opacity: 1, fillOpacity: .9,
+          }).addTo(map)
+          marker.bindPopup(`
+            <div style="font-size:13px;line-height:1.6">
+              <strong>Arrêt ${f.properties.stepOrder}</strong><br>
+              Remplissage : <b style="color:${color}">${lvl}%</b><br>
+              Zone : ${f.properties.zoneId ?? '—'}
+            </div>
+          `)
+          bounds.push([lat, lng])
+        })
+
+        if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] })
+        else map.setView([48.85, 2.35], 12)
+
+      } catch {
+        this.toast.error('Impossible de charger la carte.')
+        this.showMap = false
+      } finally {
+        this.mapLoading = false
+      }
+    },
+
+    async validateRoute(route) {
+      this.validating = true
+      this.validationResult = null
+      try {
+        const res = await routeService.validate(route.id)
+        this.validationResult = res.data
+      } catch (err) {
+        this.toast.error(err.response?.data?.error || 'Erreur lors de la validation.')
+      } finally {
+        this.validating = false
+      }
+    },
+
+    async sendEmail(route) {
+      const agent = this.agentsList.find(a => a.id === route.agentId)
+      if (!agent) {
+        this.toast.warning('Agent introuvable dans la liste.')
+        return
+      }
+      this.sendingEmail = true
+      try {
+        await routeService.sendEmail(route.id, agent.name, agent.email)
+        this.toast.success(`Email envoyé à ${agent.name} (${agent.email}).`)
+      } catch (err) {
+        this.toast.error(err.response?.data?.error || 'Erreur lors de l\'envoi de l\'email.')
+      } finally {
+        this.sendingEmail = false
+      }
+    },
+
     async changeStatusAdmin(route, status) {
       try {
         await routeService.update(route.id, { status })
@@ -741,9 +991,25 @@ export default {
       }
     },
 
+    clearFilters() {
+      this.routeSearch = ''
+      this.routeFilterAgent = ''
+      this.routeFilterStatus = ''
+    },
+
     openDetail(r) {
       this.detailRoute = r
+      this.validationResult = null
+      this.showMap = false
+      this._destroyMap()
       this.showDetail = true
+    },
+
+    _destroyMap() {
+      if (this._mapInstance) {
+        this._mapInstance.remove()
+        this._mapInstance = null
+      }
     },
 
     sortedSteps(route) {
@@ -1180,6 +1446,55 @@ textarea.input-modern { resize: vertical; }
   display: inline-flex; align-items: center; gap: 4px;
 }
 
+/* Filtres de recherche */
+.route-filters {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.route-search-wrap {
+  position: relative; flex: 1; min-width: 160px;
+}
+.route-search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; font-size: .95rem; pointer-events: none;
+}
+.route-search-input {
+  width: 100%; padding: 9px 12px 9px 36px;
+  border: 1px solid #e2e8f0; border-radius: 12px;
+  background: #f8fafc; font-size: .88rem; transition: .2s;
+}
+.route-search-input:focus { outline: none; border-color: #10b981; background: white; }
+.route-filter-select {
+  padding: 9px 12px; border: 1px solid #e2e8f0;
+  border-radius: 12px; background: #f8fafc;
+  font-size: .88rem; color: #475569; transition: .2s; cursor: pointer;
+}
+.route-filter-select:focus { outline: none; border-color: #10b981; }
+.route-filter-clear {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #fee2e2; color: #dc2626;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0; transition: .15s;
+}
+.route-filter-clear:hover { background: #fecaca; }
+
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; gap: 6px;
+  justify-content: center; margin-top: 8px; flex-wrap: wrap;
+}
+.page-btn {
+  min-width: 34px; height: 34px; border-radius: 10px;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  font-size: .85rem; font-weight: 600; color: #475569;
+  display: flex; align-items: center; justify-content: center;
+  transition: .15s; cursor: pointer;
+}
+.page-btn:hover:not(:disabled) { background: white; border-color: #10b981; color: #059669; }
+.page-btn:disabled { opacity: .35; cursor: not-allowed; }
+.page-btn-active { background: #059669 !important; color: white !important; border-color: #059669 !important; }
+.page-info { font-size: .78rem; color: #94a3b8; margin-left: 6px; }
+
 /* Carte cliquable */
 .tour-card-clickable { cursor: pointer; }
 
@@ -1252,6 +1567,44 @@ textarea.input-modern { resize: vertical; }
   font-size: .78rem; color: #94a3b8;
 }
 .step-meta i { font-size: .82rem; }
+
+/* Carte */
+.map-section { margin-top: 16px; }
+.map-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 12px;
+  background: #f0fdf4; color: #059669;
+  border: 1px solid #a7f3d0;
+  font-size: .85rem; font-weight: 600;
+  transition: .15s; cursor: pointer; margin-bottom: 10px;
+}
+.map-toggle:hover { background: #dcfce7; }
+.map-container {
+  width: 100%; height: 280px;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid #e2e8f0;
+  z-index: 0;
+}
+
+/* Validation */
+.validation-result {
+  margin-top: 16px; border-radius: 12px; overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.validation-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; font-weight: 700; font-size: .88rem;
+}
+.validation-header.valid   { background: #dcfce7; color: #166534; }
+.validation-header.invalid { background: #fee2e2; color: #991b1b; }
+.validation-messages { padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.validation-msg {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: .83rem; padding: 6px 8px; border-radius: 8px;
+}
+.msg-error   { background: #fff1f2; color: #be123c; }
+.msg-warning { background: #fffbeb; color: #92400e; }
+.msg-error i, .msg-warning i { flex-shrink: 0; margin-top: 1px; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

@@ -16,15 +16,14 @@ const createTransporter = () =>
  * @param {object} route  - objet route complet avec steps et agent
  * @param {Buffer} pdf    - buffer PDF généré
  */
-const sendRoutePDF = async (route, pdf) => {
+const sendRoutePDF = async (route, pdf, agentName, agentEmail) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('⚠️  SMTP non configuré — email non envoyé (SMTP_USER / SMTP_PASS manquants)');
     return { sent: false, reason: 'SMTP non configuré' };
   }
 
-  const agentEmail = route.agent?.email;
   if (!agentEmail) {
-    return { sent: false, reason: 'Aucun agent assigné à cette route' };
+    return { sent: false, reason: 'Aucun agent assigné à cette tournée' };
   }
 
   const date = new Date(route.date).toLocaleDateString('fr-FR', {
@@ -41,11 +40,11 @@ const sendRoutePDF = async (route, pdf) => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: #2E7D32; padding: 20px; border-radius: 8px 8px 0 0;">
-        <h1 style="color: white; margin: 0;">🗺 Feuille de route EcoTrack</h1>
+        <h1 style="color: white; margin: 0;">Feuille de tournée EcoTrack</h1>
       </div>
       <div style="padding: 24px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
-        <p>Bonjour <strong>${route.agent?.name || route.agent?.username || 'Agent'}</strong>,</p>
-        <p>Votre feuille de route pour le <strong>${date}</strong> est disponible en pièce jointe.</p>
+        <p>Bonjour <strong>${agentName || 'Agent'}</strong>,</p>
+        <p>Votre feuille de tournée pour le <strong>${date}</strong> est disponible en pièce jointe.</p>
 
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
           <tr><td style="padding: 6px; color: #666;">Distance totale</td><td style="padding: 6px; font-weight: bold;">${route.totalDistance ? route.totalDistance + ' km' : 'Non calculée'}</td></tr>
@@ -67,13 +66,13 @@ const sendRoutePDF = async (route, pdf) => {
   const transporter = createTransporter();
 
   await transporter.sendMail({
-    from: `"EcoTrack Routes" <${process.env.SMTP_USER}>`,
+    from: `"EcoTrack" <${process.env.SMTP_USER}>`,
     to: agentEmail,
-    subject: `🗺 Votre tournée du ${date}`,
+    subject: `Votre tournée du ${date}`,
     html,
     attachments: [
       {
-        filename: `route-${route.id}-${new Date(route.date).toISOString().slice(0, 10)}.pdf`,
+        filename: `tournee-${new Date(route.date).toISOString().slice(0, 10)}.pdf`,
         content: pdf,
         contentType: 'application/pdf',
       },

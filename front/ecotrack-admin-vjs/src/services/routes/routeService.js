@@ -10,6 +10,7 @@ export default {
   assignAgent(id, agentId)    { return apiClient.put(`/routes/${id}/assign`, { agentId }) },
   optimize(id)                { return apiClient.post(`/routes/${id}/optimize`) },
   validate(id)                { return apiClient.post(`/routes/${id}/validate`) },
+  getMap(id)               { return apiClient.get(`/routes/${id}/map`) },
   exportPDF(id, agentName)    { return apiClient.get(`/routes/${id}/export`, { responseType: 'blob', params: agentName ? { agentName } : {} }) },
-  sendEmail(id)               { return apiClient.post(`/routes/${id}/send`) },
+  sendEmail(id, agentName, agentEmail) { return apiClient.post(`/routes/${id}/send`, { agentName, agentEmail }) },
 }
