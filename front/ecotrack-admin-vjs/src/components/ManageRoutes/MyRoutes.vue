@@ -43,27 +43,50 @@
 
         <!-- LISTE TOURNÉES -->
         <section class="card col-span-12 lg:col-span-4">
-          <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center justify-between mb-4">
             <h3 class="card-title">
               <i class="ri-route-line"></i>
               Mes tournées
             </h3>
-            <span class="badge badge-info">{{ tours.length }}</span>
+            <span v-if="urgentCount" class="badge badge-urgent">
+              <i class="ri-alarm-warning-line"></i> {{ urgentCount }} urgent{{ urgentCount > 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          <!-- TABS -->
+          <div class="tour-tabs mb-5">
+            <button
+              :class="['tab-btn', routeTab === 'upcoming' && 'tab-active']"
+              @click="switchTab('upcoming')"
+            >
+              À venir
+              <span class="tab-count">{{ upcomingTours.length }}</span>
+            </button>
+            <button
+              :class="['tab-btn', routeTab === 'history' && 'tab-active']"
+              @click="switchTab('history')"
+            >
+              Historique
+              <span class="tab-count">{{ historyTours.length }}</span>
+            </button>
           </div>
 
           <div v-if="loading" class="text-center text-slate-400 py-8">Chargement…</div>
 
-          <div v-else-if="tours.length === 0" class="empty-state">
+          <div v-else-if="displayedTours.length === 0" class="empty-state">
             <i class="ri-route-line"></i>
-            <p>Aucune tournée assignée.</p>
+            <p>Aucune tournée {{ routeTab === 'upcoming' ? 'à venir' : "dans l'historique" }}.</p>
           </div>
 
           <div v-else class="space-y-4">
             <div
-              v-for="tour in tours"
+              v-for="tour in displayedTours"
               :key="tour.id"
               class="tour-card"
-              :class="{ 'tour-card-active': selected && selected.id === tour.id }"
+              :class="{
+                'tour-card-active': selected && selected.id === tour.id,
+                'tour-card-urgent': isUrgent(tour),
+              }"
               @click="selectTour(tour)"
             >
               <div class="flex justify-between items-start">
@@ -74,9 +97,14 @@
                     {{ formatDate(tour.date) }}
                   </p>
                 </div>
-                <span class="badge" :class="getStatusClass(tour.status)">
-                  {{ statusLabel(tour.status) }}
-                </span>
+                <div class="flex flex-col items-end gap-1">
+                  <span v-if="isUrgent(tour)" class="badge badge-urgent">
+                    <i class="ri-alarm-warning-line"></i> Urgent
+                  </span>
+                  <span class="badge" :class="getStatusClass(tour.status)">
+                    {{ statusLabel(tour.status) }}
+                  </span>
+                </div>
               </div>
 
               <div class="tour-footer">
@@ -85,7 +113,11 @@
               </div>
 
               <div class="mini-progress">
-                <div class="mini-progress-bar" :style="{ width: progressPct(tour) + '%' }" />
+                <div
+                  class="mini-progress-bar"
+                  :class="{ 'mini-progress-urgent': isUrgent(tour) }"
+                  :style="{ width: progressPct(tour) + '%' }"
+                />
               </div>
             </div>
           </div>
@@ -107,6 +139,13 @@
                 <h3 class="selected-tour-title">
                   <i class="bi bi-truck"></i>
                   Tournée du {{ formatDate(selected.date) }}
+                  <span
+                    v-if="isUrgent(selected)"
+                    class="badge badge-urgent"
+                    style="font-size:.7rem;vertical-align:middle;"
+                  >
+                    <i class="ri-alarm-warning-line"></i> Urgent
+                  </span>
                 </h3>
                 <p class="selected-tour-meta">{{ selected.steps.length }} arrêt(s)</p>
               </div>
@@ -135,15 +174,15 @@
               </div>
             </div>
 
-            <!-- PROCHAIN ARRET -->
-            <div v-if="selected.steps.length" class="next-stop-card">
+            <!-- PROCHAIN ARRET (premier arrêt trié) -->
+            <div v-if="nextStop(selected)" class="next-stop-card">
               <div class="next-stop-label">Prochain arrêt</div>
-              <h4>{{ selected.steps[0].container?.address || 'Conteneur ' + selected.steps[0].container?.code }}</h4>
+              <h4>{{ nextStop(selected).container?.address || 'Conteneur ' + nextStop(selected).container?.code }}</h4>
               <p>
                 Conteneur :
-                <strong>{{ selected.steps[0].container?.code }}</strong>
-                — {{ selected.steps[0].container?.type }}
-                — {{ selected.steps[0].container?.fillLevel ?? '?' }}% plein
+                <strong>{{ nextStop(selected).container?.code }}</strong>
+                — {{ nextStop(selected).container?.type }}
+                — {{ nextStop(selected).container?.fillLevel ?? '?' }}% plein
               </p>
             </div>
 
@@ -155,10 +194,18 @@
               <p>{{ progressPct(selected) }}% de la tournée réalisée</p>
             </div>
 
+            <!-- CARTE INTERACTIVE -->
+            <div v-if="showMap" class="map-section mt-6">
+              <div v-if="mapLoading" class="map-loading-overlay">
+                <i class="ri-loader-4-line"></i> Chargement de la carte…
+              </div>
+              <div id="my-route-map" class="route-map"></div>
+            </div>
+
             <!-- TIMELINE des étapes -->
             <div class="timeline mt-8">
-              <div v-for="step in selected.steps" :key="step.id" class="timeline-item">
-                <div class="timeline-marker">{{ step.order }}</div>
+              <div v-for="step in sortedSteps(selected)" :key="step.id" class="timeline-item">
+                <div class="timeline-marker">{{ step.stepOrder ?? step.order }}</div>
                 <div class="timeline-content">
                   <div class="stop-card">
                     <div class="flex justify-between items-start">
@@ -175,7 +222,6 @@
                       </span>
                     </div>
 
-                    <!-- Barre remplissage -->
                     <div class="container-progress mt-3">
                       <div
                         class="container-progress-bar"
@@ -210,6 +256,14 @@
               >
                 Annuler
               </button>
+              <button class="btn-secondary" :disabled="mapLoading" @click="toggleMap(selected)">
+                <i :class="showMap ? 'ri-map-2-line' : 'ri-map-line'"></i>
+                {{ showMap ? 'Masquer la carte' : 'Voir la carte' }}
+              </button>
+              <button class="btn-secondary" :disabled="exportingPDF" @click="exportPDF(selected)">
+                <i class="ri-file-pdf-line"></i>
+                {{ exportingPDF ? 'Génération…' : 'Exporter PDF' }}
+              </button>
             </div>
 
           </div>
@@ -224,6 +278,8 @@
 </template>
 
 <script>
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import AppHeader from "@/components/AppHeader/AppHeader.vue"
 import routeService from "@/services/routes/routeService.js"
 import authStorage from "@/services/authStorage.js"
@@ -235,16 +291,39 @@ export default {
 
   data() {
     return {
-      toast: useToast(),
-      tours:    [],
-      selected: null,
-      loading:  true,
+      toast:           useToast(),
+      tours:           [],
+      selected:        null,
+      loading:         true,
+      today:           new Date().setHours(0, 0, 0, 0),
+      _todayInterval:  null,
+      routeTab:        'upcoming',
+      showMap:         false,
+      mapLoading:      false,
+      _mapInstance:    null,
+      exportingPDF:    false,
+      currentUserName: '',
     }
   },
 
   async mounted() {
     await this.fetchMyRoutes()
-    if (this.tours.length) this.selected = this.tours[0]
+
+    try {
+      const profile = await authStorage.getProfile()
+      this.currentUserName = profile.data?.name || profile.name || ''
+    } catch { /* profil non critique */ }
+
+    this.selected = this.upcomingTours[0] ?? this.historyTours[0] ?? null
+
+    this._todayInterval = setInterval(() => {
+      this.today = new Date().setHours(0, 0, 0, 0)
+    }, 60_000)
+  },
+
+  beforeUnmount() {
+    clearInterval(this._todayInterval)
+    this._destroyMap()
   },
 
   computed: {
@@ -262,9 +341,36 @@ export default {
       const total = this.tours.reduce((sum, t) => sum + (t.totalDistance ?? 0), 0)
       return total ? total.toFixed(1) : '—'
     },
+
+    upcomingTours() {
+      return this.tours
+        .filter(t => ['planned', 'in_progress'].includes(t.status))
+        .sort((a, b) => {
+          const ua = this.isUrgent(a) ? 0 : 1
+          const ub = this.isUrgent(b) ? 0 : 1
+          if (ua !== ub) return ua - ub
+          return new Date(a.date) - new Date(b.date)
+        })
+    },
+
+    historyTours() {
+      return this.tours
+        .filter(t => ['completed', 'cancelled'].includes(t.status))
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+    },
+
+    displayedTours() {
+      return this.routeTab === 'upcoming' ? this.upcomingTours : this.historyTours
+    },
+
+    urgentCount() {
+      return this.tours.filter(t => this.isUrgent(t)).length
+    },
   },
 
   methods: {
+    // ── Data ───────────────────────────────────────────────────────────────
+
     async fetchMyRoutes() {
       this.loading = true
       try {
@@ -273,7 +379,7 @@ export default {
         const res = await routeService.getByAgent(agentId)
         this.tours = res.data
         if (this.selected) {
-          this.selected = this.tours.find(t => t.id === this.selected.id) ?? this.tours[0] ?? null
+          this.selected = this.tours.find(t => t.id === this.selected.id) ?? null
         }
       } catch {
         this.toast.error('Erreur lors du chargement de vos tournées.')
@@ -283,7 +389,19 @@ export default {
     },
 
     selectTour(tour) {
+      if (this.selected?.id !== tour.id) {
+        this._destroyMap()
+        this.showMap = false
+      }
       this.selected = tour
+    },
+
+    switchTab(tab) {
+      this.routeTab = tab
+      this._destroyMap()
+      this.showMap = false
+      const list = tab === 'upcoming' ? this.upcomingTours : this.historyTours
+      this.selected = list[0] ?? null
     },
 
     async changeStatus(tour, status) {
@@ -297,11 +415,128 @@ export default {
       }
     },
 
+    // ── Carte ──────────────────────────────────────────────────────────────
+
+    async toggleMap(tour) {
+      if (this.showMap) {
+        this.showMap = false
+        this._destroyMap()
+        return
+      }
+      this.showMap = true
+      this.mapLoading = true
+      try {
+        const { data } = await routeService.getMap(tour.id)
+        // div est dans le DOM (v-if=true), on attend le rendu avant d'init
+        await this.$nextTick()
+        this._initMap(data)
+      } catch {
+        this.toast.error('Impossible de charger la carte.')
+        this.showMap = false
+      } finally {
+        this.mapLoading = false
+        // recalcule la taille après que l'overlay de chargement disparaît
+        this.$nextTick(() => this._mapInstance?.invalidateSize())
+      }
+    },
+
+    _initMap(mapData) {
+      this._destroyMap()
+      const el = document.getElementById('my-route-map')
+      if (!el) return
+
+      const map = L.map(el, { zoomControl: true })
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map)
+
+      // Le backend renvoie du GeoJSON — [lng, lat] → Leaflet veut [lat, lng]
+      const features = mapData.features ?? []
+      const coords = []
+
+      features
+        .filter(f => f.geometry?.type === 'Point')
+        .forEach((f) => {
+          const [lng, lat] = f.geometry.coordinates
+          const fill = f.properties.fillLevel ?? 0
+          const color = fill >= 90 ? '#ef4444' : fill >= 70 ? '#f59e0b' : '#10b981'
+          L.circleMarker([lat, lng], {
+            radius: 10, color, fillColor: color, fillOpacity: 0.85, weight: 2,
+          })
+            .bindPopup(
+              `<b>Arrêt ${f.properties.stepOrder ?? '?'}</b><br>` +
+              `Zone : ${f.properties.zoneId ?? '—'}<br>` +
+              `Remplissage : ${fill}%`
+            )
+            .addTo(map)
+          coords.push([lat, lng])
+        })
+
+      const line = features.find(f => f.geometry?.type === 'LineString')
+      if (line?.geometry.coordinates.length >= 2) {
+        const linePts = line.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+        L.polyline(linePts, { color: '#10b981', weight: 3, dashArray: '6 4' }).addTo(map)
+      }
+
+      if (coords.length) {
+        map.fitBounds(coords, { padding: [30, 30] })
+      } else {
+        map.setView([48.8566, 2.3522], 12)
+        this.toast.warning('Aucun conteneur avec coordonnées GPS sur cette tournée.')
+      }
+
+      this._mapInstance = map
+    },
+
+    _destroyMap() {
+      if (this._mapInstance) {
+        this._mapInstance.remove()
+        this._mapInstance = null
+      }
+    },
+
+    // ── PDF ────────────────────────────────────────────────────────────────
+
+    async exportPDF(tour) {
+      this.exportingPDF = true
+      try {
+        const res = await routeService.exportPDF(tour.id, this.currentUserName)
+        const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tournee-${(tour.date ?? '').slice(0, 10) || 'export'}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch {
+        this.toast.error('Erreur lors de la génération du PDF.')
+      } finally {
+        this.exportingPDF = false
+      }
+    },
+
     // ── Helpers ────────────────────────────────────────────────────────────
+
+    isUrgent(tour) {
+      if (!['planned', 'in_progress'].includes(tour.status)) return false
+      const tourDate = new Date(tour.date).setHours(0, 0, 0, 0)
+      return tourDate < this.today
+    },
+
+    sortedSteps(tour) {
+      return [...(tour.steps ?? [])].sort(
+        (a, b) => (a.stepOrder ?? a.order ?? 0) - (b.stepOrder ?? b.order ?? 0)
+      )
+    },
+
+    nextStop(tour) {
+      if (!tour.steps.length) return null
+      if (['completed', 'cancelled'].includes(tour.status)) return null
+      return this.sortedSteps(tour)[0] ?? null
+    },
 
     progressPct(tour) {
       if (tour.status === 'completed') return 100
-      if (tour.status === 'cancelled') return 0
       if (tour.status === 'in_progress') return 50
       return 0
     },
@@ -325,11 +560,21 @@ export default {
     },
 
     getStatusClass(s) {
-      return { planned: 'badge-warning', in_progress: 'badge-info', completed: 'badge-success', cancelled: 'badge-cancelled' }[s] ?? 'badge-warning'
+      return {
+        planned:     'badge-warning',
+        in_progress: 'badge-info',
+        completed:   'badge-success',
+        cancelled:   'badge-cancelled',
+      }[s] ?? 'badge-warning'
     },
 
     statusLabel(s) {
-      return { planned: 'À démarrer', in_progress: 'En cours', completed: 'Terminée', cancelled: 'Annulée' }[s] ?? s
+      return {
+        planned:     'À démarrer',
+        in_progress: 'En cours',
+        completed:   'Terminée',
+        cancelled:   'Annulée',
+      }[s] ?? s
     },
 
     fillBadge(v) {
@@ -372,26 +617,52 @@ export default {
 .stats-label { font-size: .85rem; color: #64748b; margin-bottom: 8px; }
 .stats-card strong { font-size: 1.7rem; color: #0f172a; }
 
+/* ── Tabs ─────────────────────────────────────── */
+.tour-tabs {
+  display: flex; gap: 4px;
+  background: #f1f5f9; border-radius: 14px; padding: 4px;
+}
+.tab-btn {
+  flex: 1; padding: 8px 12px; border-radius: 10px;
+  font-size: .85rem; font-weight: 600; color: #64748b;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all .2s;
+}
+.tab-btn:hover { color: #0f172a; }
+.tab-active { background: white; color: #0f172a; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+.tab-count {
+  background: #e2e8f0; color: #475569;
+  border-radius: 999px; padding: 1px 7px; font-size: .75rem;
+}
+.tab-active .tab-count { background: #dcfce7; color: #166534; }
+
+/* ── Tour cards ───────────────────────────────── */
 .tour-card {
   background: #f8fafc; border: 1px solid #e2e8f0;
   border-radius: 18px; padding: 18px; cursor: pointer; transition: all .25s;
 }
 .tour-card:hover { transform: translateY(-2px); border-color: #a7f3d0; box-shadow: 0 12px 30px rgba(15,23,42,.06); }
 .tour-card-active { background: #ecfdf5; border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.08); }
+.tour-card-urgent { border-color: #fbbf24 !important; background: #fffbeb !important; }
+.tour-card-urgent:hover { border-color: #f59e0b !important; }
 .tour-title { font-size: 1rem; font-weight: 700; color: #0f172a; }
 .tour-meta { margin-top: 6px; color: #64748b; font-size: .85rem; }
 .tour-footer { display: flex; justify-content: space-between; margin-top: 14px; color: #64748b; font-size: .85rem; }
 
 .mini-progress { height: 6px; margin-top: 14px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
 .mini-progress-bar { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 999px; transition: width .3s; }
+.mini-progress-urgent { background: linear-gradient(90deg, #f59e0b, #fbbf24) !important; }
 
+/* ── Badges ───────────────────────────────────── */
 .badge { padding: 6px 12px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
 .badge-success   { background: #dcfce7; color: #166534; }
 .badge-warning   { background: #ffedd5; color: #9a3412; }
 .badge-info      { background: #dbeafe; color: #1d4ed8; }
 .badge-danger    { background: #fee2e2; color: #991b1b; }
 .badge-cancelled { background: #f1f5f9; color: #64748b; }
+.badge-urgent    { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; display: inline-flex; align-items: center; gap: 4px; }
 
+/* ── Detail ───────────────────────────────────── */
 .details-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .selected-tour-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; }
 .selected-tour-meta { margin-top: 6px; color: #64748b; }
@@ -415,6 +686,16 @@ export default {
 .progress-bar { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width .3s; }
 .summary-progress p { margin-top: 10px; font-size: .85rem; color: #64748b; }
 
+/* ── Carte ────────────────────────────────────── */
+.map-section { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid #e2e8f0; }
+.route-map { height: 320px; width: 100%; }
+.map-loading-overlay {
+  position: absolute; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: #f8fafc; color: #64748b; gap: 8px;
+}
+
+/* ── Timeline ─────────────────────────────────── */
 .timeline { position: relative; }
 .timeline::before { content: ""; position: absolute; top: 0; left: 16px; bottom: 0; width: 2px; background: #cbd5e1; }
 .timeline-item { position: relative; padding-left: 55px; margin-bottom: 24px; }
@@ -431,19 +712,24 @@ export default {
 .container-progress { height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
 .container-progress-bar { height: 100%; border-radius: 999px; transition: width .3s; }
 
+/* ── Actions ──────────────────────────────────── */
 .sticky-actions {
   position: sticky; bottom: 0; margin-top: 28px;
   background: white; border-top: 1px solid #e2e8f0;
   padding-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;
 }
 
-.btn-primary, .btn-danger {
+.btn-primary, .btn-danger, .btn-secondary {
   border-radius: 14px; padding: 12px 18px; font-weight: 600; transition: .2s;
+  display: inline-flex; align-items: center; gap: 6px;
 }
-.btn-primary { background: #10b981; color: white; }
-.btn-primary:hover { background: #059669; }
-.btn-danger  { background: #ef4444; color: white; }
-.btn-danger:hover { background: #dc2626; }
+.btn-primary  { background: #10b981; color: white; }
+.btn-primary:hover:not(:disabled)   { background: #059669; }
+.btn-danger   { background: #ef4444; color: white; }
+.btn-danger:hover:not(:disabled)    { background: #dc2626; }
+.btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.btn-secondary:hover:not(:disabled) { background: #e2e8f0; color: #0f172a; }
+.btn-primary:disabled, .btn-danger:disabled, .btn-secondary:disabled { opacity: .55; cursor: not-allowed; }
 
 .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
 .empty-state i { font-size: 3rem; display: block; margin-bottom: 16px; color: #94a3b8; }

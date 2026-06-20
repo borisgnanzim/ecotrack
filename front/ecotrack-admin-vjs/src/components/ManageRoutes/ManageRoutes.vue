@@ -401,7 +401,17 @@
           <div class="modal-actions">
             <button class="btn-ghost" @click="showDetail = false">Fermer</button>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap justify-end">
+              <!-- Éditer (planned ou in_progress) -->
+              <button
+                v-if="['planned', 'in_progress'].includes(detailRoute.status)"
+                class="btn-mini"
+                @click="openEdit(detailRoute); showDetail = false"
+              >
+                <i class="ri-pencil-line"></i>
+                Éditer
+              </button>
+
               <!-- Export PDF -->
               <button
                 class="btn-mini"
@@ -599,6 +609,119 @@
       </div>
     </transition>
 
+    <!-- ── MODAL ÉDITER TOURNÉE ─────────────────────────────────────────────── -->
+    <transition name="fade">
+      <div v-if="showEdit" class="modal-overlay">
+        <div class="assign-modal">
+
+          <div class="modal-header">
+            <div>
+              <h3>Modifier la tournée</h3>
+              <p class="text-sm text-slate-500 mt-1">Tournée du {{ formatDate(editForm.date) }}</p>
+            </div>
+            <button @click="showEdit = false" class="close-btn">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+
+          <div class="modal-content">
+            <div class="form-group">
+              <label>Date de collecte *</label>
+              <input v-model="editForm.date" type="date" class="input-modern" />
+            </div>
+            <div class="form-group">
+              <label>Agent</label>
+              <select v-model="editForm.agentId" class="input-modern">
+                <option :value="null">Aucun agent</option>
+                <option v-for="a in agentsList" :key="a.id" :value="a.id">{{ a.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Heure de départ</label>
+              <input v-model="editForm.startTime" type="time" class="input-modern" />
+            </div>
+
+            <!-- Zone + conteneurs -->
+            <div class="form-group">
+              <label>Zone de collecte</label>
+              <select v-model="editForm.zoneId" class="input-modern" @change="onEditZoneChange">
+                <option :value="null">Sélectionner une zone</option>
+                <option v-for="z in zones" :key="z.id" :value="z.id">
+                  {{ z.name }} — {{ z.city }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="loadingContainers" class="text-sm text-slate-400 text-center py-2">
+              Chargement des conteneurs…
+            </div>
+
+            <div v-if="!loadingContainers && zoneContainers.length" class="form-group">
+              <label>Conteneurs à inclure</label>
+
+              <div class="fill-filters">
+                <button
+                  v-for="f in fillFilters" :key="f.value"
+                  class="fill-filter-btn"
+                  :class="[f.cls, { active: containerFilter === f.value }]"
+                  @click="containerFilter = f.value"
+                  type="button"
+                >
+                  {{ f.label }}
+                  <span class="fill-filter-count">{{ fillFilterCount(f.value) }}</span>
+                </button>
+              </div>
+
+              <div class="container-list">
+                <label
+                  v-for="c in filteredZoneContainers"
+                  :key="c.id"
+                  class="container-item"
+                  :class="{ selected: editForm.containerIds.includes(c.id) }"
+                >
+                  <input
+                    type="checkbox"
+                    :value="c.id"
+                    v-model="editForm.containerIds"
+                    class="container-checkbox"
+                  />
+                  <div class="container-info">
+                    <div class="container-top">
+                      <span class="container-code">{{ c.code }}</span>
+                      <span class="container-type">{{ c.type }}</span>
+                      <span class="fill-badge" :class="fillClass(c.fillLevel)">
+                        {{ c.fillLevel ?? 0 }}%
+                      </span>
+                    </div>
+                    <div class="fill-bar-wrap">
+                      <div
+                        class="fill-bar-inner"
+                        :class="fillClass(c.fillLevel)"
+                        :style="{ width: (c.fillLevel ?? 0) + '%' }"
+                      ></div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">
+                {{ editForm.containerIds.length }} conteneur(s) sélectionné(s)
+              </p>
+            </div>
+
+            <div v-if="!loadingContainers && editForm.zoneId && !zoneContainers.length" class="text-sm text-slate-400 text-center py-2">
+              Aucun conteneur dans cette zone.
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="showEdit = false">Annuler</button>
+            <button class="btn-primary" @click="submitEdit">Enregistrer</button>
+          </div>
+
+        </div>
+      </div>
+    </transition>
+
     <!-- ── MODAL ASSIGNER AGENT ────────────────────────────────────────────── -->
     <transition name="fade">
       <div v-if="showAssignModal" class="modal-overlay">
@@ -684,7 +807,17 @@ export default {
 
       showCreate:      false,
       showAssignModal: false,
+      showEdit:        false,
       selectedRoute:   null,
+
+      editForm: {
+        id:           null,
+        date:         '',
+        agentId:      null,
+        startTime:    '',
+        zoneId:       null,
+        containerIds: [],
+      },
 
       zoneContainers:    [],
       loadingContainers: false,
@@ -1120,6 +1253,85 @@ export default {
       }
     },
 
+    // ── Edit ───────────────────────────────────────────────────────────────
+
+    openEdit(route) {
+      const containerIds = route.containerIds?.length
+        ? route.containerIds
+        : route.steps.map(s => s.container?.id).filter(Boolean)
+
+      // zoneId dans le conteneur est le nom de la zone (ex: "West"), pas l'UUID
+      // On résout l'UUID depuis this.zones en cherchant par id puis par name
+      const rawZoneId = route.steps?.[0]?.container?.zoneId ?? null
+      const zoneObj = rawZoneId
+        ? (this.zones.find(z => z.id === rawZoneId) ?? this.zones.find(z => z.name === rawZoneId))
+        : null
+      const zoneId = zoneObj?.id ?? null
+
+      this.editForm = {
+        id:           route.id,
+        date:         route.date?.slice(0, 10) ?? '',
+        agentId:      route.agentId ?? null,
+        startTime:    route.startTime
+          ? new Date(route.startTime).toTimeString().slice(0, 5)
+          : '',
+        zoneId,
+        containerIds,
+      }
+      this.zoneContainers = []
+      this.containerFilter = 'all'
+      if (zoneId) this._loadEditZone(zoneId)
+      this.showEdit = true
+    },
+
+    async _loadEditZone(zoneId) {
+      this.loadingContainers = true
+      try {
+        const res = await zoneService.getContainers(zoneId)
+        this.zoneContainers = res.data ?? []
+      } catch {
+        this.toast.error('Impossible de charger les conteneurs.')
+      } finally {
+        this.loadingContainers = false
+      }
+    },
+
+    async onEditZoneChange() {
+      const zid = this.editForm.zoneId
+      this.editForm.containerIds = []
+      this.zoneContainers = []
+      this.containerFilter = 'all'
+      if (zid) await this._loadEditZone(zid)
+    },
+
+    async submitEdit() {
+      if (!this.editForm.date) {
+        this.toast.warning('La date est obligatoire.')
+        return
+      }
+      try {
+        const payload = {
+          date:         this.editForm.date,
+          agentId:      this.editForm.agentId || null,
+          startTime:    this.editForm.startTime
+            ? new Date(`${this.editForm.date}T${this.editForm.startTime}`).toISOString()
+            : null,
+          containerIds: this.editForm.containerIds.length
+            ? this.editForm.containerIds
+            : undefined,
+        }
+        await routeService.update(this.editForm.id, payload)
+        this.toast.success('Tournée modifiée avec succès.')
+        this.showEdit = false
+        await this.fetchRoutes()
+        if (this.detailRoute?.id === this.editForm.id) {
+          this.detailRoute = this.routes.find(r => r.id === this.editForm.id) ?? null
+        }
+      } catch (err) {
+        this.toast.error(err.response?.data?.error || 'Erreur lors de la modification.')
+      }
+    },
+
     // ── Optimize ───────────────────────────────────────────────────────────
 
     async optimizeRoute(route) {
@@ -1391,8 +1603,8 @@ main { min-height: calc(100vh - 112px); }
 textarea.input-modern { resize: vertical; }
 .modal-actions {
   padding: 20px 24px; border-top: 1px solid #e2e8f0;
-  display: flex; justify-content: flex-end; gap: 12px;
-  flex-shrink: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-shrink: 0; flex-wrap: wrap;
 }
 .close-btn {
   width: 38px; height: 38px; border-radius: 12px;

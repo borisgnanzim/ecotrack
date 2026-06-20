@@ -2,9 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import authStorage from '@/services/authStorage'
 import { logout } from '@/services/authStorage'
-import whosRole from '@/services/roles/whosRole';
-
-const APP_AUTH_URL = import.meta.env.VITE_APP_AUTH_URL
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -158,44 +155,32 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
 
-  // 3. Vérification token (expiration ou invalide)
-  if (isAuthenticated) {
+  // 3 + 4. Vérification token et rôles en un seul appel
+  if (isAuthenticated && (to.meta.requiresAuth || to.meta.roles?.length)) {
+    let userRoles = null
     try {
-      // ici on appele une API pour vérifier expiration JWT
-      await authStorage.getDBRoles() // test simple
-
+      userRoles = await authStorage.getDBRoles()
     } catch (err) {
-      console.log("Token invalide → logout")
-
-      logout()
-
-      return { name: 'login' }
+      const status = err?.response?.status
+      // Logout uniquement si le serveur confirme un token invalide/expiré
+      // On ignore les erreurs réseau (status undefined) pour ne pas déconnecter inutilement
+      if (status === 400 || status === 401) {
+        console.log("Token invalide → logout")
+        logout()
+        return { name: 'login' }
+      }
+      // Erreur réseau ou serveur : on laisse passer sans vérification de rôle
+      return
     }
-  }
 
-  // 4. Vérification des rôles
-  if (to.meta.roles && to.meta.roles.length > 0) {
-    try {
-      const userRoles = await authStorage.getDBRoles()
-
+    if (to.meta.roles?.length) {
       if (!userRoles || userRoles.length === 0) {
         return { name: 'forbidden' }
       }
-
-      const hasAccess = userRoles.some(role =>
-        to.meta.roles.includes(role)
-      )
-
+      const hasAccess = userRoles.some(role => to.meta.roles.includes(role))
       if (!hasAccess) {
         return { name: 'forbidden' }
       }
-
-    } catch (err) {
-      console.log("Erreur rôles :", err)
-
-      logout()
-
-      return { name: 'login' }
     }
   }
 
