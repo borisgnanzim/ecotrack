@@ -80,7 +80,7 @@ exports.getRouteMap = async (req, res) => {
 exports.exportPDF = async (req, res) => {
   try {
     const route = await routeService.getById(req.params.id);
-    const pdf = await generateRoutePDF(route);
+    const pdf = await generateRoutePDF(route, req.query.agentName);
 
     res.set({
       'Content-Type': 'application/pdf',

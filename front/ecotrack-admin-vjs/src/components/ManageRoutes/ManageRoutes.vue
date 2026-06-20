@@ -319,15 +319,59 @@
 
           <div class="modal-actions">
             <button class="btn-ghost" @click="showDetail = false">Fermer</button>
-            <button
-              class="btn-primary"
-              style="font-size:.85rem; padding: 10px 16px"
-              :disabled="detailRoute.status !== 'planned'"
-              @click="optimizeRoute(detailRoute); showDetail = false"
-            >
-              <i class="ri-route-line"></i>
-              Optimiser
-            </button>
+
+            <div class="flex gap-2">
+              <!-- Export PDF -->
+              <button
+                class="btn-mini"
+                :disabled="exportingPDF"
+                @click="exportPDF(detailRoute)"
+              >
+                <i v-if="exportingPDF" class="ri-loader-4-line spin"></i>
+                <i v-else class="ri-file-pdf-line"></i>
+                PDF
+              </button>
+
+              <!-- Optimiser (planned uniquement) -->
+              <button
+                v-if="detailRoute.status === 'planned'"
+                class="btn-mini"
+                @click="optimizeRoute(detailRoute); showDetail = false"
+              >
+                <i class="ri-route-line"></i>
+                Optimiser
+              </button>
+
+              <!-- Démarrer : planned → in_progress -->
+              <button
+                v-if="detailRoute.status === 'planned'"
+                class="btn-status btn-status-start"
+                @click="changeStatusAdmin(detailRoute, 'in_progress')"
+              >
+                <i class="ri-play-circle-line"></i>
+                Démarrer
+              </button>
+
+              <!-- Terminer : in_progress → completed -->
+              <button
+                v-if="detailRoute.status === 'in_progress'"
+                class="btn-status btn-status-done"
+                @click="changeStatusAdmin(detailRoute, 'completed')"
+              >
+                <i class="ri-checkbox-circle-line"></i>
+                Terminer
+              </button>
+
+              <!-- Annuler : planned ou in_progress → cancelled -->
+              <button
+                v-if="['planned','in_progress'].includes(detailRoute.status)"
+                class="btn-status btn-status-cancel"
+                @click="changeStatusAdmin(detailRoute, 'cancelled')"
+              >
+                <i class="ri-close-circle-line"></i>
+                Annuler
+              </button>
+            </div>
           </div>
 
         </div>
@@ -533,6 +577,7 @@ export default {
       zoneContainers:    [],
       loadingContainers: false,
       containerFilter:   'all',
+      exportingPDF:      false,
 
       createForm: {
         date:         '',
@@ -662,6 +707,38 @@ export default {
       this.zoneContainers = []
       this.containerFilter = 'all'
       this.showCreate = true
+    },
+
+    async exportPDF(route) {
+      this.exportingPDF = true
+      try {
+        const agentName = this.getAgentName(route.agentId)
+        const res = await routeService.exportPDF(route.id, agentName !== 'Non assigné' ? agentName : null)
+        const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tournee-${this.formatDate(route.date).replace(/\//g, '-')}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch {
+        this.toast.error('Impossible de générer le PDF.')
+      } finally {
+        this.exportingPDF = false
+      }
+    },
+
+    async changeStatusAdmin(route, status) {
+      try {
+        await routeService.update(route.id, { status })
+        const labels = { in_progress: 'démarrée', completed: 'terminée', cancelled: 'annulée' }
+        this.toast.success(`Tournée ${labels[status]}.`)
+        await this.fetchRoutes()
+        // Mettre à jour detailRoute avec les données fraîches
+        this.detailRoute = this.routes.find(r => r.id === route.id) ?? null
+        if (!this.detailRoute) this.showDetail = false
+      } catch (err) {
+        this.toast.error(err.response?.data?.error || 'Erreur lors du changement de statut.')
+      }
     },
 
     openDetail(r) {
@@ -1105,6 +1182,23 @@ textarea.input-modern { resize: vertical; }
 
 /* Carte cliquable */
 .tour-card-clickable { cursor: pointer; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display: inline-block; animation: spin .7s linear infinite; }
+
+/* Boutons de changement de statut dans le modal détail */
+.btn-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 12px;
+  font-size: .85rem; font-weight: 600;
+  transition: all .15s;
+}
+.btn-status-start  { background: #dbeafe; color: #1d4ed8; }
+.btn-status-start:hover  { background: #bfdbfe; }
+.btn-status-done   { background: #dcfce7; color: #166534; }
+.btn-status-done:hover   { background: #bbf7d0; }
+.btn-status-cancel { background: #fee2e2; color: #991b1b; }
+.btn-status-cancel:hover { background: #fecaca; }
 
 /* Modal détail — plus large */
 .detail-modal { max-width: 620px !important; }

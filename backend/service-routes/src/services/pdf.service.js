@@ -3,7 +3,7 @@ const PDFDocument = require('pdfkit');
 /**
  * Génère un PDF de feuille de route et retourne un Buffer
  */
-const generateRoutePDF = (route) =>
+const generateRoutePDF = (route, agentName) =>
   new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
     const chunks = [];
@@ -19,7 +19,7 @@ const generateRoutePDF = (route) =>
     // ── En-tête ──────────────────────────────────────────────────────────
     doc.rect(0, 0, doc.page.width, 80).fill(primaryColor);
     doc.fillColor('white').fontSize(22).font('Helvetica-Bold')
-      .text('🗺  FEUILLE DE ROUTE', 50, 25, { align: 'left' });
+      .text('FEUILLE DE TOURNÉE', 50, 25, { align: 'left' });
     doc.fontSize(11).font('Helvetica')
       .text(`Généré le ${new Date().toLocaleString('fr-FR')}`, 50, 52);
 
@@ -34,10 +34,9 @@ const generateRoutePDF = (route) =>
     doc.fontSize(11).font('Helvetica').fillColor(darkGray);
 
     const info = [
-      ['ID de la route', route.id],
       ['Date', new Date(route.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })],
       ['Statut', route.status.toUpperCase()],
-      ['Agent', route.agent ? `${route.agent.name || route.agent.username} (${route.agent.email})` : 'Non assigné'],
+      ['Agent', agentName || route.agentId || 'Non assigné'],
       ['Distance totale', route.totalDistance ? `${route.totalDistance} km` : 'Non calculée'],
       ['Durée estimée', route.estimatedTime ? `${route.estimatedTime} min (${Math.floor(route.estimatedTime / 60)}h${route.estimatedTime % 60}min)` : 'Non calculée'],
       ['Heure de début', route.startTime ? new Date(route.startTime).toLocaleTimeString('fr-FR') : 'Non définie'],
