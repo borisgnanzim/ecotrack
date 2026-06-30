@@ -118,7 +118,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "3012:3001"
+      - "3012:3012"
     environment:
       PORT: 3012
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_containers?schema=public
@@ -217,8 +217,8 @@ services:
       PORT: 3010
       USERS_SERVICE_URL: http://service-users:3011
       USERS_SERVICE_PORT: 3011
-      CONTAINERS_SERVICE_URL: http://service-containers:3001
-      CONTAINERS_SERVICE_PORT: 3001
+      CONTAINERS_SERVICE_URL: http://service-containers:3012
+      CONTAINERS_SERVICE_PORT: 3012
       ROUTES_SERVICE_URL: http://service-routes:3013
       ROUTES_SERVICE_PORT: 3013
       ANALYTICS_SERVICE_URL: http://service-analytics:3014
