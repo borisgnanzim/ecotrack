@@ -54,7 +54,7 @@
     "prisma@5.22.0": true,
     "sharp@0.32.6": true,
     "unrs-resolver@1.11.1": true
-  }
+  },
   "overrides": {
     "ws": "8.21.0",
     "fast-uri": "4.0.1"
