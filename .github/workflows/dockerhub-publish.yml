@@ -1,0 +1,79 @@
+name: Publish Docker Hub images
+
+on:
+  push:
+    branches: [main, develop, dev]
+    paths:
+      - 'backend/**'
+      - 'front/**'
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.dockerhub.yml'
+      - '.github/workflows/dockerhub-publish.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: service-users
+            context: ./backend/service-users
+            image: ecotrack-service-users
+          - name: service-containers
+            context: ./backend/service-containers
+            image: ecotrack-service-containers
+          - name: service-routes
+            context: ./backend/service-routes
+            image: ecotrack-service-routes
+          - name: service-analytics
+            context: ./backend/service-analytics
+            image: ecotrack-service-analytics
+          - name: service-gamification
+            context: ./backend/service-gamification
+            image: ecotrack-service-gamification
+          - name: service-iot
+            context: ./backend/service-iot
+            image: ecotrack-service-iot
+          - name: service-api-gateway
+            context: ./backend/service-api-gateway
+            image: ecotrack-service-api-gateway
+          - name: ecotrack-admin
+            context: ./front/ecotrack-admin-vjs
+            image: ecotrack-admin
+          - name: ecotrack-citoyen
+            context: ./front/ecotrack-citoyen-vjs
+            image: ecotrack-citoyen
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

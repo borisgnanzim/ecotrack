@@ -92,8 +92,7 @@ services:
     restart: unless-stopped
 
   service-users:
-    build:
-      context: ./backend/service-users
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-users:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,13 +106,12 @@ services:
       KAFKA_BROKERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET:-jwt-secret}
       NOTIFICATION_MODE: local
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
 
   service-containers:
-    build:
-      context: ./backend/service-containers
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-containers:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,13 +124,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_containers?schema=public
       KAFKA_BROKERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET:-jwt-secret}
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
 
   service-routes:
-    build:
-      context: ./backend/service-routes
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-routes:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,13 +142,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_routes?schema=public
       KAFKA_BROKERS: kafka:29092
       JWT_SECRET: ${JWT_SECRET:-jwt-secret}
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
 
   service-analytics:
-    build:
-      context: ./backend/service-analytics
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-analytics:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -163,13 +159,12 @@ services:
       PORT: 3014
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_analytics?schema=public
       KAFKA_BROKERS: kafka:29092
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
 
   service-gamification:
-    build:
-      context: ./backend/service-gamification
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-gamification:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -186,8 +181,7 @@ services:
     restart: unless-stopped
 
   service-iot:
-    build:
-      context: ./backend/service-iot
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-iot:${IMAGE_TAG:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -203,8 +197,7 @@ services:
     restart: unless-stopped
 
   service-api-gateway:
-    build:
-      context: ./backend/service-api-gateway
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-api-gateway:${IMAGE_TAG:-latest}
     depends_on:
       service-users:
         condition: service_started
@@ -238,29 +231,23 @@ services:
       CLUSTER_WORKERS: 2
       JWT_SECRET: ${JWT_SECRET:-jwt-secret}
       JWT_EXPIRES_IN: 1h
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
     restart: unless-stopped
 
   ecotrack-admin:
-    build:
-      context: ./front/ecotrack-admin-vjs
-      args:
-        VITE_APP_BACK_API_GATEWAY: http://localhost:3010
-    ports:
-      - "3000:80"
+    image: ${DOCKERHUB_USERNAME}/ecotrack-admin:${IMAGE_TAG:-latest}
     depends_on:
       - service-api-gateway
+    ports:
+      - "3000:80"
     restart: unless-stopped
 
   ecotrack-citoyen:
-    build:
-      context: ./front/ecotrack-citoyen-vjs
-      args:
-        VITE_APP_BACK_API_GATEWAY: http://localhost:3010
-    ports:
-      - "3001:80"
+    image: ${DOCKERHUB_USERNAME}/ecotrack-citoyen:${IMAGE_TAG:-latest}
     depends_on:
       - service-api-gateway
+    ports:
+      - "3001:80"
     restart: unless-stopped
 
 volumes:

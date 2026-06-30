@@ -3,8 +3,9 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
+COPY prisma ./prisma
 
-RUN npm ci && npm cache clean --force
+RUN npm ci && npx prisma generate && npm cache clean --force
 
 COPY . .
 
