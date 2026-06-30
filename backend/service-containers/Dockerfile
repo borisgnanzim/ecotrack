@@ -24,6 +24,6 @@ WORKDIR /app
 # Copie les dépendances installées et le code source depuis l'étape de build.
 COPY --from=builder /app .
 
-EXPOSE 3001
+EXPOSE 3012
 
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
