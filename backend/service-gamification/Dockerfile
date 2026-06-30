@@ -1,6 +1,6 @@
 # --- Étape 1: Builder ---
 # Utilise une image Node.js complète pour installer les dépendances et construire le projet.
-FROM node:22-alpine
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Copie les dépendances installées et le code source depuis l'étape de build.
-COPY --from=0 /app .
+COPY --from=builder /app .
 
 EXPOSE 3015
 
