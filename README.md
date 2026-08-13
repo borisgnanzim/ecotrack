@@ -159,5 +159,6 @@ Consultez le dossier `docs/` pour une documentation détaillée :
 - **[Architecture](docs/architecture.md)** : Structure technique et composants
 - **[API Gateway](docs/gateway-usage.md)** : Guide d'utilisation du gateway et endpoints
 - **[API](docs/api.md)** : Endpoints et utilisation des APIs
+- **[Déploiement DigitalOcean](docs/digitalocean-deploy.md)** : Mise en ligne du stack EcoTrack sur une Droplet
 - **[Sécurité](docs/security.md)** : Mesures de protection implémentées
 - **[Performance](docs/performance.md)** : Optimisations et benchmarks
