@@ -18,23 +18,37 @@ class CacheService {
    */
   async connect() {
     try {
+      // this.client = redis.createClient({
+      //   host: process.env.REDIS_HOST || 'localhost',
+      //   port: process.env.REDIS_PORT || 6379,
+      //   password: process.env.REDIS_PASSWORD || undefined,
+      //   retry_strategy: (options) => {
+      //     if (options.error && options.error.code === 'ECONNREFUSED') {
+      //       console.error('Redis connection refused - Cache disabled');
+      //       return new Error('Redis connection refused');
+      //     }
+      //     if (options.total_retry_time > 1000 * 60 * 60) {
+      //       return new Error('Redis retry time exhausted');
+      //     }
+      //     if (options.attempt > 10) {
+      //       return undefined;
+      //     }
+      //     return Math.min(options.attempt * 100, 3000);
+      //   }
+      // });
       this.client = redis.createClient({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
-        password: process.env.REDIS_PASSWORD || undefined,
-        retry_strategy: (options) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            console.error('Redis connection refused - Cache disabled');
-            return new Error('Redis connection refused');
+        socket: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              console.error('Redis retry attempts exhausted - Cache disabled');
+              return new Error('Redis retry attempts exhausted');
+            }
+            return Math.min(retries * 100, 3000);
           }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Redis retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
-        }
+        },
+        password: process.env.REDIS_PASSWORD || undefined
       });
 
       // Événements

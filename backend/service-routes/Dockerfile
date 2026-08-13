@@ -4,6 +4,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Prisma on Alpine needs OpenSSL at both build and runtime.
+RUN apk add --no-cache openssl
+
 # Copie les fichiers de dépendances et installe uniquement les dépendances de production.
 # Cette couche sera mise en cache si les dépendances ne changent pas.
 COPY package*.json ./
@@ -20,6 +23,8 @@ RUN npx prisma generate
 FROM node:22-alpine
 
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 # Copie les dépendances installées et le code source depuis l'étape de build.
 COPY --from=builder /app .

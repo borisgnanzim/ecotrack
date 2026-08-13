@@ -3,6 +3,7 @@ import express from "express";
 import "./mqtt/mqttClient.js";
 import { checkOfflineSensors } from "./services/iot-service.js";
 import prisma from "./config/prisma.js";
+import helmet from "helmet";
 
 const app = express();
 app.use(helmet());
