@@ -1,8 +1,8 @@
 # --- Étape 1: Builder ---
-FROM node:22-alpine AS builder
+FROM node:22-bookworm AS builder
 
-# Prisma a besoin d'openssl pour détecter la version libssl sur Alpine
-RUN apk add --no-cache openssl
+# Prisma is much more reliable on a glibc base image than on Alpine.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,10 +14,10 @@ COPY . .
 RUN npx prisma generate
 
 # --- Étape 2: Production ---
-FROM node:22-alpine
+FROM node:22-bookworm
 
-# Idem : nécessaire au runtime pour "prisma migrate deploy"
-RUN apk add --no-cache openssl
+# Required for Prisma runtime and database engine compatibility.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

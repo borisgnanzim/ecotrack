@@ -1,10 +1,11 @@
 # --- Étape 1: Builder ---
 # Utilise une image Node.js complète pour installer les dépendances.
-FROM node:22-alpine AS builder
+FROM node:22-bookworm AS builder
 
 WORKDIR /app
-# Prisma on Alpine needs OpenSSL at both build and runtime.
-RUN apk add --no-cache openssl
+
+# Prisma is much more reliable on a glibc base image than on Alpine.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copie les fichiers de dépendances et installe uniquement les dépendances de production.
 # Cette couche sera mise en cache si les dépendances ne changent pas.
@@ -19,9 +20,11 @@ RUN npx prisma generate
 
 # --- Étape 2: Production ---
 # Utilise une image Node.js légère pour l'environnement de production.
-FROM node:22-alpine
+FROM node:22-bookworm
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copie les dépendances installées et le code source depuis l'étape de build.
 COPY --from=builder /app .
