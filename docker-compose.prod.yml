@@ -2,11 +2,16 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-ecotrack_bootstrap}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    # Plus de port public : accessible uniquement depuis les autres conteneurs
+    # du même réseau docker (service-users, service-containers, etc.).
+    # Si tu as besoin d'un accès ponctuel depuis ta machine (ex: pgAdmin),
+    # ouvre un tunnel SSH plutôt que d'exposer le port :
+    #   ssh -L 5432:localhost:5432 user@ton-droplet
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
@@ -16,46 +21,53 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - backend
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis-password}"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis-password} ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - backend
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "${ZOOKEEPER_PORT:-2181}:2181"
+    expose:
+      - "2181"
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_logs:/var/lib/zookeeper/log
     restart: unless-stopped
+    networks:
+      - backend
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
-    ports:
-      - "${KAFKA_PORT_INTERNAL:-19029}:29092"
-      - "${KAFKA_PORT_EXTERNAL:-19092}:9092"
+    # Kafka n'a besoin d'être joignable que par les services internes.
+    # On retire complètement le listener PLAINTEXT_HOST public.
+    expose:
+      - "29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_PORT_EXTERNAL:-19092}
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
@@ -68,28 +80,40 @@ services:
       timeout: 10s
       retries: 12
     restart: unless-stopped
+    networks:
+      - backend
 
+  # Outils d'admin (kafka-ui, redis-commander) : profil "tools", désactivés
+  # par défaut en prod. Pour les lancer ponctuellement :
+  #   docker compose --profile tools up -d
+  # et y accéder via un tunnel SSH, jamais en les exposant publiquement.
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
+    profiles: ["tools"]
     depends_on:
       - kafka
     ports:
-      - "${KAFKA_UI_PORT:-8080}:8080"
+      - "127.0.0.1:${KAFKA_UI_PORT:-8080}:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: ecotrack
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     restart: unless-stopped
+    networks:
+      - backend
 
   redis-commander:
     image: rediscommander/redis-commander:latest
+    profiles: ["tools"]
     depends_on:
       - redis
     ports:
-      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+      - "127.0.0.1:${REDIS_COMMANDER_PORT:-8081}:8081"
     environment:
-      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD:-redis-password}
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD}
     restart: unless-stopped
+    networks:
+      - backend
 
   service-users:
     build:
@@ -99,17 +123,19 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3011:3011"
+    expose:
+      - "3011"
     environment:
       PORT: 3011
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_service_users?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_service_users?schema=public
       KAFKA_BROKERS: kafka:29092
-      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       NOTIFICATION_MODE: local
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS is required, e.g. https://admin.tondomaine.com,https://citoyen.tondomaine.com}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-containers:
     build:
@@ -119,16 +145,18 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3012:3012"
+    expose:
+      - "3012"
     environment:
       PORT: 3012
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_containers?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_containers?schema=public
       KAFKA_BROKERS: kafka:29092
-      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-routes:
     build:
@@ -138,16 +166,18 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3013:3013"
+    expose:
+      - "3013"
     environment:
       PORT: 3013
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_routes?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_routes?schema=public
       KAFKA_BROKERS: kafka:29092
-      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-analytics:
     build:
@@ -157,15 +187,17 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3014:3014"
+    expose:
+      - "3014"
     environment:
       PORT: 3014
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_analytics?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_analytics?schema=public
       KAFKA_BROKERS: kafka:29092
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-gamification:
     build:
@@ -175,15 +207,17 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3015:3015"
+    expose:
+      - "3015"
     environment:
       PORT: 3015
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_gamification?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_gamification?schema=public
       KAFKA_BROKERS: kafka:29092
-      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      JWT_SECRET: ${JWT_SECRET}
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-iot:
     build:
@@ -193,14 +227,16 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-    ports:
-      - "3016:3016"
+    expose:
+      - "3016"
     environment:
       PORT: 3016
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_iot?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ecotrack_iot?schema=public
       KAFKA_BROKERS: kafka:29092
     command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
     restart: unless-stopped
+    networks:
+      - backend
 
   service-api-gateway:
     build:
@@ -218,8 +254,11 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+    # Seul le gateway a besoin d'être joignable depuis l'extérieur du host,
+    # et encore : on le bind sur 127.0.0.1, c'est le reverse proxy (Caddy/
+    # Nginx) qui écoutera sur 80/443 et fera suivre en interne.
     ports:
-      - "3010:3010"
+      - "127.0.0.1:3010:3010"
     environment:
       PORT: 3010
       USERS_SERVICE_URL: http://service-users:3011
@@ -233,35 +272,44 @@ services:
       KAFKA_BROKERS: kafka:29092
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-password}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       NODE_ENV: production
       CLUSTER_WORKERS: 2
-      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 1h
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3010,http://localhost:3011,http://localhost:3012,http://localhost:3013,http://localhost:3014,http://localhost:3015,http://localhost:3016
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     restart: unless-stopped
+    networks:
+      - backend
 
   ecotrack-admin:
     build:
       context: ./front/ecotrack-admin-vjs
       args:
-        VITE_APP_BACK_API_GATEWAY: http://localhost:3010
+        # Doit pointer vers l'URL PUBLIQUE du gateway (via ton reverse proxy),
+        # jamais localhost, sinon le build embarque la mauvaise URL dans le
+        # bundle JS statique.
+        VITE_APP_BACK_API_GATEWAY: ${PUBLIC_API_URL:?PUBLIC_API_URL is required, e.g. https://api.tondomaine.com}
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - service-api-gateway
     restart: unless-stopped
+    networks:
+      - backend
 
   ecotrack-citoyen:
     build:
       context: ./front/ecotrack-citoyen-vjs
       args:
-        VITE_APP_BACK_API_GATEWAY: http://localhost:3010
+        VITE_APP_BACK_API_GATEWAY: ${PUBLIC_API_URL:?PUBLIC_API_URL is required, e.g. https://api.tondomaine.com}
     ports:
-      - "3001:80"
+      - "127.0.0.1:3001:80"
     depends_on:
       - service-api-gateway
     restart: unless-stopped
+    networks:
+      - backend
 
 volumes:
   postgres_data:
@@ -271,5 +319,6 @@ volumes:
   kafka_data:
 
 networks:
-  default:
+  backend:
     name: ecotrack-network
+    driver: bridge

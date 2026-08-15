@@ -3,6 +3,7 @@
 .env.local
 .env.production
 .env.dockerhub
+.env.prod
 
 # Node.js
 node_modules/
