@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Event Storming EcoTrack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : un tableau d'Event Storming numérique. Chaque partie du métier (contexte délimité) a son propre cadre,
+   les post-it gardent les couleurs conventionnelles de l'atelier. Thème clair uniquement, comme les autres pages EcoTrack. */
+:root{
+  --bg:#eef5f5; --surface:#ffffff; --surface2:#f5fafa; --ink:#0d2a33; --muted:#557079; --line:#d3e3e5; --line2:#b9d0d3;
+  --sea:#0a6d8a; --sea-soft:#dcf0f5; --leaf:#23824f; --amber:#a86a12; --amber-soft:#fbefd9; --rose:#b03f35; --rose-soft:#fbe3df;
+  --hero-a:#06394a; --hero-b:#0b5d6e; --hero-c:#13806f; --hero-ink:#e8f6f4; --hero-muted:#b8dcd8;
+  /* couleurs conventionnelles des post-it */
+  --p-event:#ffc98b; --p-cmd:#a9d6ff; --p-actor:#fff3a8; --p-agg:#ffe680; --p-policy:#ddd0ff; --p-ext:#ffc3dc; --p-read:#b9efc4; --p-hot:#ff9b9b;
+  /* couleurs des contextes */
+  --c-id:#5b6fd6; --c-parc:#0a6d8a; --c-tele:#13806f; --c-coll:#c26a12; --c-eng:#b0408a; --c-pil:#4f7a28;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--f-body)}
+a{color:var(--sea)}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;letter-spacing:-.015em;line-height:1.15}
+.wrap{max-width:1760px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+.hero{background:radial-gradient(120% 140% at 85% 0%, var(--hero-c) 0%, transparent 55%), linear-gradient(160deg,var(--hero-a),var(--hero-b));color:var(--hero-ink)}
+.hero .wrap{padding-block:40px 30px}
+.kicker{font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--hero-muted)}
+.added{display:inline-block;margin:10px 0 0;font:600 12.5px/1 var(--f-mono);letter-spacing:.06em;color:var(--hero-muted);border:1px solid color-mix(in srgb,var(--hero-ink) 30%,transparent);border-radius:999px;padding:6px 12px}
+.hero h1{font-size:clamp(30px,4.4vw,52px);font-weight:800;margin:12px 0 10px}
+.hero p{max-width:110ch;margin:0;opacity:.92}
+.jump{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.jump a{color:var(--hero-ink);text-decoration:none;border:1px solid color-mix(in srgb,var(--hero-ink) 35%,transparent);border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px}
+.jump a:hover{background:color-mix(in srgb,var(--hero-ink) 14%,transparent)}
+
+main.wrap{padding-block:28px 60px}
+section.part{margin-bottom:50px;scroll-margin-top:16px}
+.eyebrow{font:600 11.5px/1 var(--f-mono);letter-spacing:.13em;text-transform:uppercase;color:var(--sea);margin:0 0 8px}
+section.part > h2{font-size:clamp(26px,3vw,34px);font-weight:800;margin:0 0 8px}
+.intro{font-size:17px;color:var(--muted);max-width:115ch;margin:0 0 18px}
+h3{font-size:19px;margin:26px 0 10px}
+p{max-width:115ch}
+
+/* ── Post-it ───────────────────────────── */
+.sticky{position:relative;width:170px;min-height:104px;padding:9px 10px 10px;border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.06),0 6px 14px -8px rgba(13,42,51,.35);color:#1b1b1b;display:flex;flex-direction:column;gap:4px;flex:none}
+.sticky .k{font:600 10px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.sticky b{font:700 14px/1.25 var(--f-body)}
+.sticky small{font-size:12px;line-height:1.35;opacity:.8}
+.ev{background:var(--p-event)} .cmd{background:var(--p-cmd)} .actor{background:var(--p-actor);width:120px;min-height:64px}
+.agg{background:var(--p-agg);width:190px} .pol{background:var(--p-policy)} .ext{background:var(--p-ext)} .read{background:var(--p-read)}
+.hot{background:var(--p-hot);transform:rotate(-1.5deg)}
+.chip{display:inline-block;align-self:flex-start;margin-top:auto;font:600 10.5px/1.2 var(--f-mono);padding:3px 6px;border-radius:4px;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.12)}
+.chip.kafka{background:#fff;border-color:var(--amber);color:#7a4a05}
+.chip.db{background:#fff;border-color:var(--line2);color:#33505a}
+.chip.rt{background:#fff;border-color:var(--sea);color:var(--sea)}
+.chip.none{background:#fff;border-color:#999;color:#555;border-style:dashed}
+.chip.plan{background:#fff;border-color:var(--rose);color:var(--rose);border-style:dashed}
+
+/* Légende */
+.legend-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.leg{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.leg .sticky{width:96px;min-height:70px}
+.leg .sticky b{font-size:12.5px}
+.leg h4{margin:0 0 4px;font-size:15.5px}
+.leg p{margin:0;font-size:13.5px;color:var(--muted)}
+.chips-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:14px 0 0;font-size:14px;color:var(--muted)}
+.grammar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.grammar span.tok{font:700 13px var(--f-body);padding:8px 12px;border-radius:3px;color:#1b1b1b}
+.grammar .arr{font:700 18px var(--f-mono);color:var(--muted)}
+
+/* ── Contextes délimités (frontières) ──── */
+.board{display:grid;gap:18px}
+.ctx{--c:var(--sea);background:var(--surface);border:2px solid var(--c);border-radius:16px;overflow:hidden;min-width:0}
+.ctx-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--c) 10%,var(--surface));border-bottom:2px dashed color-mix(in srgb,var(--c) 55%,transparent)}
+.ctx-num{width:40px;height:40px;border-radius:10px;background:var(--c);color:#fff;display:grid;place-items:center;font:800 17px var(--f-display)}
+.ctx-head h3{margin:0;font-size:20px}
+.ctx-head p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+.svc{font:600 12px var(--f-mono);color:var(--c);background:var(--surface);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:999px;padding:5px 10px;white-space:nowrap}
+.ctx-body{display:grid;grid-template-columns:220px minmax(0,1fr);gap:0}
+.ctx-agg{padding:14px 16px;border-right:1px dashed var(--line2);display:flex;flex-direction:column;gap:10px;background:var(--surface2)}
+.ctx-agg .lbl,.io .lbl{font:600 10.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ctx-agg .sticky{width:100%}
+.timeline{padding:14px 16px;display:flex;gap:12px;overflow-x:auto;align-items:stretch;position:relative}
+.timeline::before{content:"";position:absolute;left:16px;right:16px;bottom:8px;height:2px;background:repeating-linear-gradient(90deg,var(--line2) 0 8px,transparent 8px 14px)}
+.io{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px dashed var(--line2)}
+.io > div{padding:10px 16px;font-size:13.5px;min-width:0}
+.io > div + div{border-left:1px dashed var(--line2)}
+.io .lbl{display:block;margin-bottom:4px}
+.io code{font-size:.82em}
+.bad{color:var(--rose);font-weight:600}
+.ok{color:var(--leaf);font-weight:600}
+
+/* ── Flux (niveau processus) ───────────── */
+.process{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0}
+.process h3{margin:0 0 4px}
+.process > p{margin:0 0 12px;color:var(--muted);font-size:14.5px}
+.flow{display:flex;flex-wrap:wrap;gap:10px 8px;align-items:center}
+.flow .arr{font:700 20px var(--f-mono);color:var(--muted);padding:0 2px}
+.lane{border-top:1px dashed var(--line2);margin-top:14px;padding-top:12px}
+.lane .tag{font:600 10.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px}
+
+/* ── Tableaux et panneaux ──────────────── */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11.5px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600;white-space:nowrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.panel h4{margin:0 0 6px;font-size:16px}
+.panel p,.panel li{font-size:14.5px;color:var(--muted);margin:0}
+.panel ol,.panel ul{margin:6px 0 0;padding-left:20px}
+.panel li{margin:4px 0}
+.panel.hotp{border-left:5px solid var(--p-hot)}
+.callout{border-radius:12px;padding:14px 16px;margin:16px 0;background:var(--sea-soft);border:1px solid color-mix(in srgb,var(--sea) 30%,transparent)}
+.callout.warn{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 35%,transparent)}
+.callout p{margin:0;font-size:15px}
+dl.terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;margin:12px 0}
+dl.terms div{display:grid;grid-template-columns:minmax(150px,200px) minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+dl.terms dt{font-weight:700;margin:0}
+dl.terms dd{margin:0;color:var(--muted);font-size:14.5px}
+dl.terms dd code{color:var(--ink)}
+.foot{font-size:13px;color:var(--muted)}
+@media (max-width:1100px){.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:1fr}}
+@media (max-width:800px){.ctx-body{grid-template-columns:1fr}.ctx-agg{border-right:0;border-bottom:1px dashed var(--line2);flex-direction:row;flex-wrap:wrap}.ctx-agg .sticky{width:190px}.grid2,dl.terms{grid-template-columns:1fr}.io{grid-template-columns:1fr}.io > div + div{border-left:0;border-top:1px dashed var(--line2)}.ctx-head{grid-template-columns:auto minmax(0,1fr)}.ctx-head .svc{grid-column:1 / -1;justify-self:start}}
+@media (max-width:560px){.legend-grid{grid-template-columns:1fr}dl.terms div{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">EcoTrack · Spécialité Développement · Domain-Driven Design</div>
+    <p class="added">Ajouté le 28 octobre 2026</p>
+    <h1>Event Storming d'EcoTrack</h1>
+    <p>Le métier d'EcoTrack raconté par ses événements : ce qui se passe, qui le déclenche, quelles règles réagissent, et dans quelle partie du système. Le tableau est établi à partir du code de la branche <code>dev</code> : chaque événement indique s'il existe vraiment (sur Kafka ou en base) ou s'il n'est que prévu par le cahier des charges.</p>
+    <div class="jump"><a href="#methode">La méthode</a><a href="#legende">Les post-it</a><a href="#bigpicture">Vue d'ensemble</a><a href="#processus">Trois processus</a><a href="#frontieres">Les frontières</a><a href="#agregats">Les agrégats</a><a href="#langage">Le vocabulaire</a><a href="#chauds">Points chauds</a></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ═══════════ MÉTHODE ═══════════ -->
+<section class="part" id="methode">
+  <p class="eyebrow">Comprendre avant de lire</p>
+  <h2>Qu'est-ce qu'un Event Storming ?</h2>
+  <p class="intro">Un Event Storming est un atelier inventé par Alberto Brandolini. Développeurs et personnes du métier collent ensemble, sur un grand mur, des post-it de couleur qui racontent tout ce qui se passe dans le domaine, dans l'ordre du temps. Le but n'est pas de dessiner l'architecture, mais de comprendre le métier et d'en faire apparaître les frontières naturelles.</p>
+  <div class="grid3">
+    <div class="panel"><h4>1 · Big Picture</h4><p>On colle tous les événements du domaine sur une ligne de temps, sans filtre. On repère les points chauds et on découpe le mur en grandes parties.</p><p style="margin-top:8px"><b>Ici :</b> la vue d'ensemble, une partie par cadre.</p></div>
+    <div class="panel"><h4>2 · Processus</h4><p>On prend un parcours et on le détaille : qui agit, quelle commande, quel événement, quelle règle réagit ensuite.</p><p style="margin-top:8px"><b>Ici :</b> trois processus, de la mesure à la tournée, de la tournée à la collecte, et le signalement citoyen.</p></div>
+    <div class="panel"><h4>3 · Conception</h4><p>On fait apparaître les agrégats : les objets qui reçoivent les commandes et garantissent les règles. Ils deviennent les modèles du code.</p><p style="margin-top:8px"><b>Ici :</b> les agrégats et leurs règles, tirés des schémas Prisma.</p></div>
+  </div>
+  <div class="callout"><p><strong>Pourquoi le faire pour EcoTrack ?</strong> Le CDC M1 demandait un Event Storming d'au moins 20 événements, 6 bounded contexts et un langage commun de 30 termes. Le tableau ci-dessous en compte 37, répartis dans 6 parties qui correspondent à nos 6 microservices. C'est aussi la meilleure façon d'expliquer au jury pourquoi le système est découpé ainsi.</p></div>
+</section>
+
+<!-- ═══════════ LÉGENDE ═══════════ -->
+<section class="part" id="legende">
+  <p class="eyebrow">La grammaire du mur</p>
+  <h2>Les post-it et leur sens</h2>
+  <p class="intro">Chaque couleur a un rôle précis. On lit le mur comme une phrase : un acteur lance une commande, un agrégat la traite, un événement en résulte, une règle réagit et lance la commande suivante.</p>
+  <div class="grammar" aria-label="Enchaînement type">
+    <span class="tok" style="background:var(--p-actor)">Acteur</span><span class="arr">→</span>
+    <span class="tok" style="background:var(--p-cmd)">Commande</span><span class="arr">→</span>
+    <span class="tok" style="background:var(--p-agg)">Agrégat</span><span class="arr">→</span>
+    <span class="tok" style="background:var(--p-event)">Événement</span><span class="arr">→</span>
+    <span class="tok" style="background:var(--p-policy)">Politique</span><span class="arr">→</span>
+    <span class="tok" style="background:var(--p-cmd)">Commande suivante</span><span class="arr">…</span>
+    <span class="tok" style="background:var(--p-read)">Vue</span>
+  </div>
+  <div class="legend-grid">
+    <div class="leg"><div class="sticky ev"><span class="k">Événement</span><b>Conteneur créé</b></div><div><h4>Événement métier</h4><p>Un fait qui s'est produit et qui intéresse le métier. Toujours au passé. C'est le post-it central de l'atelier.</p></div></div>
+    <div class="leg"><div class="sticky cmd"><span class="k">Commande</span><b>Créer un conteneur</b></div><div><h4>Commande</h4><p>Une intention, une demande d'action. À l'impératif. Dans le code, souvent un endpoint <code>POST</code> ou <code>PUT</code>.</p></div></div>
+    <div class="leg"><div class="sticky actor"><span class="k">Acteur</span><b>Admin</b></div><div><h4>Acteur</h4><p>La personne qui lance la commande : citoyen, agent, gestionnaire, administrateur.</p></div></div>
+    <div class="leg"><div class="sticky agg"><span class="k">Agrégat</span><b>Container</b></div><div><h4>Agrégat</h4><p>L'objet métier qui reçoit la commande, vérifie les règles et produit l'événement. Ici, un modèle Prisma.</p></div></div>
+    <div class="leg"><div class="sticky pol"><span class="k">Politique</span><b>Si &gt; 90 % alors alerte</b></div><div><h4>Politique</h4><p>Une règle automatique : « quand tel événement arrive, alors faire ceci ». Souvent un abonné Kafka.</p></div></div>
+    <div class="leg"><div class="sticky ext"><span class="k">Système externe</span><b>Capteur</b></div><div><h4>Système externe</h4><p>Un système hors de notre contrôle qui envoie ou reçoit quelque chose : capteurs, serveur e-mail, OpenStreetMap.</p></div></div>
+    <div class="leg"><div class="sticky read"><span class="k">Vue</span><b>Carte des conteneurs</b></div><div><h4>Vue (read model)</h4><p>L'information affichée dont l'acteur a besoin pour décider : un écran, un tableau de bord.</p></div></div>
+    <div class="leg"><div class="sticky hot"><span class="k">Point chaud</span><b>Topic inconnu</b></div><div><h4>Point chaud</h4><p>Une question, un désaccord ou un problème repéré. On le colle de travers pour qu'il se voie.</p></div></div>
+  </div>
+  <div class="chips-legend"><b style="color:var(--ink)">État dans le code :</b>
+    <span><i class="chip kafka">Kafka · topic</i> publié sur Kafka</span>
+    <span><i class="chip db">Enregistré</i> écrit en base, sans message</span>
+    <span><i class="chip rt">Socket.io</i> poussé aux navigateurs</span>
+    <span><i class="chip none">Sans trace</i> a lieu mais n'est pas enregistré</span>
+    <span><i class="chip plan">Prévu</i> demandé par le CDC, pas encore codé</span>
+  </div>
+</section>
+
+<!-- ═══════════ BIG PICTURE ═══════════ -->
+<section class="part" id="bigpicture">
+  <p class="eyebrow">Niveau 1 · Big Picture</p>
+  <h2>Vue d'ensemble, une partie par cadre</h2>
+  <p class="intro">Chaque cadre est un <strong>contexte délimité</strong> (bounded context) : une partie du métier avec son propre vocabulaire, ses propres données et un seul service responsable. Dans un cadre, les événements se lisent de gauche à droite dans l'ordre du temps. En bas de chaque cadre, ce qui sort de la frontière et ce qui y entre.</p>
+
+  <div class="board">
+
+    <!-- 1 Identité -->
+    <article class="ctx" style="--c:var(--c-id)">
+      <header class="ctx-head"><span class="ctx-num">1</span><div><h3>Identité et accès</h3><p>Qui peut entrer, avec quel rôle.</p></div><span class="svc">service-users · :3011</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>User</b><small>email unique, mot de passe haché (bcrypt)</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Role</b><small>citizen, agent, manager, admin</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ev"><span class="k">Événement</span><b>Compte citoyen créé</b><small>inscription libre</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Utilisateur créé par un admin</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Rôle attribué</b><small>ou retiré</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Utilisateur connecté</b><small>JWT émis</small><i class="chip none">Sans trace</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Profil mis à jour</b><small>avatar redimensionné</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Notification lue</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky hot"><span class="k">Point chaud</span><b>user-created jamais publié</b><small>le publisher existe mais n'est appelé nulle part</small></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span>Rien pour l'instant. Prévu : <code>user-created</code>, <code>user-role-changed</code>.</div><div><span class="lbl">Entre dans la frontière</span>Requêtes HTTP des deux fronts via la gateway (<code>/auth</code>, <code>/users</code>, <code>/notifications</code>).</div></div>
+    </article>
+
+    <!-- 2 Parc -->
+    <article class="ctx" style="--c:var(--c-parc)">
+      <header class="ctx-head"><span class="ctx-num">2</span><div><h3>Parc de conteneurs</h3><p>Où sont les conteneurs, à quelle zone ils appartiennent, dans quel état.</p></div><span class="svc">service-containers · :3012</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Zone</b><small>polygone GeoJSON, centroïde</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Container</b><small>code unique, remplissage 0 à 100 %, historique</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ev"><span class="k">Événement</span><b>Zone créée</b><small>ou importée en GeoJSON / Shapefile</small><i class="chip kafka">Kafka · zone-created</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Conteneur créé</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Conteneurs affectés à une zone</b><i class="chip kafka">Kafka · zone-containers-assigned</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Niveau de remplissage saisi</b><small>POST fill-history</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Alerte critique émise</b><small>dès 85 %</small><i class="chip rt">Socket.io</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Conteneur déclaré défectueux</b><i class="chip plan">Prévu</i></div>
+          <div class="sticky hot"><span class="k">Point chaud</span><b>Les mesures IoT n'arrivent pas ici</b><small>aucun abonnement à container-fill-level</small></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span><code>zone-created</code>, <code>zone-updated</code>, <code>zone-deleted</code>, <code>zone-containers-assigned</code> ; alertes Socket.io (aucun front abonné).</div><div><span class="lbl">Entre dans la frontière</span>Requêtes HTTP via la gateway (<code>/containers</code>, <code>/zones</code>). <span class="bad">Pas les mesures des capteurs.</span></div></div>
+    </article>
+
+    <!-- 3 Télémétrie -->
+    <article class="ctx" style="--c:var(--c-tele)">
+      <header class="ctx-head"><span class="ctx-num">3</span><div><h3>Télémétrie</h3><p>Ce que disent les capteurs, et si on peut le croire.</p></div><span class="svc">service-iot · MQTT</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Measurement</b><small>remplissage, température, humidité, anomalie</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Alert</b><small>CRITICAL_FILL, TEMPERATURE_ANOMALY, HUMIDITY_ANOMALY</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ext"><span class="k">Système externe</span><b>Capteur</b><small>simulateur Python, toutes les 300 s</small></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Mesure reçue</b><small>topic MQTT containers/&lt;id&gt;/data</small><i class="chip none">Sans trace</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Mesure rejetée</b><small>remplissage hors 0 à 100</small><i class="chip none">Sans trace</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Mesure enregistrée</b><small>marquée anomalie si valeurs suspectes</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Remplissage critique détecté</b><small>&gt; 90 %</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Anomalie de température ou d'humidité détectée</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Niveau de remplissage publié</b><i class="chip kafka">Kafka · container-fill-level</i></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span><code>container-fill-level</code> : <code>{ containerId, fillLevel, temperature, humidity, measuredAt }</code>, clé = identifiant du conteneur.</div><div><span class="lbl">Entre dans la frontière</span>Messages MQTT des capteurs ; lectures HTTP <code>/iot/alerts</code>, <code>/iot/sensors</code>.</div></div>
+    </article>
+
+    <!-- 4 Collecte -->
+    <article class="ctx" style="--c:var(--c-coll)">
+      <header class="ctx-head"><span class="ctx-num">4</span><div><h3>Collecte</h3><p>Quels conteneurs vider, dans quel ordre, par qui.</p></div><span class="svc">service-routes · :3013</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Route (tournée)</b><small>planned → in_progress → completed ; ou cancelled</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>RouteStep</b><small>ordre unique dans la tournée</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée planifiée automatiquement</b><small>remplissage &gt; 75 %</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée créée</b><small>par un gestionnaire</small><i class="chip kafka">Kafka · route-created</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée optimisée</b><small>plus proche voisin + 2-opt</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Agent assigné</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Feuille de route envoyée</b><small>PDF par e-mail</small><i class="chip none">Sans trace</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée démarrée</b><i class="chip kafka">Kafka · route-updated</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Conteneur collecté</b><small>scan QR par l'agent</small><i class="chip plan">Prévu</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée terminée</b><i class="chip kafka">Kafka · route-completed</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Tournée annulée</b><i class="chip kafka">Kafka · route-updated</i></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span><code>route-created</code>, <code>route-updated</code>, <code>route-completed</code>, <code>route-deleted</code> ; e-mail SMTP.</div><div><span class="lbl">Entre dans la frontière</span><span class="ok"><code>container-fill-level</code> (corrigé le 28/10)</span> ; <span class="bad"><code>container-status-changed</code> et <code>user-created</code> attendus mais jamais publiés</span>.</div></div>
+    </article>
+
+    <!-- 5 Engagement -->
+    <article class="ctx" style="--c:var(--c-eng)">
+      <header class="ctx-head"><span class="ctx-num">5</span><div><h3>Engagement citoyen</h3><p>Ce que font les citoyens, et ce qu'ils y gagnent.</p></div><span class="svc">service-gamification · hors gateway</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>UserAction</b><small>signalement 10 pts, défi 50 pts, avis 5 pts</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Badge · Challenge</b><small>badge dès un seuil de points</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ev"><span class="k">Événement</span><b>Signalement créé</b><small>conteneur plein, abîmé…</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Points attribués</b><small>Kafka seulement via /points</small><i class="chip kafka">Kafka · points-awarded</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Badge obtenu</b><small>Kafka seulement si attribué à la main</small><i class="chip kafka">Kafka · badge-earned</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Défi rejoint</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Défi réussi</b><small>+50 points</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky hot"><span class="k">Point chaud</span><b>Le front n'envoie pas le signalement</b><small>appel commenté, service non routé</small></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span><code>gamification-events.points-awarded</code>, <code>gamification-events.badge-earned</code> (autre convention de nommage).</div><div><span class="lbl">Entre dans la frontière</span><span class="bad">Rien en pratique : attend des topics <code>container-events.…</code> que personne ne publie, et n'est pas joignable par la gateway.</span></div></div>
+    </article>
+
+    <!-- 6 Pilotage -->
+    <article class="ctx" style="--c:var(--c-pil)">
+      <header class="ctx-head"><span class="ctx-num">6</span><div><h3>Pilotage</h3><p>Ce que les données disent du service, et ce qu'elles annoncent.</p></div><span class="svc">service-analytics · :3014</span></header>
+      <div class="ctx-body">
+        <div class="ctx-agg"><span class="lbl">Agrégats</span>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>Report</b><small>quotidien, hebdo, mensuel ; PDF, Excel, CSV</small></div>
+          <div class="sticky agg"><span class="k">Agrégat</span><b>FillPrediction · Anomaly</b><small>régression sur 7 jours</small></div>
+        </div>
+        <div class="timeline">
+          <div class="sticky ev"><span class="k">Événement</span><b>Prédiction de remplissage calculée</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Anomalie détectée</b><small>conteneur non collecté, capteur muet</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Anomalie résolue</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Rapport généré</b><i class="chip db">Enregistré</i></div>
+          <div class="sticky ev"><span class="k">Événement</span><b>Rapport planifié</b><small>tâche cron</small><i class="chip db">Enregistré</i></div>
+          <div class="sticky hot"><span class="k">Point chaud</span><b>Aucun écran ne l'utilise</b><small>et aucune migration Prisma</small></div>
+        </div>
+      </div>
+      <div class="io"><div><span class="lbl">Sort de la frontière</span>Lectures HTTP <code>/analytics/*</code> (aucun appel des fronts aujourd'hui).</div><div><span class="lbl">Entre dans la frontière</span><code>container-fill-level</code>, <code>route-completed</code>, <code>user-created</code>… (consommés, surtout journalisés pour l'instant).</div></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════ PROCESSUS ═══════════ -->
+<section class="part" id="processus">
+  <p class="eyebrow">Niveau 2 · Processus</p>
+  <h2>Trois processus, post-it par post-it</h2>
+  <p class="intro">On suit un parcours complet et on fait apparaître la règle qui fait passer d'une étape à la suivante. Les lignes en pointillés séparent les contextes traversés : c'est là que l'information passe une frontière.</p>
+
+  <div class="process">
+    <h3>A · De la mesure du capteur à la tournée automatique</h3>
+    <p>Le processus le plus « IoT » du projet : aucune personne n'intervient.</p>
+    <div class="lane"><span class="tag">③ Télémétrie</span>
+      <div class="flow">
+        <div class="sticky ext"><span class="k">Système externe</span><b>Capteur</b><small>remplissage 80 %</small></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Publier une mesure</b><small>MQTT containers/&lt;id&gt;/data</small></div><span class="arr">→</span>
+        <div class="sticky agg"><span class="k">Agrégat</span><b>Measurement</b><small>contrôle 0 à 100, température, humidité</small></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Mesure enregistrée</b></div><span class="arr">→</span>
+        <div class="sticky pol"><span class="k">Politique</span><b>Si remplissage &gt; 90 %, créer une alerte</b><small>ici non : 80 %</small></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Niveau de remplissage publié</b><i class="chip kafka">container-fill-level</i></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">④ Collecte · la frontière est franchie par Kafka</span>
+      <div class="flow">
+        <div class="sticky pol"><span class="k">Politique</span><b>Si &gt; 75 % et pas déjà prévu, planifier une collecte</b><small>J+1 si ≥ 90 %, sinon J+3</small></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Planifier une tournée</b></div><span class="arr">→</span>
+        <div class="sticky agg"><span class="k">Agrégat</span><b>Route</b><small>statut planned, une étape</small></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Tournée planifiée automatiquement</b><small>pour J+3</small></div><span class="arr">→</span>
+        <div class="sticky read"><span class="k">Vue</span><b>Liste des tournées</b><small>front admin</small></div>
+        <div class="sticky hot"><span class="k">Point chaud</span><b>À 95 % ensuite, la date reste J+3</b><small>une tournée prévue n'est jamais avancée</small></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">② Parc</span>
+      <div class="flow">
+        <div class="sticky hot"><span class="k">Point chaud</span><b>Le parc ne reçoit pas la mesure</b><small>la carte affiche un remplissage périmé</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="process">
+    <h3>B · Planifier puis réaliser une tournée</h3>
+    <p>Le processus du gestionnaire et de l'agent. Les transitions de statut sont imposées par le code : planned → in_progress → completed, ou cancelled.</p>
+    <div class="lane"><span class="tag">④ Collecte · le gestionnaire</span>
+      <div class="flow">
+        <div class="sticky actor"><span class="k">Acteur</span><b>Gestionnaire</b></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Créer une tournée</b><small>POST /routes</small></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Tournée créée</b><i class="chip kafka">route-created</i></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Optimiser la tournée</b><small>POST /:id/optimize</small></div><span class="arr">→</span>
+        <div class="sticky pol"><span class="k">Politique</span><b>Ajouter tout conteneur &gt; 80 %</b></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Tournée optimisée</b><small>distance avant / après</small></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Assigner un agent</b></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Agent assigné</b></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Envoyer la feuille de route</b></div><span class="arr">→</span>
+        <div class="sticky ext"><span class="k">Système externe</span><b>Serveur e-mail</b></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">④ Collecte · l'agent sur le terrain</span>
+      <div class="flow">
+        <div class="sticky read"><span class="k">Vue</span><b>Mes tournées</b><small>front admin, rôle agent</small></div><span class="arr">→</span>
+        <div class="sticky actor"><span class="k">Acteur</span><b>Agent</b></div><span class="arr">→</span>
+        <div class="sticky cmd"><span class="k">Commande</span><b>Démarrer la tournée</b></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Tournée démarrée</b><i class="chip kafka">route-updated</i></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Conteneur collecté</b><i class="chip plan">Prévu</i></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Tournée terminée</b><i class="chip kafka">route-completed</i></div>
+        <div class="sticky hot"><span class="k">Point chaud</span><b>Démarrer et terminer : rôle admin ou manager seulement</b><small>l'agent ne peut pas modifier sa tournée</small></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">⑥ Pilotage</span>
+      <div class="flow">
+        <div class="sticky pol"><span class="k">Politique</span><b>Quand une tournée est terminée, mettre à jour les indicateurs</b></div><span class="arr">→</span>
+        <div class="sticky read"><span class="k">Vue</span><b>Tableau de bord</b><small>KPI par agent et par zone</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="process">
+    <h3>C · Le signalement d'un citoyen</h3>
+    <p>Le processus qui fait le lien entre le citoyen et la collecte, avec la gamification comme récompense.</p>
+    <div class="lane"><span class="tag">② Parc · trouver le conteneur</span>
+      <div class="flow">
+        <div class="sticky actor"><span class="k">Acteur</span><b>Citoyen</b></div><span class="arr">→</span>
+        <div class="sticky read"><span class="k">Vue</span><b>Conteneurs à proximité</b><small>front citoyen, carte</small></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">⑤ Engagement</span>
+      <div class="flow">
+        <div class="sticky cmd"><span class="k">Commande</span><b>Signaler un problème</b><small>POST /report</small></div><span class="arr">→</span>
+        <div class="sticky agg"><span class="k">Agrégat</span><b>UserAction</b><small>type report_container</small></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Signalement créé</b></div><span class="arr">→</span>
+        <div class="sticky pol"><span class="k">Politique</span><b>Signalement = 10 points</b></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Points attribués</b></div><span class="arr">→</span>
+        <div class="sticky pol"><span class="k">Politique</span><b>Seuil de points atteint, donner le badge</b></div><span class="arr">→</span>
+        <div class="sticky ev"><span class="k">Événement</span><b>Badge obtenu</b><i class="chip db">Enregistré</i></div>
+        <div class="sticky hot"><span class="k">Point chaud</span><b>Doublon de moins d'une heure ?</b><small>règle du CDC (UC-C01) non codée</small></div>
+      </div>
+    </div>
+    <div class="lane"><span class="tag">④ Collecte · ce qui devrait suivre</span>
+      <div class="flow">
+        <div class="sticky pol"><span class="k">Politique</span><b>Signalement « conteneur plein », prévenir le gestionnaire de zone</b><i class="chip plan">Prévu</i></div>
+        <div class="sticky hot"><span class="k">Point chaud</span><b>Aucun lien signalement → collecte</b><small>le signalement ne déclenche rien côté tournées</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FRONTIÈRES ═══════════ -->
+<section class="part" id="frontieres">
+  <p class="eyebrow">Carte des contextes</p>
+  <h2>Ce qui traverse les frontières</h2>
+  <p class="intro">Une frontière bien tracée ne se franchit que par un contrat clair : un endpoint HTTP ou un message Kafka dont le nom et les champs sont connus des deux côtés. Voici chaque passage, et s'il fonctionne.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>De</th><th>Vers</th><th>Par</th><th>Contrat</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><i class="dot" style="background:var(--c-tele)"></i>Télémétrie</td><td><i class="dot" style="background:var(--c-coll)"></i>Collecte</td><td>Kafka</td><td><code>container-fill-level</code> · <code>{ containerId, fillLevel }</code></td><td class="ok">Fonctionne (corrigé le 28/10)</td></tr>
+      <tr><td class="k"><i class="dot" style="background:var(--c-tele)"></i>Télémétrie</td><td><i class="dot" style="background:var(--c-pil)"></i>Pilotage</td><td>Kafka</td><td><code>container-fill-level</code> · lit <code>fillPercentage</code></td><td class="bad">Reçu, champ vide</td></tr>
+      <tr><td class="k"><i class="dot" style="background:var(--c-tele)"></i>Télémétrie</td><td><i class="dot" style="background:var(--c-parc)"></i>Parc</td><td>Kafka</td><td><code>container-fill-level</code></td><td class="bad">Pas d'abonné</td></tr>
+      <tr><td class="k"><i class="dot" style="background:var(--c-parc)"></i>Parc</td><td><i class="dot" style="background:var(--c-coll)"></i>Collecte</td><td>Kafka</td><td><code>container-status-changed</code> · statut <code>broken</code></td><td class="bad">Jamais publié</td></tr>
+      <tr><td class="k"><i class="dot" style="background:var(--c-id)"></i>Identité</td><td><i class="dot" style="background:var(--c-coll)"></i>Collecte</td><td>Kafka</td><td><code>user-created</code> · rôle attendu <code>collector</code></td><td class="bad">Jamais publié ; le rôle s'appelle <code>agent</code></td></tr>
+      <tr><td class="k"><i class="dot" style="background:var(--c-coll)"></i>Collecte</td><td><i class="dot" style="background:var(--c-pil)"></i>Pilotage</td><td>Kafka</td><td><code>route-completed</code></td><td class="ok">Publié et consommé</td></tr>
+      <tr><td class="k">Tous</td><td><i class="dot" style="background:var(--c-eng)"></i>Engagement</td><td>Kafka</td><td><code>container-events.…</code>, <code>iot-events.…</code></td><td class="bad">Noms différents, rien n'arrive</td></tr>
+      <tr><td class="k">Front citoyen</td><td><i class="dot" style="background:var(--c-eng)"></i>Engagement</td><td>HTTP</td><td><code>POST /report</code></td><td class="bad">Appel commenté, service hors gateway</td></tr>
+      <tr><td class="k">Fronts</td><td>Identité, Parc, Collecte</td><td>HTTP</td><td>Via la gateway, avec JWT</td><td class="ok">Fonctionne</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><p><strong>Ce que l'atelier révèle :</strong> chaque partie fonctionne bien à l'intérieur de sa frontière. Les problèmes sont presque tous <em>sur</em> les frontières : des noms de topics ou de champs qui ne correspondent pas. D'où la première tâche de la V2 : écrire un contrat des événements, une fois, pour les sept services.</p></div>
+</section>
+
+<!-- ═══════════ AGRÉGATS ═══════════ -->
+<section class="part" id="agregats">
+  <p class="eyebrow">Niveau 3 · Conception</p>
+  <h2>Les agrégats et leurs règles</h2>
+  <p class="intro">Un agrégat est le gardien d'une règle : toute commande passe par lui, et il refuse ce qui la violerait. Ces règles viennent des schémas Prisma, des DTO Zod et des services.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Agrégat</th><th>Contexte</th><th>Commandes reçues</th><th>Règles qu'il garantit</th><th>Événements produits</th></tr></thead>
+    <tbody>
+      <tr><td class="k">User</td><td>Identité</td><td>S'inscrire, créer, modifier, attribuer un rôle</td><td>Email unique ; mot de passe haché ; au moins le rôle citizen à l'inscription</td><td>Compte créé, rôle attribué</td></tr>
+      <tr><td class="k">Zone</td><td>Parc</td><td>Créer, importer, affecter des conteneurs</td><td>Nom unique ; polygone GeoJSON facultatif</td><td>Zone créée, conteneurs affectés</td></tr>
+      <tr><td class="k">Container</td><td>Parc</td><td>Créer, modifier, saisir un niveau</td><td>Code unique ; remplissage entre 0 et 100 ; zone facultative</td><td>Conteneur créé, niveau saisi, alerte ≥ 85 %</td></tr>
+      <tr><td class="k">Measurement</td><td>Télémétrie</td><td>Publier une mesure</td><td>Remplissage 0 à 100 sinon rejet ; anomalie si température hors −10 à 60 °C</td><td>Mesure enregistrée, niveau publié</td></tr>
+      <tr><td class="k">Route</td><td>Collecte</td><td>Créer, optimiser, assigner, changer de statut</td><td>Transitions imposées : planned → in_progress → completed, ou cancelled ; écriture réservée à admin et manager</td><td>Tournée créée, optimisée, démarrée, terminée</td></tr>
+      <tr><td class="k">RouteStep</td><td>Collecte</td><td>(via Route)</td><td>Ordre de passage unique dans une tournée ; supprimé avec la tournée</td><td>—</td></tr>
+      <tr><td class="k">UserAction</td><td>Engagement</td><td>Signaler, réussir un défi</td><td>Points fixes par type (10, 50, 5) ; total et badges mis à jour dans la même transaction</td><td>Signalement créé, points attribués, badge obtenu</td></tr>
+      <tr><td class="k">Report</td><td>Pilotage</td><td>Générer, planifier, exporter</td><td>Période et format connus (PDF, Excel, CSV)</td><td>Rapport généré, rapport planifié</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═══════════ LANGAGE ═══════════ -->
+<section class="part" id="langage">
+  <p class="eyebrow">Ubiquitous language</p>
+  <h2>Le vocabulaire commun</h2>
+  <p class="intro">Le même mot doit vouloir dire la même chose à l'oral, dans les documents et dans le code. Voici les termes du domaine avec leur nom dans le code.</p>
+  <dl class="terms">
+    <div><dt>Conteneur</dt><dd>Bac à déchets équipé d'un capteur. <code>Container</code></dd></div>
+    <div><dt>Zone</dt><dd>Secteur géographique qui regroupe des conteneurs. <code>Zone</code></dd></div>
+    <div><dt>Taux de remplissage</dt><dd>Pourcentage de 0 à 100. <code>fillLevel</code> (et non <code>fillPercentage</code>)</dd></div>
+    <div><dt>Seuil critique</dt><dd>Au-delà, une collecte est urgente : 90 % en IoT, 85 % pour l'alerte du parc. À unifier.</dd></div>
+    <div><dt>Mesure</dt><dd>Une remontée du capteur à un instant donné. <code>Measurement</code></dd></div>
+    <div><dt>Alerte</dt><dd>Signal automatique : remplissage critique, température, humidité. <code>Alert</code></dd></div>
+    <div><dt>Anomalie</dt><dd>Mesure suspecte, ou conteneur non collecté depuis trop longtemps. <code>anomaly</code>, <code>Anomaly</code></dd></div>
+    <div><dt>Tournée</dt><dd>Circuit de collecte daté, assigné à un agent. <code>Route</code></dd></div>
+    <div><dt>Étape</dt><dd>Un conteneur dans une tournée, avec son ordre de passage. <code>RouteStep</code></dd></div>
+    <div><dt>Optimisation</dt><dd>Calcul de l'ordre de passage le plus court. <code>optimize</code>, <code>twoOpt</code></dd></div>
+    <div><dt>Feuille de route</dt><dd>PDF de la tournée envoyé à l'agent. <code>generateRoutePDF</code></dd></div>
+    <div><dt>Collecte</dt><dd>Vidage effectif d'un conteneur par un agent. Pas encore de modèle.</dd></div>
+    <div><dt>Agent</dt><dd>Personne qui réalise les tournées. Rôle <code>agent</code> (pas <code>collector</code>)</dd></div>
+    <div><dt>Gestionnaire</dt><dd>Personne qui planifie et suit le service. Rôle <code>manager</code></dd></div>
+    <div><dt>Signalement</dt><dd>Problème déclaré par un citoyen. <code>UserAction</code> de type <code>report_container</code></dd></div>
+    <div><dt>Points · Badge · Défi</dt><dd>Récompenses de l'engagement citoyen. <code>UserTotalPoints</code>, <code>Badge</code>, <code>Challenge</code></dd></div>
+    <div><dt>Prédiction</dt><dd>Remplissage estimé pour le lendemain. <code>FillPrediction</code></dd></div>
+    <div><dt>Rapport</dt><dd>Synthèse périodique exportable. <code>Report</code></dd></div>
+  </dl>
+</section>
+
+<!-- ═══════════ POINTS CHAUDS ═══════════ -->
+<section class="part" id="chauds">
+  <p class="eyebrow">Les post-it roses</p>
+  <h2>Points chauds à traiter</h2>
+  <p class="intro">Tous les points chauds collés sur le tableau, regroupés. Ils alimentent directement le rapport de Sprint 0 et l'inventaire du Bloc 3.</p>
+  <div class="grid2">
+    <div class="panel hotp"><h4>Contrats d'événements</h4><ul>
+      <li><code>user-created</code> et <code>container-status-changed</code> ne sont jamais publiés.</li>
+      <li>La gamification attend d'autres noms de topics.</li>
+      <li>Analytics lit <code>fillPercentage</code> au lieu de <code>fillLevel</code>.</li>
+      <li>Un signalement attribue points et badges sans publier <code>points-awarded</code> ni <code>badge-earned</code>.</li>
+      <li>service-routes attend le rôle <code>collector</code>, le code utilise <code>agent</code>.</li>
+    </ul></div>
+    <div class="panel hotp"><h4>Règles métier incomplètes</h4><ul>
+      <li>Une tournée planifiée à J+3 n'est pas avancée si le conteneur passe à 95 %.</li>
+      <li>Deux seuils critiques différents : 85 % (parc) et 90 % (IoT).</li>
+      <li>Pas de contrôle des signalements en double (moins d'une heure).</li>
+      <li>Un signalement ne déclenche aucune collecte.</li>
+    </ul></div>
+    <div class="panel hotp"><h4>Parcours bloqués</h4><ul>
+      <li>Le front citoyen n'envoie pas le signalement, la gamification n'est pas routée.</li>
+      <li>L'agent ne peut pas démarrer ni terminer sa propre tournée.</li>
+      <li>La collecte d'un conteneur (scan QR) n'existe pas encore.</li>
+    </ul></div>
+    <div class="panel hotp"><h4>Données qui ne circulent pas</h4><ul>
+      <li>Le parc n'affiche pas les mesures des capteurs.</li>
+      <li>La copie locale des conteneurs dans service-routes n'est pas synchronisée.</li>
+      <li>Les écrans n'utilisent ni le pilotage ni les alertes temps réel.</li>
+    </ul></div>
+  </div>
+
+  <h3>Refaire l'atelier en équipe</h3>
+  <div class="panel"><ol>
+    <li><b>Préparer (5 min) :</b> un mur ou un tableau Miro, les huit couleurs de post-it, une flèche du temps de gauche à droite.</li>
+    <li><b>Exploration libre (20 min) :</b> chacun colle les événements qu'il connaît, au passé, sans discuter.</li>
+    <li><b>Mise en ordre (20 min) :</b> on range la ligne de temps, on supprime les doublons, on colle un point chaud sur chaque désaccord.</li>
+    <li><b>Commandes, acteurs, politiques (30 min) :</b> pour chaque événement, qui l'a déclenché et quelle règle réagit ensuite.</li>
+    <li><b>Frontières (15 min) :</b> on trace les cadres là où le vocabulaire change. Chaque cadre devient un contexte, donc un service.</li>
+    <li><b>Conclure (10 min) :</b> on choisit les trois points chauds à traiter en premier.</li>
+  </ol></div>
+  <p class="foot">Tableau établi à partir du code (schémas Prisma, contrôleurs, publishers et abonnés Kafka, appels des fronts) le 28 octobre 2026. Sources de méthode : Alberto Brandolini, <em>Introducing EventStorming</em> ; CDC M1 Développement, module 1.</p>
+</section>
+
+</main>
+</body>
+</html>

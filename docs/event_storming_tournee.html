@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Event Storming Tournée</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Mise en page : reprend la structure de la diapositive du cours, avec la palette EcoTrack (bleu-vert, rouge brique pour les points chauds) (Master 2 · Architecture microservices · Module 2 / Séquence 2) :
+   une ligne de temps d'événements orange, le contexte sous chaque post-it, des pointillés aux changements de vocabulaire,
+   puis les points chauds. Thème clair uniquement. */
+:root{
+  --bg:#eef5f5; --surface:#ffffff; --surface2:#f5fafa; --ink:#0d2a33; --navy:#13294b; --muted:#557079; --line:#d3e3e5; --line2:#b9d0d3;
+  --event:#0a6d8a; --event-2:#13806f; --event-ink:#ffffff; --hot:#b03f35; --hot-bg:#fbe3df; --axis:#0a6d8a; --cut:#557079;
+  --sea:#0a6d8a; --leaf:#23824f; --amber:#a86a12; --rose:#b03f35;
+  --hero-a:#06394a; --hero-b:#0b5d6e; --hero-c:#13806f; --hero-ink:#e8f6f4; --hero-muted:#b8dcd8;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body)}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;letter-spacing:-.015em;line-height:1.15}
+.wrap{max-width:1760px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+.hero{background:radial-gradient(120% 140% at 85% 0%, var(--hero-c) 0%, transparent 55%), linear-gradient(160deg,var(--hero-a),var(--hero-b));color:var(--hero-ink)}
+.hero .wrap{padding-block:34px 26px}
+.kicker{font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--hero-muted)}
+.added{display:inline-block;margin:10px 0 0;font:600 12.5px/1 var(--f-mono);letter-spacing:.06em;color:var(--hero-muted);border:1px solid color-mix(in srgb,var(--hero-ink) 30%,transparent);border-radius:999px;padding:6px 12px}
+.hero h1{font-size:clamp(28px,4vw,46px);font-weight:800;margin:12px 0 8px}
+.hero p{max-width:110ch;margin:0;opacity:.92}
+
+main.wrap{padding-block:26px 60px}
+
+/* ── La diapositive ─────────────────────── */
+.slide{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 40px -28px rgba(13,42,51,.45);padding:34px 36px 26px}
+.slide h2{font:800 clamp(24px,2.6vw,36px)/1.15 var(--f-display);color:var(--ink);text-align:center;margin:0 0 30px}
+.board-scroll{overflow-x:auto;padding-bottom:6px}
+.board{--n:10;display:grid;grid-template-columns:repeat(var(--n),minmax(118px,1fr));min-width:1220px;position:relative}
+.cell{position:relative;display:flex;flex-direction:column;align-items:center;padding:0 7px}
+.cell.cut::before{content:"";position:absolute;left:0;top:-14px;bottom:-30px;border-left:2.5px dashed var(--cut);opacity:.75}
+.ev{width:100%;aspect-ratio:1 / .9;background:linear-gradient(160deg,var(--event-2),var(--event));color:var(--event-ink);display:grid;place-items:center;text-align:center;padding:10px;font:700 15px/1.25 var(--f-body);border-radius:10px;box-shadow:0 2px 0 rgba(0,0,0,.06),0 12px 18px -12px rgba(10,109,138,.75);overflow-wrap:anywhere;hyphens:auto}
+.ev.plan{background:var(--surface);color:var(--event);border:2.5px dashed var(--event);box-shadow:none}
+.axis{grid-column:1 / -1;height:3px;background:var(--axis);margin:16px 6px 0;position:relative}
+.axis::after{content:"";position:absolute;right:-4px;top:50%;transform:translateY(-50%);border-left:14px solid var(--axis);border-top:8px solid transparent;border-bottom:8px solid transparent}
+.ctx{font:italic 600 16px/1.2 var(--f-body);color:var(--sea);margin-top:14px;text-align:center}
+.labels{display:contents}
+.hots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:38px}
+.hotbox{border:1.5px solid color-mix(in srgb,var(--hot) 45%,transparent);border-left:6px solid var(--hot);background:var(--hot-bg);border-radius:12px;padding:20px 24px;font-size:18px;line-height:1.45}
+.hotbox b{color:var(--hot)}
+.caption{font:italic 600 17px/1.4 var(--f-body);color:var(--ink);margin:26px 0 0}
+.slide-foot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:26px}
+
+/* ── Lecture détaillée ──────────────────── */
+section.part{margin-top:44px}
+.eyebrow{font:600 11.5px/1 var(--f-mono);letter-spacing:.13em;text-transform:uppercase;color:var(--sea);margin:0 0 8px}
+section.part > h2{font-size:clamp(24px,2.6vw,30px);font-weight:800;margin:0 0 8px}
+.intro{font-size:16.5px;color:var(--muted);max-width:115ch;margin:0 0 16px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11.5px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:700;white-space:nowrap}
+tr.cut td{border-top:2.5px dashed var(--cut)}
+.sw{display:inline-block;width:12px;height:12px;background:var(--event);border-radius:3px;margin-right:8px;vertical-align:-1px}
+.chip{display:inline-block;font:600 11px/1.2 var(--f-mono);padding:3px 7px;border-radius:5px;border:1px solid;white-space:nowrap}
+.chip.kafka{color:#7a4a05;border-color:var(--amber);background:#fbefd9}
+.chip.db{color:#33505a;border-color:var(--line2);background:var(--surface2)}
+.chip.none{color:#555;border-color:#999;border-style:dashed}
+.chip.plan{color:var(--rose);border-color:var(--rose);border-style:dashed}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.panel h3{margin:0 0 6px;font-size:17px}
+.panel p{margin:0;font-size:14.5px;color:var(--muted)}
+.foot{font-size:13px;color:var(--muted);margin-top:22px}
+@media (max-width:900px){.hots,.grid3{grid-template-columns:1fr}.slide{padding:24px 18px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">EcoTrack · Architecture microservices · DDD stratégique</div>
+    <p class="added">Ajouté le 28 octobre 2026</p>
+    <h1>Event Storming : le cœur Tournée</h1>
+    <p>Le même exercice que la diapositive du cours sur le fil rouge e-commerce, appliqué à EcoTrack. Le domaine central est la tournée de collecte : on suit sa vie, de la mesure qui la déclenche jusqu'aux indicateurs qu'elle met à jour.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ═══════ La diapositive ═══════ -->
+<div class="slide">
+  <h2>Event Storming appliqué au fil rouge EcoTrack</h2>
+  <div class="board-scroll">
+    <div class="board" style="--n:10" role="list" aria-label="Événements de la tournée dans l'ordre du temps">
+      <div class="cell" role="listitem"><div class="ev">MesureReçue</div></div>
+      <div class="cell" role="listitem"><div class="ev">SeuilDépassé</div></div>
+      <div class="cell cut" role="listitem"><div class="ev">Tournée Planifiée</div></div>
+      <div class="cell" role="listitem"><div class="ev">Tournée Optimisée</div></div>
+      <div class="cell" role="listitem"><div class="ev">Agent Assigné</div></div>
+      <div class="cell" role="listitem"><div class="ev">FeuilleDeRoute Envoyée</div></div>
+      <div class="cell" role="listitem"><div class="ev">Tournée Démarrée</div></div>
+      <div class="cell cut" role="listitem"><div class="ev plan">Conteneur Collecté</div></div>
+      <div class="cell cut" role="listitem"><div class="ev">Tournée Terminée</div></div>
+      <div class="cell cut" role="listitem"><div class="ev">Indicateurs MisÀJour</div></div>
+
+      <div class="axis" aria-hidden="true"></div>
+
+      <div class="cell"><span class="ctx">Télémétrie</span></div>
+      <div class="cell"><span class="ctx">Télémétrie</span></div>
+      <div class="cell cut"><span class="ctx">Tournée</span></div>
+      <div class="cell"><span class="ctx">Tournée</span></div>
+      <div class="cell"><span class="ctx">Tournée</span></div>
+      <div class="cell"><span class="ctx">Tournée</span></div>
+      <div class="cell"><span class="ctx">Tournée</span></div>
+      <div class="cell cut"><span class="ctx">Terrain</span></div>
+      <div class="cell cut"><span class="ctx">Tournée</span></div>
+      <div class="cell cut"><span class="ctx">Pilotage</span></div>
+    </div>
+  </div>
+
+  <div class="hots">
+    <div class="hotbox"><b>Point chaud</b> · Une tournée déjà planifiée à J+3 doit-elle être avancée si le conteneur passe de 78 % à 95 % ?</div>
+    <div class="hotbox"><b>Point chaud</b> · Une tournée est-elle « terminée » quand l'agent a collecté le dernier conteneur, ou quand le gestionnaire la clôture ?</div>
+  </div>
+  <p class="caption">Les pointillés marquent les endroits où le vocabulaire change : ce sont des frontières candidates.</p>
+  <div class="slide-foot"><span>Master 2 · Architecture microservices · EcoTrack · cœur de domaine : Tournée</span><span>Post-it en pointillés : événement prévu, pas encore codé</span></div>
+</div>
+
+<!-- ═══════ Lecture ═══════ -->
+<section class="part">
+  <p class="eyebrow">Lire la diapositive</p>
+  <h2>Pourquoi la Tournée est le cœur du domaine</h2>
+  <div class="grid3">
+    <div class="panel"><h3>C'est là que se crée la valeur</h3><p>Les objectifs du projet (−20 % de distance, moins de débordements, −18 % de CO₂) dépendent tous de tournées bien planifiées. Les capteurs, le parc et le pilotage servent cette décision.</p></div>
+    <div class="panel"><h3>C'est la logique la plus spécifique</h3><p>Optimisation plus proche voisin + 2-opt, transitions de statut, planification automatique selon le remplissage : rien de tout cela ne s'achète tout fait.</p></div>
+    <div class="panel"><h3>Les autres parties sont autour</h3><p>Télémétrie en amont (elle déclenche), Terrain pendant (l'agent agit), Pilotage en aval (il mesure). Chacune parle un autre vocabulaire, d'où les pointillés.</p></div>
+  </div>
+</section>
+
+<section class="part">
+  <p class="eyebrow">Détail des post-it</p>
+  <h2>Chaque événement, son déclencheur et son état dans le code</h2>
+  <p class="intro">Un événement est un fait passé qui intéresse le métier. Les lignes en pointillés du tableau correspondent aux frontières de la diapositive.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Événement</th><th>Contexte</th><th>Ce qui le déclenche</th><th>Ce qui suit</th><th>Dans le code</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><i class="sw"></i>MesureReçue</td><td>Télémétrie</td><td>Le capteur publie son remplissage en MQTT, toutes les 300 s</td><td>Contrôle de la valeur (0 à 100 %), enregistrement</td><td><span class="chip db">Enregistré · service-iot</span></td></tr>
+      <tr><td class="k"><i class="sw"></i>SeuilDépassé</td><td>Télémétrie</td><td>Le remplissage dépasse un seuil : 75 % pour planifier, 90 % pour alerter</td><td>Le niveau part sur Kafka (il y est publié à chaque mesure)</td><td><span class="chip db">Alerte enregistrée au-delà de 90 %</span></td></tr>
+      <tr class="cut"><td class="k"><i class="sw"></i>TournéePlanifiée</td><td>Tournée</td><td>Automatique au-delà de 75 % (J+3, ou J+1 dès 90 %), ou créée par un gestionnaire</td><td>La tournée attend son optimisation</td><td><span class="chip kafka">Kafka · route-created</span> <small>si créée à la main</small></td></tr>
+      <tr><td class="k"><i class="sw"></i>TournéeOptimisée</td><td>Tournée</td><td>Le gestionnaire lance l'optimisation ; tout conteneur au-delà de 80 % est ajouté</td><td>Ordre de passage, distance et durée calculés</td><td><span class="chip db">Enregistré · service-routes</span></td></tr>
+      <tr><td class="k"><i class="sw"></i>AgentAssigné</td><td>Tournée</td><td>Le gestionnaire choisit l'agent</td><td>La tournée apparaît dans « Mes tournées »</td><td><span class="chip db">Enregistré</span></td></tr>
+      <tr><td class="k"><i class="sw"></i>FeuilleDeRouteEnvoyée</td><td>Tournée</td><td>Le gestionnaire envoie le PDF par e-mail</td><td>L'agent connaît son circuit</td><td><span class="chip none">Sans trace</span></td></tr>
+      <tr><td class="k"><i class="sw"></i>TournéeDémarrée</td><td>Tournée</td><td>Statut planned → in_progress</td><td>La collecte commence</td><td><span class="chip kafka">Kafka · route-updated</span></td></tr>
+      <tr class="cut"><td class="k"><i class="sw"></i>ConteneurCollecté</td><td>Terrain</td><td>L'agent scanne le QR code du conteneur et indique le volume</td><td>Étape suivante ; le remplissage repart à zéro</td><td><span class="chip plan">Prévu (UC-A02)</span></td></tr>
+      <tr class="cut"><td class="k"><i class="sw"></i>TournéeTerminée</td><td>Tournée</td><td>Statut in_progress → completed</td><td>Les indicateurs sont recalculés</td><td><span class="chip kafka">Kafka · route-completed</span></td></tr>
+      <tr class="cut"><td class="k"><i class="sw"></i>IndicateursMisÀJour</td><td>Pilotage</td><td>service-analytics reçoit <code>route-completed</code></td><td>Tableau de bord, rapports</td><td><span class="chip db">Consommé, journalisé</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="part">
+  <p class="eyebrow">Les deux points chauds</p>
+  <h2>Ce que le code répond aujourd'hui</h2>
+  <div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div class="panel"><h3>Avancer une tournée déjà planifiée ?</h3><p>Aujourd'hui, non. L'abonné de service-routes s'arrête dès qu'une tournée prévue contient le conteneur : une tournée posée à J+3 à 78 % reste à J+3 même à 95 %. Il faut décider de la règle métier, puis la coder.</p></div>
+    <div class="panel"><h3>Qui termine la tournée ?</h3><p>Aujourd'hui, seuls l'admin et le gestionnaire peuvent changer le statut d'une tournée. L'agent ne peut ni la démarrer ni la terminer, et l'événement ConteneurCollecté n'existe pas encore. Le choix détermine qui possède la fin du processus.</p></div>
+  </div>
+  <p class="foot">Établi le 28 octobre 2026 à partir du code de la branche <code>dev</code> (service-iot, service-routes, service-analytics), sur le modèle de la diapositive 13 du cours « M2-S2-DDD-stratégique ».</p>
+</section>
+
+</main>
+</body>
+</html>
