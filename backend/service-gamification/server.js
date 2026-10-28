@@ -7,12 +7,12 @@ const { initializeKafka, setupKafkaShutdown } = require('./kafka/init');
 
 async function startServer() {
   try {
-    // Initialiser Kafka
-    await initializeKafka();
-    setupKafkaShutdown();
+    // Kafka non-bloquant — le service démarre même si Kafka est indisponible
+    initializeKafka()
+      .then(() => setupKafkaShutdown())
+      .catch((err) => console.warn('⚠️  Kafka indisponible — les événements ne seront pas consommés.', err.message));
 
-
-    await connectDb(); // Wait DB connection before listening
+    await connectDb();
     app.listen(port, () => {
       console.log(`✅ Service Gamification running on port ${port}`);
     });

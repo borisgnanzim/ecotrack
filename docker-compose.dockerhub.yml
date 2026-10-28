@@ -1,0 +1,262 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ecotrack_bootstrap}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ecotrack_bootstrap}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis-password}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis-password} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT:-2181}:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_PORT_INTERNAL:-19029}:29092"
+      - "${KAFKA_PORT_EXTERNAL:-19092}:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_PORT_EXTERNAL:-19092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "${KAFKA_UI_PORT:-8080}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ecotrack
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    restart: unless-stopped
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    depends_on:
+      - redis
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD:-redis-password}
+    restart: unless-stopped
+
+  service-users:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-users:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3011:3011"
+    environment:
+      PORT: 3011
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_service_users?schema=public
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      NOTIFICATION_MODE: local
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-containers:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-containers:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3012:3012"
+    environment:
+      PORT: 3012
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_containers?schema=public
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-routes:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-routes:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3013:3013"
+    environment:
+      PORT: 3013
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_routes?schema=public
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-analytics:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-analytics:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3014:3014"
+    environment:
+      PORT: 3014
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_analytics?schema=public
+      KAFKA_BROKERS: kafka:29092
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3010}
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-gamification:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-gamification:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3015:3015"
+    environment:
+      PORT: 3015
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_gamification?schema=public
+      KAFKA_BROKERS: kafka:29092
+      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-iot:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-iot:${IMAGE_TAG:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3016:3016"
+    environment:
+      PORT: 3016
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecotrack_iot?schema=public
+      KAFKA_BROKERS: kafka:29092
+    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    restart: unless-stopped
+
+  service-api-gateway:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-service-api-gateway:${IMAGE_TAG:-latest}
+    depends_on:
+      service-users:
+        condition: service_started
+      service-containers:
+        condition: service_started
+      service-routes:
+        condition: service_started
+      service-analytics:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      USERS_SERVICE_URL: http://service-users:3011
+      USERS_SERVICE_PORT: 3011
+      CONTAINERS_SERVICE_URL: http://service-containers:3012
+      CONTAINERS_SERVICE_PORT: 3012
+      ROUTES_SERVICE_URL: http://service-routes:3013
+      ROUTES_SERVICE_PORT: 3013
+      ANALYTICS_SERVICE_URL: http://service-analytics:3014
+      ANALYTICS_SERVICE_PORT: 3014
+      KAFKA_BROKERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-password}
+      NODE_ENV: production
+      CLUSTER_WORKERS: 2
+      JWT_SECRET: ${JWT_SECRET:-jwt-secret}
+      JWT_EXPIRES_IN: 1h
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    restart: unless-stopped
+
+  ecotrack-admin:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-admin:${IMAGE_TAG:-latest}
+    depends_on:
+      - service-api-gateway
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+  ecotrack-citoyen:
+    image: ${DOCKERHUB_USERNAME}/ecotrack-citoyen:${IMAGE_TAG:-latest}
+    depends_on:
+      - service-api-gateway
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_data:
+
+networks:
+  default:
+    name: ecotrack-network

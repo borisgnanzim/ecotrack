@@ -31,5 +31,8 @@
     "prisma": "^5.22.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
+  },
+  "overrides": {
+    "fast-uri": "4.0.1"
   }
 }

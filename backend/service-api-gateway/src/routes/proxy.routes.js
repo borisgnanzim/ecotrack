@@ -11,6 +11,9 @@ const PROXY_CONFIG = require('../config/proxy.config');
 const auth = require('../middlewares/auth.middleware');
 
 const proxyBodyWriter = (proxyReq, req) => {
+  // Strip Origin so microservice CORS middleware doesn't block proxied requests
+  proxyReq.removeHeader('origin');
+
   if (!req.body || !Object.keys(req.body).length) return;
 
   const contentType = proxyReq.getHeader('content-type') || '';
@@ -1408,6 +1411,7 @@ router.use('/zones', auth, createProxyMiddleware({
     '^/zones': '/zones'
   },
   onProxyReq: (proxyReq, req) => {
+    proxyReq.removeHeader('origin');
     // Pour multipart (import shapefile/geojson), ne pas réécrire le body
     // http-proxy-middleware stream le corps brut directement
     const contentType = proxyReq.getHeader('content-type') || '';

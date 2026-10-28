@@ -96,7 +96,8 @@ const options = {
   },
   apis: [
     './src/routes/*.js',
-    './src/controllers/*.js'
+    './src/controllers/*.js',
+    './src/routes/*.routes.js'
   ],
 };
 
