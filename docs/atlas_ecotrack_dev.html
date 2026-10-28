@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlas EcoTrack Dev</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : carnet d'exploration — bandeau « eaux profondes » puis colonne de lecture guidée par un sommaire latéral.
+   Signature : les jauges de remplissage (seuils 75 % / 90 % du projet) servent à coder l'état de chaque élément. */
+:root{
+  --bg:#eef5f5; --surface:#ffffff; --surface2:#f5fafa; --ink:#0d2a33; --muted:#557079; --line:#d3e3e5; --line2:#b9d0d3;
+  --sea:#0a6d8a; --sea-soft:#dcf0f5; --leaf:#23824f; --leaf-soft:#dcf2e5; --amber:#a86a12; --amber-soft:#fbefd9;
+  --rose:#b03f35; --rose-soft:#fbe3df; --code-bg:#0d2a33; --code-ink:#dcecee;
+  --hero-a:#06394a; --hero-b:#0b5d6e; --hero-c:#13806f; --hero-ink:#e8f6f4; --hero-muted:#b8dcd8;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  --radius:14px;
+  color-scheme:light;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--f-body)}
+a{color:var(--sea)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--sea);outline-offset:2px;border-radius:4px}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;letter-spacing:-.015em;line-height:1.15}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── Bandeau ───────────────────────────── */
+.hero{background:radial-gradient(120% 140% at 85% 0%, var(--hero-c) 0%, transparent 55%), linear-gradient(160deg,var(--hero-a),var(--hero-b));color:var(--hero-ink);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
+  background:repeating-radial-gradient(circle at 78% 30%, transparent 0 22px, var(--hero-ink) 22px 23px);
+  -webkit-mask-image:radial-gradient(60% 80% at 78% 30%, #000 0%, transparent 75%);mask-image:radial-gradient(60% 80% at 78% 30%, #000 0%, transparent 75%)}
+.hero-inner{position:relative;z-index:1;max-width:1760px;margin:0 auto;padding-block:52px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.kicker{font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--hero-muted)}
+.hero h1{font-size:clamp(34px,5.2vw,62px);font-weight:800;margin:14px 0 14px;max-width:16ch}
+.hero p.lede{font-size:clamp(16px,1.6vw,19px);max-width:100ch;color:var(--hero-ink);opacity:.92;margin:0}
+.figures{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;margin-top:34px;border:1px solid color-mix(in srgb,var(--hero-ink) 22%,transparent);border-radius:var(--radius);overflow:hidden;background:color-mix(in srgb,var(--hero-ink) 22%,transparent)}
+.fig{background:color-mix(in srgb,var(--hero-a) 72%,transparent);padding:14px 16px}
+.fig b{display:block;font:700 clamp(20px,2.4vw,28px)/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.fig span{font-size:12.5px;color:var(--hero-muted)}
+.hero-note{margin-top:12px;font-size:12.5px;color:var(--hero-muted)}
+
+/* ── Mise en page ──────────────────────── */
+.layout{max-width:1760px;margin:0 auto;display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding-block:32px 60px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.toc{position:sticky;top:calc(16px + env(safe-area-inset-top, 0px));align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:14px}
+.toc p{font:600 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:t;display:grid;gap:2px}
+.toc li{counter-increment:t}
+.toc a{display:grid;grid-template-columns:26px 1fr;gap:4px;padding:6px 8px;border-radius:8px;color:var(--muted);text-decoration:none;line-height:1.35}
+.toc a::before{content:counter(t,decimal-leading-zero);font:600 11px/1.7 var(--f-mono);color:var(--line2)}
+.toc a:hover{color:var(--ink);background:var(--surface)}
+.toc a.on{color:var(--ink);background:var(--surface);box-shadow:inset 3px 0 0 var(--sea)}
+.toc a.on::before{color:var(--sea)}
+.toc .meter{height:4px;background:var(--line);border-radius:4px;margin:14px 8px 0;overflow:hidden}
+.toc .meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--leaf),var(--sea))}
+main{min-width:0}
+
+section.block{padding-block:8px 34px;border-bottom:1px solid var(--line);margin-bottom:30px;scroll-margin-top:16px}
+section.block:last-of-type{border-bottom:0}
+.eyebrow{font:600 11.5px/1 var(--f-mono);letter-spacing:.13em;text-transform:uppercase;color:var(--sea);margin:0 0 8px}
+section.block > h2{font-size:clamp(26px,3vw,34px);font-weight:800;margin:0 0 10px}
+.intro{font-size:17px;color:var(--muted);max-width:110ch;margin:0 0 22px}
+h3{font-size:19px;font-weight:700;margin:26px 0 10px}
+p{max-width:115ch}
+ul.clean{padding-left:20px;margin:8px 0}
+ul.clean li{margin:4px 0}
+
+/* ── Composants ────────────────────────── */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;min-width:0}
+.panel h4{font:700 16px/1.25 var(--f-display);margin:0 0 6px}
+.panel p,.panel li{font-size:14.5px;color:var(--muted)}
+.panel p{margin:0}
+.panel ul{margin:6px 0 0;padding-left:18px}
+.panel .label{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px}
+
+.callout{border-radius:12px;padding:14px 16px;margin:16px 0;background:var(--sea-soft);border:1px solid color-mix(in srgb,var(--sea) 30%,transparent);max-width:none}
+.callout.warn{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 35%,transparent)}
+.callout.crit{background:var(--rose-soft);border-color:color-mix(in srgb,var(--rose) 35%,transparent)}
+.callout.ok{background:var(--leaf-soft);border-color:color-mix(in srgb,var(--leaf) 35%,transparent)}
+.callout p{margin:0;font-size:15px}
+.callout strong{color:var(--ink)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11.5px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600;color:var(--ink);white-space:nowrap}
+td small{color:var(--muted)}
+
+/* Jauge d'état : reprend le code couleur des conteneurs (normal / alerte / critique) */
+.st{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.st i{width:30px;height:9px;border-radius:3px;border:1px solid var(--line2);background:var(--surface2);position:relative;overflow:hidden;flex:none}
+.st i::after{content:"";position:absolute;inset:0 auto 0 0}
+.st.ok{color:var(--leaf)} .st.ok i::after{width:100%;background:var(--leaf)}
+.st.mid{color:var(--amber)} .st.mid i::after{width:55%;background:var(--amber)}
+.st.no{color:var(--rose)} .st.no i::after{width:12%;background:var(--rose)}
+#m1 td .st{white-space:normal;align-items:flex-start;min-width:150px}
+#m1 td .st i{margin-top:5px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);margin:6px 0 4px}
+
+.formula{font-family:var(--f-mono);font-size:13.5px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Frise des trois cahiers des charges */
+.timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:18px 0 6px;position:relative}
+.timeline::before{content:"";position:absolute;left:0;right:0;top:15px;height:2px;background:linear-gradient(90deg,var(--leaf),var(--sea))}
+.step{padding:0 14px 0 0;position:relative;min-width:0}
+.step .dot{width:32px;height:32px;border-radius:50%;background:var(--surface);border:2px solid var(--sea);display:grid;place-items:center;font:700 12px var(--f-mono);color:var(--sea);position:relative}
+.step.now .dot{background:var(--sea);color:var(--surface)}
+.step b{display:block;margin-top:12px;font-family:var(--f-display);font-size:16px}
+.step span{display:block;font:600 12px var(--f-mono);color:var(--muted);margin:2px 0 6px}
+.step p{font-size:14px;color:var(--muted);margin:0}
+
+/* Trajet d'une mesure */
+.route{display:grid;gap:0;margin:16px 0;counter-reset:r}
+.hop{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;position:relative;padding-bottom:18px}
+.hop::before{content:"";position:absolute;left:21px;top:40px;bottom:0;width:2px;background:var(--line2)}
+.hop:last-child::before{display:none}
+.hop .n{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font:700 14px var(--f-mono);background:var(--sea-soft);color:var(--sea);border:1px solid color-mix(in srgb,var(--sea) 30%,transparent)}
+.hop.br .n{background:var(--rose-soft);color:var(--rose);border-color:color-mix(in srgb,var(--rose) 35%,transparent)}
+.hop h4{margin:8px 0 4px;font:700 16px/1.3 var(--f-display)}
+.hop p{margin:0;font-size:14.5px;color:var(--muted)}
+
+/* Schéma d'architecture */
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:12px;margin:14px 0}
+.diagram svg{display:block;min-width:860px;width:100%;height:auto}
+.diagram .cap{font-size:12.5px;color:var(--muted);margin:8px 4px 0}
+svg .box{fill:var(--surface2);stroke:var(--line2);stroke-width:1.2}
+svg .box.front{fill:var(--leaf-soft);stroke:var(--leaf)}
+svg .box.gw{fill:var(--sea-soft);stroke:var(--sea)}
+svg .box.bus{fill:var(--amber-soft);stroke:var(--amber)}
+svg .box.off{fill:var(--surface);stroke:var(--rose);stroke-dasharray:5 4}
+svg .t{fill:var(--ink);font:600 13px var(--f-body)}
+svg .s{fill:var(--muted);font:500 11px var(--f-mono)}
+svg .w{fill:var(--rose);font:600 11px var(--f-mono)}
+svg .ln{stroke:var(--muted);stroke-width:1.4;fill:none}
+svg .ln.pub{stroke:var(--amber)}
+svg .ln.bad{stroke:var(--rose);stroke-dasharray:5 4}
+svg .ah{fill:var(--muted)}
+svg .ah.pub{fill:var(--amber)}
+svg .ah.bad{fill:var(--rose)}
+
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:14px 16px;overflow-x:auto;font:13px/1.6 var(--f-mono);margin:12px 0}
+pre .c{opacity:.6}
+
+dl.gloss{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin:12px 0}
+dl.gloss dt,dl.gloss dd{margin:0;padding:9px 14px;border-bottom:1px solid var(--line);font-size:14.5px}
+dl.gloss dt{font-family:var(--f-mono);font-weight:600;font-size:13px;background:var(--surface2)}
+dl.gloss dd{color:var(--muted)}
+dl.gloss dt:last-of-type,dl.gloss dd:last-of-type{border-bottom:0}
+
+.prio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.prio .panel{border-top:4px solid var(--rose)}
+.prio .panel:nth-child(2){border-top-color:var(--amber)}
+.prio .panel:nth-child(3){border-top-color:var(--leaf)}
+.prio ol{margin:8px 0 0;padding-left:20px;font-size:14.5px;color:var(--muted)}
+.prio li{margin:6px 0}
+.prio li b{color:var(--ink);font-weight:600}
+
+.foot{font-size:13px;color:var(--muted);padding-top:10px}
+
+/* Inventaire Blocs 3 et 4 : une fiche par compétence, cases à cocher mémorisées dans le navigateur */
+.inv-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:14px 0}
+.inv-head b{font:700 22px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.inv-head small{color:var(--muted)}
+.bar{flex:1 1 220px;height:10px;border-radius:6px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--leaf),var(--sea));transition:width .25s}
+.comp{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin:12px 0;overflow:hidden}
+.comp-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 16px;border-bottom:1px solid var(--line);background:var(--surface2)}
+.code{font:700 13px/1 var(--f-mono);color:var(--sea);background:var(--sea-soft);border-radius:8px;padding:7px 9px;white-space:nowrap}
+.comp-top h4{margin:0;font:700 16.5px/1.3 var(--f-display)}
+.comp-top p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.comp-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:0}
+.comp-body > div{padding:12px 16px;min-width:0}
+.comp-body > div + div{border-left:1px solid var(--line)}
+.comp-body .label{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin:4px 0 8px}
+.comp-body p{font-size:14px;color:var(--muted);margin:0 0 10px}
+.todo{display:grid;gap:2px}
+.todo label{display:flex;gap:10px;align-items:flex-start;font-size:14px;padding:5px 0;cursor:pointer;line-height:1.45}
+.todo input{margin-top:3px;width:16px;height:16px;accent-color:var(--leaf);flex:none}
+.todo input:checked + span{text-decoration:line-through;color:var(--muted)}
+.btn{font:600 13px var(--f-body);color:var(--ink);background:var(--surface2);border:1px solid var(--line2);border-radius:8px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--sea)}
+@media (max-width:760px){.comp-body{grid-template-columns:1fr}.comp-body > div + div{border-left:0;border-top:1px solid var(--line)}.comp-top{grid-template-columns:auto minmax(0,1fr)}.comp-top .st{grid-column:1 / -1}}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr;gap:10px}
+  .toc{position:relative;top:auto;max-height:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .toc ol{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toc .meter{display:none}
+  .figures{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3,.prio{grid-template-columns:1fr}
+  .timeline{grid-template-columns:1fr 1fr;row-gap:22px}
+  .timeline::before{display:none}
+}
+@media (max-width:560px){
+  .toc ol{grid-template-columns:1fr}
+  .figures{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g2,.g4,.timeline{grid-template-columns:1fr}
+  dl.gloss{grid-template-columns:1fr}
+  dl.gloss dt{border-bottom:0}
+}
+.added{display:inline-block;margin:10px 0 0;font:600 12.5px/1 var(--f-mono);letter-spacing:.06em;color:var(--hero-muted);border:1px solid color-mix(in srgb,var(--hero-ink) 30%,transparent);border-radius:999px;padding:6px 12px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="kicker">Projet fil rouge · INGETIS · Spécialité Développement · RNCP 38822</div>
+    <p class="added">Ajouté le 28 octobre 2026</p>
+    <h1>EcoTrack, de la poubelle connectée au tableau de bord</h1>
+    <p class="lede">Une plateforme qui suit le remplissage de conteneurs de déchets grâce à des capteurs, optimise les tournées de collecte et implique les citoyens. Cette version ne garde que ce qui concerne les développeurs : ce que l'école demande à la spécialité Développement, ce que nos dossiers et soutenances des blocs 1 et 2 ont décrit, ce que le code fait réellement, et l'inventaire de ce qu'il reste à faire pour les blocs 3 et 4.</p>
+    <div class="figures">
+      <div class="fig"><b class="num">500 000</b><span>habitants dans la métropole</span></div>
+      <div class="fig"><b class="num">2 000</b><span>conteneurs connectés (5 000 en V2)</span></div>
+      <div class="fig"><b class="num">12</b><span>secteurs géographiques</span></div>
+      <div class="fig"><b class="num">15 000</b><span>citoyens actifs visés</span></div>
+      <div class="fig"><b class="num">50</b><span>agents de collecte</span></div>
+      <div class="fig"><b class="num">10</b><span>gestionnaires</span></div>
+    </div>
+    <p class="hero-note">Chiffres du cahier des charges commun V1. Le cahier M1 Développement annonce 20 gestionnaires et 75 zones parisiennes dans ses données de test.</p>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Sommaire">
+    <p>Sommaire</p>
+    <ol id="toc">
+      <li><a href="#essentiel">L'essentiel</a></li>
+      <li><a href="#probleme">Le problème et les objectifs</a></li>
+      <li><a href="#acteurs">Les quatre profils</a></li>
+      <li><a href="#parcours">Trois cahiers des charges</a></li>
+      <li><a href="#rncp">Le titre RNCP 38822</a></li>
+      <li><a href="#m1">Le M1 : ce qu'on a fait</a></li>
+      <li><a href="#dossiers">Nos dossiers BC1 et BC2</a></li>
+      <li><a href="#architecture">L'architecture réelle</a></li>
+      <li><a href="#flux">Le trajet d'une mesure</a></li>
+      <li><a href="#fonctions">Les fonctionnalités</a></li>
+      <li><a href="#ecarts">Dossiers et code</a></li>
+      <li><a href="#lancer">Lancer le projet</a></li>
+      <li><a href="#v2">La V2 en Mastère 2</a></li>
+      <li><a href="#inventaire">Inventaire blocs 3 et 4</a></li>
+      <li><a href="#refonte">Pistes à discuter</a></li>
+      <li><a href="#glossaire">Glossaire</a></li>
+      <li><a href="#sources">Sources</a></li>
+    </ol>
+    <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+  </nav>
+
+  <main>
+
+<!-- 01 ─────────────────────────────────────────── -->
+<section class="block" id="essentiel">
+  <p class="eyebrow">Pour commencer</p>
+  <h2>L'essentiel en deux minutes</h2>
+  <p class="intro">Si vous ne lisez qu'une partie, lisez celle-ci.</p>
+  <div class="grid g2">
+    <div class="panel"><span class="label">Le sujet</span><h4>Une collecte guidée par les données</h4><p>Aujourd'hui les camions suivent des circuits fixes et s'arrêtent devant des conteneurs vides. Des capteurs mesurent le remplissage, la plateforme décide quels conteneurs vider et dans quel ordre.</p></div>
+    <div class="panel"><span class="label">Le cadre</span><h4>Un projet sur deux ans</h4><p>En M1 (janvier à juin 2026), nous avons <em>construit</em> la plateforme : blocs RNCP 1 et 2. En M2 (octobre 2026 à juin 2027), nous devons l'<em>exploiter</em> comme si elle était en production : blocs 3 et 4.</p></div>
+    <div class="panel"><span class="label">Ce qui existe</span><h4>7 services, 2 fronts, une chaîne IoT</h4><p>Une API Gateway, six microservices Node.js/Express (Prisma, une base PostgreSQL chacun), Kafka et Redis en Docker, un simulateur de capteurs en Python, et deux applications Vue 3 (admin et citoyen).</p></div>
+    <div class="panel"><span class="label">Le point d'attention</span><h4>Le back est en avance sur le front</h4><p>L'analytics, la gamification, les notifications et le temps réel existent côté serveur mais aucune interface ne les appelle. Plusieurs affirmations des dossiers et soutenances de juin ne correspondent pas au code (voir <a href="#ecarts">Dossiers et code</a>).</p></div>
+  </div>
+  <div class="callout ok"><p><strong>Cette semaine compte.</strong> Le jalon Développement du 26 au 30 octobre 2026 (module Architecture Microservices) est le <strong>Sprint 0</strong> de la V2 : audit de notre V1 et plan de décomposition. Cette page en est une base.</p></div>
+</section>
+
+<!-- 02 ─────────────────────────────────────────── -->
+<section class="block" id="probleme">
+  <p class="eyebrow">Le besoin</p>
+  <h2>Le problème et les objectifs</h2>
+  <p class="intro">Le cahier des charges commun part de constats chiffrés sur une métropole fictive. Tout le projet en découle.</p>
+
+  <div class="grid g4">
+    <div class="panel"><span class="label">Collecte</span><h4 class="num">30 à 40 %</h4><p>des arrêts se font devant des conteneurs vides.</p></div>
+    <div class="panel"><span class="label">Débordements</span><h4>Fréquents</h4><p>dans les zones touristiques et commerciales, faute de visibilité en temps réel.</p></div>
+    <div class="panel"><span class="label">Pilotage</span><h4>Aucune donnée</h4><p>Les décisions reposent sur l'intuition ; le retour sur investissement n'est pas mesurable.</p></div>
+    <div class="panel"><span class="label">Sécurité</span><h4>IoT exposé</h4><p>Capteurs non authentifiés, communications non chiffrées, aucun suivi.</p></div>
+  </div>
+
+  <h3>Les objectifs chiffrés</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Objectif</th><th>Indicateur</th><th>Cible</th><th>Ce que le code apporte</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Optimiser les tournées</td><td>Distance parcourue</td><td class="num">−20 %</td><td>Optimisation plus proche voisin + 2-opt (service-routes)</td></tr>
+      <tr><td class="k">Réduire les débordements</td><td>Taux de débordement</td><td class="num">&lt; 2 %</td><td>Alertes au-delà de 90 %, carte des conteneurs critiques</td></tr>
+      <tr><td class="k">Économiser</td><td>Coûts opérationnels</td><td class="num">−15 %</td><td>Tournées sur les seuls conteneurs utiles</td></tr>
+      <tr><td class="k">Réduire les émissions</td><td>CO₂</td><td class="num">−18 %</td><td>Moins de kilomètres parcourus</td></tr>
+      <tr><td class="k">Engager les citoyens</td><td>Utilisateurs actifs</td><td class="num">15 000</td><td>Front citoyen, signalements, gamification</td></tr>
+      <tr><td class="k">Disponibilité</td><td>Uptime</td><td class="num">&gt; 99,5 %</td><td>Déploiement continu, monitoring, rollback (Bloc 3)</td></tr>
+      <tr><td class="k">Sécurité</td><td>Incidents majeurs</td><td class="num">0</td><td>JWT, RBAC, validation des entrées, OWASP côté code</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Ce que le CDC commun demande au Développement</h3>
+  <p>Deux des six piliers du projet reviennent directement aux développeurs : la mobilité (applications pour citoyens, agents et gestionnaires) et la gamification.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Module Dev</th><th>Fonctionnalités attendues</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Frontend SPA</td><td>Interface responsive (ordinateur, tablette, mobile), composants réutilisables, gestion d'état</td></tr>
+      <tr><td class="k">Backend API</td><td>API REST complète, authentification JWT, middlewares, validation des entrées</td></tr>
+      <tr><td class="k">Optimisation des tournées</td><td>Algorithmes TSP et 2-opt, calcul des distances, feuilles de route</td></tr>
+      <tr><td class="k">Gamification</td><td>Points, plus de 30 badges, défis, classement, notifications</td></tr>
+      <tr><td class="k">Support</td><td>Tickets, chatbot FAQ, historique</td></tr>
+      <tr><td class="k">Administration</td><td>Back-office complet, journal d'audit des actions</td></tr>
+      <tr><td class="k">Commun à tous</td><td>Authentification (4 rôles, MFA optionnel), tableau de bord avec carte, notifications, profil</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid g2">
+    <div class="panel"><span class="label">Obligatoire en Dev</span><ul><li>Front responsive et application mobile-first pour les agents</li><li>API REST avec JWT, documentée en Swagger</li><li>Optimisation TSP / 2-opt</li><li>Gamification complète, tableau de bord gestionnaire</li><li>Tests unitaires, d'intégration et E2E ; pipeline CI/CD</li></ul></div>
+    <div class="panel"><span class="label">Livrables et critères Dev</span><ul><li>Code sur GitHub, Swagger, document de cadrage (30 à 35 pages)</li><li>Couverture de tests supérieure à 60 %</li><li>Application déployée</li><li>Jury : API complète, UI responsive et accessible, algorithmes fonctionnels</li></ul></div>
+  </div>
+
+  <h3>Le calcul de rentabilité du dossier Bloc 1</h3>
+  <p>Ces chiffres reposent sur des hypothèses, pas sur des mesures. La base de 2 000 000 € vient des notes de la soutenance : 50 agents × 200 €/jour × 200 jours/an. Le tableau détaillé du dossier donne :</p>
+  <div class="formula">Collecte : 2 000 000 € × 15 % = 300 000 €/an · Carburant : 200 000 € × 20 % = 40 000 €/an</div>
+  <div class="formula">Productivité : 500 000 € × 10 % = 50 000 €/an · Débordements urgents évités : 20 000 €/an</div>
+  <div class="formula">Gains : 300 000 + 40 000 + 50 000 + 20 000 = 410 000 €/an</div>
+  <div class="formula">Coût sur 3 ans (TCO) : 144 000 (développement) + 16 560 (infrastructure) + 86 400 (maintenance) = 246 960 €</div>
+  <div class="formula">Rentabilité : 178 320 € investis l'an 1 ÷ (410 000 ÷ 12 = 34 167 €/mois) = 5,2 mois → atteinte au 6ᵉ mois</div>
+  <div class="callout warn"><p><strong>Trois versions coexistent.</strong> Le résumé du même dossier annonce un TCO de 161 200 € et 390 000 € de gains ; l'oral passait par 2 000 000 € × 20 % × 75 % = 300 000 €. Il faut en garder une seule, la version détaillée ci-dessus, avant de la réutiliser pour l'appel d'offre de la V2.</p></div>
+</section>
+
+<!-- 03 ─────────────────────────────────────────── -->
+<section class="block" id="acteurs">
+  <p class="eyebrow">Qui utilise quoi</p>
+  <h2>Les quatre profils</h2>
+  <p class="intro">Le cahier des charges définit quatre rôles. Notre code utilise les mêmes, sous les noms <code>citizen</code>, <code>agent</code>, <code>manager</code> et <code>admin</code>.</p>
+  <div class="grid g2">
+    <div class="panel"><span class="label">Citoyen · 15 000</span><h4>Signaler et participer</h4><ul><li>Signaler un conteneur plein, avec photo (+10 points)</li><li>Consulter son historique, son impact CO₂, son classement</li><li>Rejoindre un défi collectif (« Zéro débordement »)</li></ul><p style="margin-top:8px"><small>Cas UC-C01 à UC-C03 · front <code>ecotrack-citoyen-vjs</code></small></p></div>
+    <div class="panel"><span class="label">Agent de collecte · 50</span><h4>Suivre sa tournée</h4><ul><li>Recevoir la tournée optimisée du jour sur mobile</li><li>Scanner le QR code d'un conteneur et valider la collecte</li><li>Signaler une anomalie sur le terrain</li></ul><p style="margin-top:8px"><small>Cas UC-A01 à UC-A03 · page « Mes tournées » du front admin</small></p></div>
+    <div class="panel"><span class="label">Gestionnaire · 10</span><h4>Piloter le service</h4><ul><li>Créer une tournée : zone, seuil (ex. &gt; 70 %), optimisation TSP / 2-opt</li><li>Surveiller la carte en temps réel, conteneurs critiques &gt; 90 %</li><li>Générer le rapport mensuel en PDF</li></ul><p style="margin-top:8px"><small>Cas UC-G01 à UC-G03</small></p></div>
+    <div class="panel"><span class="label">Administrateur · 3</span><h4>Configurer la plateforme</h4><ul><li>Gérer les comptes, rôles et permissions (actions tracées)</li><li>Définir les seuils d'alerte et les canaux de notification</li><li>Superviser la sécurité et la gamification</li></ul><p style="margin-top:8px"><small>Cas UC-AD01, UC-AD02</small></p></div>
+  </div>
+  <div class="callout"><p><strong>Deux cas transversaux :</strong> UC-T01, l'authentification (JWT, MFA pour gestionnaires et admins, blocage après 5 échecs) ; UC-T02, la réception IoT (capteur → MQTT → Kafka → PostgreSQL → tableau de bord, toutes les 15 minutes ou sur changement important).</p></div>
+</section>
+
+<!-- 04 ─────────────────────────────────────────── -->
+<section class="block" id="parcours">
+  <p class="eyebrow">Ce que l'école demande</p>
+  <h2>Trois cahiers des charges, deux années</h2>
+  <p class="intro">Les trois documents ne se remplacent pas : ils s'empilent. Le commun fixe le métier, le M1 fixe la technique, la V2 change de posture.</p>
+  <div class="timeline">
+    <div class="step"><div class="dot">V1</div><b>CDC commun</b><span>janv. → mai 2026</span><p>Le besoin métier, les cas d'usage, les modules et livrables du Développement, les exigences non fonctionnelles.</p></div>
+    <div class="step"><div class="dot">M1</div><b>CDC M1 Développement</b><span>2025-2026</span><p>Dix modules techniques : microservices, conteneur, front, base, JWT, Kafka, tests, Docker, CI/CD, soutenance.</p></div>
+    <div class="step"><div class="dot">BC</div><b>Soutenances BC1 et BC2</b><span>juin 2026</span><p>Individuelles : 20 minutes de présentation et 20 minutes d'échanges par bloc, avec EcoTrack et l'ERP d'alternance.</p></div>
+    <div class="step now"><div class="dot">V2</div><b>CDC V2 Mastère 2</b><span>oct. 2026 → juin 2027</span><p>Reprendre son propre V1, le supposer en production, puis le piloter, le sécuriser et manager l'équipe.</p></div>
+  </div>
+
+  <h3>Les exigences non fonctionnelles qui reviennent au Dev</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Domaine</th><th>Exigence</th><th>Cible</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Performance</td><td>Temps de réponse API (p95) · chargement de page</td><td class="num">&lt; 500 ms · &lt; 3 s</td></tr>
+      <tr><td class="k">Cache</td><td>Part des réponses servies par le cache</td><td class="num">&gt; 80 %</td></tr>
+      <tr><td class="k">Sécurité</td><td>JWT + MFA optionnel, RBAC 4 rôles au moindre privilège, bcrypt 10 tours</td><td>—</td></tr>
+      <tr><td class="k">Scalabilité</td><td>Front servi en fichiers statiques (CDN), cache Redis</td><td>—</td></tr>
+      <tr><td class="k">Conformité</td><td>RGPD (consentement, droit à l'oubli, minimisation), accessibilité WCAG 2.1 AA</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Le volume de mesures, selon les hypothèses</h3>
+  <p>Les documents ne partent pas tous de la même fréquence d'envoi. Le calcul change beaucoup :</p>
+  <div class="formula">CDC commun (1 mesure / 15 min) : 2 000 ÷ 15 = 133 msg/min ≈ 2,2 msg/s</div>
+  <div class="formula">Dossier BC1 (1 mesure / min) : 2 000 ÷ 60 s = 33 msg/s · 2 000 × 60 × 24 × 365 ≈ 1,05 milliard/an</div>
+  <div class="formula">Notre simulateur (1 mesure / 300 s) : 2 000 ÷ 300 = 6,7 msg/s · en V2 : 5 000 ÷ 300 = 16,7 msg/s</div>
+  <p>L'exigence « 400 msg/min » (6,7 msg/s) correspond exactement à 2 000 capteurs toutes les 5 minutes, soit le réglage par défaut du simulateur.</p>
+</section>
+
+<!-- RNCP ───────────────────────────────────────── -->
+<section class="block" id="rncp">
+  <p class="eyebrow">Ce qui est certifié</p>
+  <h2>Le titre RNCP 38822</h2>
+  <p class="intro">Le projet sert de support à notre certification. Le jury n'évalue pas EcoTrack en tant que tel : il évalue, bloc par bloc, des compétences que le projet doit prouver.</p>
+  <div class="grid g4">
+    <div class="panel"><span class="label">Titre</span><h4>Expert en architecture et développement logiciel</h4></div>
+    <div class="panel"><span class="label">Niveau</span><h4>7 (bac + 5)</h4><p>Certificateur : INGETIS</p></div>
+    <div class="panel"><span class="label">Enregistrement</span><h4 class="num">27/03/2024</h4><p>Échéance : 27/03/2028</p></div>
+    <div class="panel"><span class="label">Épreuve par bloc</span><h4>Dossier + 20 + 20</h4><p>Dossier écrit, 20 min de présentation, 20 min d'entretien, jury d'au moins 2 professionnels</p></div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bloc</th><th>Intitulé</th><th>Compétences</th><th>Quand</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td class="k">BC01</td><td>Planifier et organiser un projet de développement logiciel</td><td>Faisabilité, veille, conception, feuille de route, mise en place, KPI, supervision (7)</td><td class="num">juin 2026</td><td><span class="st ok"><i></i>Soutenu</span></td></tr>
+      <tr><td class="k">BC02</td><td>Concevoir et développer des solutions logicielles</td><td>Architecture applicative, qualité et sécurité du code, front, back, données à grande échelle (5)</td><td class="num">juin 2026</td><td><span class="st ok"><i></i>Soutenu</span></td></tr>
+      <tr><td class="k">BC03</td><td>Piloter la mise en production des solutions logicielles et leur évolution</td><td>Intégration continue, tests itératifs, surveillance, déploiement continu, opérations continues, documentation (6)</td><td class="num">juin 2027</td><td><span class="st no"><i></i>À faire</span></td></tr>
+      <tr><td class="k">BC04</td><td>Piloter l'équipe du projet de développement logiciel</td><td>Compétences, constitution, coordination, accompagnement, formation, performance (6)</td><td class="num">juin 2027</td><td><span class="st no"><i></i>À faire</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><p><strong>Ce qui revient partout dans les blocs 3 et 4 :</strong> le RGPD et la sécurité, le français <em>et</em> l'anglais, et l'inclusion des personnes en situation de handicap. Ces trois points doivent apparaître dans les livrables, pas seulement dans le discours.</p></div>
+  <p><small>Source : fiche RNCP 38822 sur francecompetences.fr. Le détail de chaque compétence des blocs 3 et 4 est repris dans l'<a href="#inventaire">inventaire</a>.</small></p>
+</section>
+
+<!-- 05 ─────────────────────────────────────────── -->
+<section class="block" id="m1">
+  <p class="eyebrow">Mastère 1</p>
+  <h2>Le M1 : ce que le référent attendait, ce que nous avons fait</h2>
+  <p class="intro">Le CDC M1 décrit une stack très précise (React, Sequelize, Joi…). Le professeur référent a fixé un cadre plus simple : c'est un projet d'école, et ce qui compte, c'est que nous sachions expliquer ce que nous avons fait.</p>
+
+  <div class="grid g3">
+    <div class="panel"><span class="label">Critère 1</span><h4>Un framework Vue</h4><p>Les deux fronts sont en Vue 3 avec Vite. Le choix est justifié par la veille du BC1 (Vue 43/50, prise en main plus rapide que React pour une équipe de trois).</p></div>
+    <div class="panel"><span class="label">Critère 2</span><h4>Que ça passe bien</h4><p>Les parcours principaux fonctionnent de bout en bout. Quelques liaisons entre services restent à réparer (voir <a href="#flux">le trajet d'une mesure</a>).</p></div>
+    <div class="panel"><span class="label">Critère 3</span><h4>Que ce soit soutenable</h4><p>Défendable à l'oral : tout ce qu'on montre doit marcher, et chacun doit pouvoir l'expliquer. On n'annonce pas ce qui n'existe pas (voir <a href="#ecarts">Dossiers et code</a>).</p></div>
+  </div>
+
+  <h3>Module par module : ce qu'on a fait et ce qu'il faut savoir expliquer</h3>
+  <p>La colonne « CDC » sert de repère : elle dit ce que le document proposait, pas ce qui était exigé. L'état indique si ça marche et peut se montrer aujourd'hui.</p>
+  <div class="legend"><span class="st ok"><i></i>Fonctionne et se montre</span><span class="st mid"><i></i>Fonctionne en partie</span><span class="st no"><i></i>Absent</span></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Module</th><th>Le CDC proposait</th><th>Ce que nous avons fait</th><th>À savoir expliquer</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Architecture</td><td>5 microservices, Kafka, une base par service, C4</td><td>Une gateway + 6 services, une base par service, schémas C4 et UML dans le dossier BC1</td><td>Pourquoi découper en services ; le rôle de la gateway ; le chemin d'une requête du front jusqu'au service</td><td><span class="st ok"><i></i>Fonctionne</span></td></tr>
+      <tr><td class="k">Service conteneurs</td><td>Architecture hexagonale, Sequelize, Joi</td><td>Couches routes → controllers → services → repositories, Prisma, Zod, 25 endpoints</td><td>À quoi sert chaque couche ; pourquoi Zod valide les données avant d'atteindre la base</td><td><span class="st ok"><i></i>Fonctionne</span></td></tr>
+      <tr><td class="k">Front</td><td>React, Zustand, Recharts</td><td>Vue 3, Vite, Tailwind, ECharts, Leaflet, deux applications (admin et citoyen)</td><td>Pourquoi Vue ; comment Axios ajoute le jeton à chaque appel ; comment le routeur filtre les pages par rôle</td><td><span class="st mid"><i></i>En partie : analytics, notifications et signalement non branchés</span></td></tr>
+      <tr><td class="k">Base de données</td><td>PostgreSQL, PostGIS, partitions</td><td>PostgreSQL + Prisma, migrations, données de test pour les utilisateurs</td><td>Ce que fait Prisma (schéma, migration, client généré) ; pourquoi une base par service</td><td><span class="st ok"><i></i>Fonctionne</span></td></tr>
+      <tr><td class="k">Sécurité</td><td>JWT, bcrypt, RBAC, rate limiting, CORS</td><td>JWT, 4 rôles, bcrypt, Helmet, limitation à 100 requêtes / 15 min, CORS</td><td>Le parcours de connexion : mot de passe vérifié, jeton signé, envoyé dans chaque requête, rôle contrôlé</td><td><span class="st ok"><i></i>Fonctionne</span></td></tr>
+      <tr><td class="k">Kafka</td><td>Topics, producteurs, consommateurs</td><td>14 topics ; iot publie <code>container-fill-level</code>, routes et analytics le consomment</td><td>Producteur, consommateur, topic, avec cet exemple réel ; pourquoi ne pas tout faire en HTTP</td><td><span class="st mid"><i></i>En partie : liaisons à réparer</span></td></tr>
+      <tr><td class="k">Tests</td><td>Jest, Supertest, 70 % de couverture</td><td>13 fichiers de tests sur users, gamification et iot</td><td>Ce qui est testé et pourquoi on teste la logique métier sans lancer le serveur</td><td><span class="st mid"><i></i>En partie : 3 services sur 7</span></td></tr>
+      <tr><td class="k">Docker</td><td>Une image par service, compose complet</td><td>Un Dockerfile par service ; compose pour Kafka, Zookeeper et Redis</td><td>Ce qu'apporte Docker ; ce qui tourne en conteneur et ce qui tourne en local</td><td><span class="st mid"><i></i>En partie : PostgreSQL et services hors compose</span></td></tr>
+      <tr><td class="k">CI/CD</td><td>GitHub Actions</td><td>3 workflows : tests, scan de sécurité Snyk, vérification du démarrage des services</td><td>Ce qui se déclenche à chaque push et ce que chaque étape vérifie</td><td><span class="st mid"><i></i>En partie : échecs ignorés, pas de déploiement</span></td></tr>
+      <tr><td class="k">Démo</td><td>Application déployée, vidéo</td><td>Soutenances BC1 et BC2 faites, démo en local</td><td>Un parcours qui marche de bout en bout : connexion, conteneurs, zones, tournée optimisée, export PDF</td><td><span class="st ok"><i></i>Fonctionne en local</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout ok"><p><strong>Pour la suite :</strong> le même principe vaut pour les blocs 3 et 4. Mieux vaut moins de fonctionnalités, qui marchent et que chacun sait expliquer, qu'une longue liste annoncée sans preuve.</p></div>
+  <p><small>Équipe M1 : trois étudiants, deux sur le back Express et un (CHAMSSOUDINE) sur le front Vue, en Scrum sur 8 sprints de 2 semaines.</small></p>
+</section>
+
+<!-- DOSSIERS ───────────────────────────────────── -->
+<section class="block" id="dossiers">
+  <p class="eyebrow">Juin 2026</p>
+  <h2>Nos dossiers BC1 et BC2</h2>
+  <p class="intro">Deux dossiers écrits individuels (CHAMSSOUDINE), appuyés sur EcoTrack et complétés à l'oral par l'ERP d'alternance. Ils contiennent beaucoup de matière réutilisable pour les blocs 3 et 4, à condition de corriger ce qui ne correspond pas au code.</p>
+  <div class="grid g2">
+    <div class="panel">
+      <span class="label">Bloc 1 · 50 pages</span><h4>Planifier et organiser</h4>
+      <ul>
+        <li><b>Étude de faisabilité</b> : volumétrie, dimensionnement AWS, TCO, ROI, 10 risques, décision « GO conditionnel »</li>
+        <li><b>Veille technologique</b> : grilles notées /50 (Vue 43, Express 42, PostgreSQL 46, Kafka 46), AWS retenu</li>
+        <li><b>Architecture</b> : C4 niveaux 1 et 2, classes UML, 3 diagrammes de séquence, conventions, sécurité</li>
+        <li><b>Modélisation Merise</b> : MCD à 7 entités (dont Véhicule), MLD réparti par service, MPD PostGIS avec partitions et trigger</li>
+        <li><b>Planification Agile</b> : 23 user stories MoSCoW, Definition of Done, 8 sprints, 16 KPI, plan de communication</li>
+        <li><b>Audit initial</b> : SWOT, quick wins, dette technique à éviter, points de vigilance</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <span class="label">Bloc 2 · 32 pages</span><h4>Concevoir et développer</h4>
+      <ul>
+        <li><b>Contexte et stack</b> : 6 modules développés, critères d'acceptation (&lt; 10 s, &lt; 30 s pour 50 conteneurs)</li>
+        <li><b>Architecture</b> : patterns Repository, Strategy (TSP), Observer (Socket.io), chaîne de middlewares, event sourcing partiel</li>
+        <li><b>Front</b> : Atomic Design, palette et seuils 75 / 90 %, WCAG 2.1 AA, Lighthouse 72 → 91</li>
+        <li><b>Back</b> : structure type d'un service, conventions d'API, OWASP Top 10 traité point par point</li>
+        <li><b>Tests</b> : pyramide (82 % unitaires, 67 % intégration, 3 E2E), TDD sur le 2-opt, k6, tests de sécurité</li>
+        <li><b>Documentation</b> : README, Swagger, 3 ADR sur 6, CONTRIBUTING, rapport de couverture</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Ce qui peut servir de base aux blocs 3 et 4</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Élément des dossiers</th><th>Réutilisable pour</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Definition of Done, KPI techniques</td><td>Plan de tests (C3.2) et indicateurs du tableau de monitoring (C3.3)</td></tr>
+      <tr><td class="k">Matrice des risques R01 à R10</td><td>Procédure de rollback et continuité de service (C3.4), scénario de panne</td></tr>
+      <tr><td class="k">Diagrammes C4, séquences, Merise</td><td>Documentation d'architecture et schémas UML (C3.6), après mise à jour</td></tr>
+      <tr><td class="k">Composition d'équipe, compétences clés</td><td>Besoins en compétences et matrice RACI (C4.1)</td></tr>
+      <tr><td class="k">Rituels Scrum, plan de communication</td><td>Charte de communication d'équipe (C4.4)</td></tr>
+      <tr><td class="k">TCO, ROI, dimensionnement</td><td>Réponse à l'appel d'offre d'extension (complément Bloc 4)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><p><strong>À ne pas recopier tel quel :</strong> une bonne partie des deux dossiers décrit la cible et non le code (base partagée avec PostGIS, ports 3000 à 3005, Pinia, refresh tokens, outillage qualité). Le détail est dans la section <a href="#ecarts">Dossiers et code</a>. Le dossier du Bloc 3 portera sur la mise en production : il devra partir de l'état réel.</p></div>
+</section>
+
+<!-- 06 ─────────────────────────────────────────── -->
+<section class="block" id="architecture">
+  <p class="eyebrow">Le code, tel qu'il est</p>
+  <h2>L'architecture réelle</h2>
+  <p class="intro">Ce schéma vient du code et de la configuration de la gateway, pas des présentations. Les ports sont ceux de <code>proxy.config.js</code>.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 960 560" role="img" aria-labelledby="archTitle">
+      <title id="archTitle">Architecture EcoTrack : deux fronts, une gateway, six services, Kafka et PostgreSQL</title>
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah pub" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah bad" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+
+      <!-- Fronts -->
+      <rect class="box front" x="20" y="16" width="290" height="60" rx="10"/>
+      <text class="t" x="36" y="42">Front admin · Vue 3 + Vite</text>
+      <text class="s" x="36" y="62">admin · manager · agent · :5173</text>
+      <rect class="box front" x="330" y="16" width="290" height="60" rx="10"/>
+      <text class="t" x="346" y="42">Front citoyen · Vue 3 + Vite</text>
+      <text class="s" x="346" y="62">citizen · :5174</text>
+
+      <!-- Simulateur + MQTT -->
+      <rect class="box" x="770" y="16" width="170" height="60" rx="10"/>
+      <text class="t" x="786" y="42">Simulateur capteurs</text>
+      <text class="s" x="786" y="62">Python · paho-mqtt</text>
+      <rect class="box" x="770" y="122" width="170" height="60" rx="10"/>
+      <text class="t" x="786" y="148">Broker MQTT</text>
+      <text class="s" x="786" y="168">containers/+/data</text>
+      <path class="ln" d="M855,76 V118" marker-end="url(#a)"/>
+
+      <!-- Gateway + Redis -->
+      <rect class="box gw" x="20" y="122" width="600" height="60" rx="10"/>
+      <text class="t" x="36" y="148">API Gateway · :3010</text>
+      <text class="s" x="36" y="168">JWT · rate limit 100 req/15 min · Helmet · proxy</text>
+      <rect class="box" x="640" y="122" width="110" height="60" rx="10"/>
+      <text class="t" x="656" y="148">Redis</text>
+      <text class="s" x="656" y="168">cache</text>
+      <path class="ln" d="M620,152 H636" marker-end="url(#a)"/>
+      <path class="ln" d="M165,76 V118" marker-end="url(#a)"/>
+      <path class="ln" d="M475,76 V118" marker-end="url(#a)"/>
+
+      <!-- Services -->
+      <rect class="box" x="20" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="34" y="276">users</text><text class="s" x="34" y="296">:3011 · auth</text><text class="s" x="34" y="311">rôles · notifs</text>
+      <rect class="box" x="176" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="190" y="276">containers</text><text class="s" x="190" y="296">:3012 · zones</text><text class="s" x="190" y="311">Socket.io</text>
+      <rect class="box" x="332" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="346" y="276">routes</text><text class="s" x="346" y="296">:3013 · tournées</text><text class="s" x="346" y="311">2-opt · PDF</text>
+      <rect class="box" x="488" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="502" y="276">analytics</text><text class="s" x="502" y="296">:3014 · KPI</text><text class="s" x="502" y="311">prédictions</text>
+      <rect class="box off" x="644" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="658" y="276">gamification</text><text class="s" x="658" y="296">:3015 (.env)</text><text class="w" x="658" y="311">hors gateway</text>
+      <rect class="box" x="800" y="250" width="140" height="70" rx="10"/>
+      <text class="t" x="814" y="276">iot</text><text class="s" x="814" y="296">:3015 · mesures</text><text class="s" x="814" y="311">alertes</text>
+
+      <!-- Gateway → services -->
+      <path class="ln" d="M90,182 V246" marker-end="url(#a)"/>
+      <path class="ln" d="M246,182 V246" marker-end="url(#a)"/>
+      <path class="ln" d="M402,182 V246" marker-end="url(#a)"/>
+      <path class="ln" d="M558,182 V246" marker-end="url(#a)"/>
+      <path class="ln" d="M855,182 V246" marker-end="url(#a)"/>
+      <text class="s" x="580" y="222">/iot proxifié aussi</text>
+
+      <!-- Kafka -->
+      <rect class="box bus" x="20" y="390" width="920" height="54" rx="10"/>
+      <text class="t" x="36" y="414">Kafka + Zookeeper (Docker)</text>
+      <text class="s" x="36" y="432">container-fill-level · container-created · route-completed · user-created … (14 topics)</text>
+      <path class="ln pub" d="M90,320 V386" marker-end="url(#ap)"/>
+      <path class="ln pub" d="M246,320 V386" marker-end="url(#ap)"/>
+      <path class="ln pub" d="M870,320 V386" marker-end="url(#ap)"/>
+      <text class="s" x="760" y="362">publie fill-level</text>
+      <path class="ln pub" d="M402,386 V324" marker-end="url(#ap)"/>
+      <path class="ln pub" d="M558,386 V324" marker-end="url(#ap)"/>
+      <text class="s" x="412" y="362">consomment</text>
+      <path class="ln bad" d="M714,386 V324" marker-end="url(#ab)"/>
+      <text class="w" x="600" y="378">autres noms de topics</text>
+
+      <!-- Bases -->
+      <rect class="box" x="20" y="480" width="920" height="60" rx="10"/>
+      <text class="t" x="36" y="506">PostgreSQL · une base par service (Prisma)</text>
+      <text class="s" x="36" y="526">ecotrack_service_users · containers · routes_db · iot_db · ecotrack_analytics · ecotrack_gamification — à lancer hors Docker</text>
+    </svg>
+    <p class="cap">Flèches orange : messages Kafka. Pointillés rouges : liaisons cassées ou absentes. Les deux fronts appellent uniquement la gateway.</p>
+  </div>
+
+  <h3>Les services un par un</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Service</th><th>Rôle</th><th>Données (modèles Prisma)</th><th>Particularités</th></tr></thead>
+    <tbody>
+      <tr><td class="k">api-gateway</td><td>Point d'entrée unique</td><td>— (Redis pour le cache)</td><td>Proxy <code>http-proxy-middleware</code>, vérification JWT, cache sur <code>/containers</code>, <code>/users/profile</code>, <code>/notifications</code>, routes <code>/health</code> et <code>/stats</code></td></tr>
+      <tr><td class="k">users</td><td>Comptes, rôles, profil, notifications</td><td>User, Role, Notification</td><td>bcryptjs, JWT, avatar redimensionné par Sharp, DTO Zod, PM2 ; 7 fichiers de tests ; reste d'une config MongoDB</td></tr>
+      <tr><td class="k">containers</td><td>Conteneurs, zones, historique</td><td>Zone, Container, FillHistory</td><td>Coordonnées en nombres et polygones en JSON, import/export GeoJSON et Shapefile, photo, Socket.io (alerte à 85 %), Swagger</td></tr>
+      <tr><td class="k">routes</td><td>Tournées de collecte</td><td>Container (copie), Route, RouteStep</td><td>Plus proche voisin puis 2-opt, statuts planned → in_progress → completed, PDF (pdfkit), e-mail (nodemailer)</td></tr>
+      <tr><td class="k">analytics</td><td>Pilotage</td><td>9 modèles : métriques, KPI, prédictions, anomalies, rapports</td><td>Régression linéaire sur 7 jours, rapports PDF / Excel / CSV planifiés par cron ; aucune migration Prisma</td></tr>
+      <tr><td class="k">gamification</td><td>Points, badges, défis</td><td>UserAction, UserTotalPoints, Badge, UserBadge, Challenge, UserChallenge</td><td>Classement, signalement citoyen (<code>POST /report</code>) ; 5 fichiers de tests ; non déclaré dans la gateway</td></tr>
+      <tr><td class="k">iot</td><td>Ingestion des capteurs</td><td>Measurement, SensorStatus, Alert</td><td>Abonné MQTT, contrôle des valeurs, alertes (remplissage &gt; 90 %, température, humidité), publication Kafka ; 1 fichier de tests</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Les fronts</h3>
+  <div class="grid g2">
+    <div class="panel"><span class="label">ecotrack-admin-vjs</span><h4>Gestion et pilotage</h4><p>Tableau de bord, conteneurs, zones, utilisateurs, tournées (admin) et « Mes tournées » (agent, manager). ECharts pour les graphiques, Leaflet pour les cartes, Nominatim (OpenStreetMap) pour le géocodage.</p></div>
+    <div class="panel"><span class="label">ecotrack-citoyen-vjs</span><h4>Participation</h4><p>Profil, formulaire de signalement, « Mes signalements », conteneurs à proximité. Les accès sont filtrés par rôle dans le routeur ; le jeton est gardé en <code>localStorage</code> ou <code>sessionStorage</code> (« se souvenir de moi »).</p></div>
+  </div>
+</section>
+
+<!-- 07 ─────────────────────────────────────────── -->
+<section class="block" id="flux">
+  <p class="eyebrow">Suivre une donnée</p>
+  <h2>Le trajet d'une mesure, du capteur à l'écran</h2>
+  <p class="intro">C'est le flux 1 du cahier des charges (« capteur → tableau de bord »). En le suivant dans le code, on voit où il s'arrête.</p>
+  <div class="route">
+    <div class="hop"><div class="n">1</div><div><h4>Le simulateur publie</h4><p><code>sensor_simulator.py</code> envoie toutes les 300 s, pour chaque conteneur, <code>fillLevel</code>, température et humidité sur le topic MQTT <code>containers/&lt;id&gt;/data</code>. Le remplissage monte de 0 à 5 points par envoi et repart entre 5 et 15 % à 100 %.</p></div></div>
+    <div class="hop"><div class="n">2</div><div><h4>service-iot reçoit et contrôle</h4><p>Il vérifie que le remplissage est entre 0 et 100, repère les anomalies (température hors de −10 à 60 °C, humidité hors de 0 à 100 %), enregistre la mesure et crée une alerte si le remplissage dépasse 90 %.</p></div></div>
+    <div class="hop"><div class="n">3</div><div><h4>Kafka diffuse</h4><p>La mesure part sur le topic <code>container-fill-level</code>. service-routes et service-analytics y sont abonnés.</p></div></div>
+    <div class="hop br"><div class="n">4</div><div><h4>service-containers n'écoute pas</h4><p>Il publie sur Kafka mais n'a aucun consommateur : son <code>fillLevel</code> n'est mis à jour que par <code>POST /containers/:id/fill-history</code>. La carte de l'admin ne voit donc pas les mesures des capteurs.</p></div></div>
+    <div class="hop br"><div class="n">5</div><div><h4>Le temps réel n'atteint pas l'écran</h4><p>service-containers émet <code>fill_level_updated</code> et <code>critical_alert</code> par Socket.io, mais aucun front n'a de client Socket.io. L'écran se met à jour au rechargement.</p></div></div>
+    <div class="hop br"><div class="n">6</div><div><h4>La gamification n'entend rien</h4><p>Elle attend des topics nommés <code>container-events.container-fill-level-updated</code>, <code>iot-events.…</code> : des noms que personne ne publie.</p></div></div>
+  </div>
+  <div class="callout warn"><p><strong>À retenir :</strong> chaque maillon fonctionne seul ; ce sont les liaisons entre services qui manquent. C'est la priorité d'une refonte, avant d'ajouter des fonctionnalités.</p></div>
+</section>
+
+<!-- 08 ─────────────────────────────────────────── -->
+<section class="block" id="fonctions">
+  <p class="eyebrow">Inventaire</p>
+  <h2>Les fonctionnalités, côté serveur et côté écran</h2>
+  <p class="intro">« Back » : l'endpoint existe. « Front » : une interface l'appelle réellement (vérifié dans les appels Axios des deux fronts).</p>
+  <div class="legend"><span class="st ok"><i></i>En place</span><span class="st mid"><i></i>Partiel</span><span class="st no"><i></i>Absent</span></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Domaine</th><th>Fonctions</th><th>Back</th><th>Front</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Connexion</td><td>Login JWT, inscription citoyen, gardes par rôle</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st ok"><i></i>Les deux fronts</span></td></tr>
+      <tr><td class="k">Utilisateurs</td><td>CRUD, pagination, ajout et retrait de rôles, profil, avatar</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st ok"><i></i>Admin</span></td></tr>
+      <tr><td class="k">Notifications</td><td>Liste paginée, lue, suppression</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st no"><i></i>Aucun appel</span></td></tr>
+      <tr><td class="k">Conteneurs</td><td>CRUD, recherche, statistiques, proximité, historique, photo</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st ok"><i></i>Admin + citoyen</span></td></tr>
+      <tr><td class="k">Zones</td><td>CRUD, statistiques, affectation des conteneurs</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st ok"><i></i>Admin</span></td></tr>
+      <tr><td class="k">SIG</td><td>Choroplèthe, import / export GeoJSON et Shapefile</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st no"><i></i>Aucun appel</span></td></tr>
+      <tr><td class="k">Capteurs</td><td>Ingestion MQTT, alertes, état des capteurs</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st no"><i></i>Aucun écran</span></td></tr>
+      <tr><td class="k">Temps réel</td><td>Socket.io : abonnement par conteneur, alerte critique</td><td><span class="st ok"><i></i>Serveur</span></td><td><span class="st no"><i></i>Pas de client</span></td></tr>
+      <tr><td class="k">Tournées</td><td>CRUD, assignation, optimisation, validation, carte, PDF, envoi e-mail</td><td><span class="st ok"><i></i>En place</span></td><td><span class="st ok"><i></i>Admin + agent</span></td></tr>
+      <tr><td class="k">Analytics</td><td>Tableau de bord, KPI, prédictions, anomalies, rapports planifiés</td><td><span class="st mid"><i></i>Sans migration</span></td><td><span class="st no"><i></i>Service vide</span></td></tr>
+      <tr><td class="k">Gamification</td><td>Points, badges, défis, classement, statistiques</td><td><span class="st mid"><i></i>Hors gateway</span></td><td><span class="st no"><i></i>Aucun appel</span></td></tr>
+      <tr><td class="k">Signalement</td><td>Formulaire citoyen → <code>POST /report</code> (gamification)</td><td><span class="st mid"><i></i>Hors gateway</span></td><td><span class="st mid"><i></i>Envoi commenté</span></td></tr>
+    </tbody>
+  </table></div>
+  <p><small>Le tableau de bord admin s'appuie aujourd'hui sur <code>/containers/stats</code>. Le fichier <code>services/analytics/analyticService.js</code> vient d'être créé et est encore vide.</small></p>
+</section>
+
+<!-- 09 ─────────────────────────────────────────── -->
+<section class="block" id="ecarts">
+  <p class="eyebrow">Audit</p>
+  <h2>Ce que décrivent nos dossiers, et ce que dit le code</h2>
+  <p class="intro">Les dossiers et présentations BC1 et BC2 décrivent souvent la cible plutôt que l'existant. Le jury du Bloc 3 jugera la mise en production de ce qui existe : chaque ligne ci-dessous est soit à implémenter, soit à corriger dans la documentation.</p>
+
+  <h3>Architecture et données</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Décrit (dossiers, juin 2026)</th><th>Dans le code (octobre 2026)</th><th>Écart</th></tr></thead>
+    <tbody>
+      <tr><td>Une base PostgreSQL partagée par tous les services</td><td>Une base par service (6 bases)</td><td><span class="st mid"><i></i>Différent</span></td></tr>
+      <tr><td>PostgreSQL + PostGIS, requêtes <code>ST_DWithin</code>, index GiST</td><td>Pas de PostGIS : latitude et longitude en nombres, polygones en JSON</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>MCD à 7 entités dont Véhicule, table Mesure partitionnée par mois, trigger d'alerte SQL</td><td>Aucun modèle Véhicule ni Collecte, pas de partition, alertes calculées dans service-iot</td><td><span class="st mid"><i></i>Différent</span></td></tr>
+      <tr><td>Ports 3000 à 3005, 5 services derrière la gateway</td><td>Gateway 3010, services 3011 à 3015, 7 services ; valeurs par défaut contradictoires</td><td><span class="st mid"><i></i>Différent</span></td></tr>
+      <tr><td>Kafka 3.7 en mode KRaft, topics <code>iot-data</code>, <code>alerts</code>…</td><td>Confluent 7.5.0 avec Zookeeper ; <code>container-fill-level</code>… et une autre convention en gamification</td><td><span class="st mid"><i></i>Différent</span></td></tr>
+      <tr><td>Gamification sans état, reconstruite depuis Kafka</td><td>Tables propres et endpoints d'écriture HTTP</td><td><span class="st mid"><i></i>Différent</span></td></tr>
+      <tr><td>Retry exponentiel puis dead letter topic</td><td>Aucune dead letter queue trouvée</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Package partagé <code>@ecotrack/shared</code> (workspaces npm)</td><td>Absent ; le <code>package.json</code> racine pointe vers des fronts Next.js supprimés</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Prédiction de remplissage « prévue mais non implémentée »</td><td>Régression linéaire sur 7 jours présente dans service-analytics</td><td><span class="st ok"><i></i>Code en avance</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Front, sécurité et qualité</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Décrit (dossiers, juin 2026)</th><th>Dans le code (octobre 2026)</th><th>Écart</th></tr></thead>
+    <tbody>
+      <tr><td>Pinia, 3 stores (auth, conteneurs, alertes)</td><td>Pinia n'est pas installé ; l'état vit dans les composants et le stockage du navigateur</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Carte mise à jour en direct via Socket.io, rooms par zone</td><td>Serveur Socket.io avec rooms par conteneur ; aucun client dans les fronts</td><td><span class="st mid"><i></i>Partiel</span></td></tr>
+      <tr><td>Clustering Leaflet de 2 000 marqueurs</td><td>Pas de plugin de clustering dans les dépendances</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Access token de 15 min en mémoire, refresh token 7 j en cookie HttpOnly, liste noire Redis</td><td>Aucun refresh token ; jeton en <code>localStorage</code> ou <code>sessionStorage</code> (pratique listée comme « dette à éviter » dans l'audit BC1)</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Logs Winston + Morgan en JSON, DOMPurify côté front</td><td>Aucune de ces bibliothèques dans les dépendances</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>82 % unitaires, 67 % intégration, 3 scénarios Cypress</td><td>13 fichiers de tests dans 3 services, couverture mesurée sur users seulement, aucun test front</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Tests de charge k6 : 180 ms de latence Kafka, p95 à 380 ms</td><td>Aucun script k6 dans le dépôt</td><td><span class="st no"><i></i>Non prouvé</span></td></tr>
+      <tr><td>Hook Husky + eslint-plugin-security, Dependabot chaque lundi</td><td>Ni Husky ni Dependabot ; Snyk est en place dans la CI</td><td><span class="st mid"><i></i>Autre outil</span></td></tr>
+      <tr><td>3 ADR, CONTRIBUTING.md, <code>docker-compose.prod.yml</code></td><td>Aucun de ces fichiers dans le dépôt</td><td><span class="st no"><i></i>Absent</span></td></tr>
+      <tr><td>Lighthouse 72 → 91/100, bundle 890 → 245 Ko</td><td>Aucun rapport dans le dépôt pour le vérifier</td><td><span class="st mid"><i></i>Non prouvé</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout crit"><p><strong>La documentation du dépôt se contredit aussi.</strong> <code>docs/architecture.md</code> et <code>.github/copilot-instructions.md</code> décrivent des fronts Next.js et trois services ; le README racine donne d'autres ports que <code>backend/README.md</code>. Les fichiers <code>.env</code> des deux fronts sont suivis par git, et certains documents personnels contiennent des identifiants en clair : à nettoyer.</p></div>
+</section>
+
+<!-- 10 ─────────────────────────────────────────── -->
+<section class="block" id="lancer">
+  <p class="eyebrow">Pratique</p>
+  <h2>Lancer le projet en local</h2>
+  <p class="intro">D'après le Makefile, les notes « Commandes lancement back » et les README. PostgreSQL doit tourner sur la machine, car il est commenté dans le compose.</p>
+<pre><span class="c"># 1. Infrastructure : Kafka, Zookeeper, Redis (+ Kafka UI :8080, Redis Commander :8081)</span>
+make up
+make kafka-create-topics
+
+<span class="c"># 2. Chaque service : dépendances, client Prisma, migrations, démarrage</span>
+cd backend/service-containers
+npm install
+npx prisma generate
+npx prisma migrate dev
+npm run dev            <span class="c"># ou npm run pm2:start (clustering PM2)</span>
+
+<span class="c"># 3. Capteurs simulés (Python + paho-mqtt, broker MQTT requis)</span>
+python backend/service-iot/simulator/sensor_simulator.py
+
+<span class="c"># 4. Fronts</span>
+cd front/ecotrack-admin-vjs   &amp;&amp; npm install &amp;&amp; npm run dev   <span class="c"># :5173</span>
+cd front/ecotrack-citoyen-vjs &amp;&amp; npm install &amp;&amp; npm run dev   <span class="c"># :5174</span></pre>
+  <p>Documentation Swagger de chaque service : <code>/api-docs</code> (et <code>/docs</code> pour routes). Variable clé des fronts : <code>VITE_APP_BACK_API_GATEWAY</code>, absente du <code>.env.example</code> citoyen.</p>
+</section>
+
+<!-- 11 ─────────────────────────────────────────── -->
+<section class="block" id="v2">
+  <p class="eyebrow">Mastère 2 · 2026-2027</p>
+  <h2>La V2 : de bâtisseur à exploitant</h2>
+  <p class="intro">Chaque équipe reprend son propre V1, supposé en production depuis plusieurs mois. On ne construit plus : on pilote, on sécurise, on fait évoluer et on manage. Soutenance fin juin 2027.</p>
+
+  <div class="grid g2">
+    <div class="panel"><span class="label">Bloc 3 · 25 %</span><h4>Piloter la mise en production et l'évolution</h4><p>Intégration continue, tests, surveillance, déploiement continu, amélioration continue, documentation.</p></div>
+    <div class="panel"><span class="label">Bloc 4 · 15 %</span><h4>Piloter l'équipe projet</h4><p>Compétences, recrutement, intégration d'un nouveau membre, animation, formation, performance et bien-être. Rotation du rôle de « Lead ».</p></div>
+  </div>
+
+  <h3>Le socle plancher, à atteindre avant tout le reste</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Exigence</th><th>Chez nous</th><th>État</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Liste des conteneurs</td><td><code>GET /containers</code></td><td><span class="st ok"><i></i>Fait</span></td></tr>
+      <tr><td class="k">Ingestion de mesures</td><td>MQTT → service-iot, et <code>POST /containers/:id/fill-history</code></td><td><span class="st ok"><i></i>Fait</span></td></tr>
+      <tr><td class="k">Statistiques par zone</td><td><code>GET /zones/stats</code>, <code>GET /zones/:id/stats</code></td><td><span class="st ok"><i></i>Fait</span></td></tr>
+      <tr><td class="k">Back et base accessibles en équipe</td><td>PostgreSQL à installer à la main sur chaque poste</td><td><span class="st mid"><i></i>Partiel</span></td></tr>
+      <tr><td class="k">Dépôt Git à jour</td><td>Branche <code>dev</code> active</td><td><span class="st ok"><i></i>Fait</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Les quatre scénarios imposés</h3>
+  <div class="grid g4">
+    <div class="panel"><span class="label">Charge</span><h4>2 000 → 5 000 capteurs</h4><p>Extension à une ville voisine. Côté Dev : services, base et Kafka doivent absorber 2,5 fois plus de mesures.</p></div>
+    <div class="panel"><span class="label">Sécurité</span><h4>Incident simulé</h4><p>Intrusion ou anomalie. Dev en soutien : correctif applicatif, logs, jetons et accès.</p></div>
+    <div class="panel"><span class="label">Conformité</span><h4>Audit RGPD</h4><p>Dev en soutien : données personnelles stockées, droit à l'oubli, traçabilité.</p></div>
+    <div class="panel"><span class="label">Production</span><h4>Panne à corriger</h4><p>Interruption ou lenteur en temps limité. <strong>Dev pilote.</strong></p></div>
+  </div>
+  <p>Chaque scénario laisse une trace écrite courte (compte rendu, rapport d'audit, post-mortem) qui alimente le dossier du Bloc 3.</p>
+
+  <p>Les douze compétences des blocs 3 et 4, leurs livrables et ce qu'il reste à faire sont détaillés dans l'<a href="#inventaire">inventaire</a> ci-dessous.</p>
+
+  <h3>Le calendrier Développement</h3>
+  <p>20 % de chaque module est consacré au projet, soit environ 49 heures accompagnées sur l'année (245 h × 20 %). Le reste se fait en autonomie.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Période</th><th>Module support</th><th>Jalon EcoTrack V2</th></tr></thead>
+    <tbody>
+      <tr><td class="k num">26–30 oct. 2026</td><td>Architecture Microservices</td><td><strong>Sprint 0 : audit du V1 et plan de décomposition</strong></td></tr>
+      <tr><td class="k num">18–22 janv. 2027</td><td>Management Projets Tech</td><td>Cadrage de la V2, lancement de la rotation « Lead »</td></tr>
+      <tr><td class="k num">22 janv. – 18 mars</td><td>Cloud Native &amp; Kubernetes</td><td>Conteneurisation et mise à l'échelle</td></tr>
+      <tr><td class="k num">17–19 févr.</td><td>Entrepreneuriat &amp; Startup</td><td>Business case de l'extension à la ville voisine</td></tr>
+      <tr><td class="k num">15–16 mars</td><td>Soft Skills Leadership</td><td>Reporting devant le comité de pilotage</td></tr>
+      <tr><td class="k num">19 mars – 14 mai</td><td>Performance &amp; Scalability</td><td>Montée en charge 2 000 → 5 000 capteurs, tests de charge</td></tr>
+      <tr><td class="k num">mai – juin 2027</td><td>DevSecOps / Observability</td><td>Monitoring final et durcissement</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- INVENTAIRE ─────────────────────────────────── -->
+<section class="block" id="inventaire">
+  <p class="eyebrow">Mastère 2 · ce qui est à faire</p>
+  <h2>Inventaire des blocs 3 et 4</h2>
+  <p class="intro">Une fiche par compétence du titre RNCP 38822 : ce que le référentiel exige, le livrable que demande le CDC V2, ce qui existe déjà chez nous, puis la liste des tâches. Cochez au fur et à mesure ; les cases sont mémorisées dans ce navigateur uniquement.</p>
+  <div class="legend"><span class="st ok"><i></i>Base solide</span><span class="st mid"><i></i>Partiel</span><span class="st no"><i></i>À créer</span></div>
+
+  <div class="inv-head">
+    <div><b id="invCount">0 / 0</b> <small>tâches faites</small></div>
+    <div class="bar" aria-hidden="true"><span id="invBar"></span></div>
+    <button class="btn" type="button" id="invReset">Tout décocher</button>
+  </div>
+
+  <h3>Communs à tout le projet V2</h3>
+  <div class="comp">
+    <div class="comp-top"><span class="code">V2</span><div><h4>Livrables transversaux</h4><p>Exigés par le CDC V2 (chapitres VI.1 et V.1).</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Point de départ</span><p>Cette page (inventaire, écarts, architecture réelle) sert de brouillon au rapport de Sprint 0. Le calcul TCO / ROI du dossier BC1 sert de base à l'appel d'offre.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-v2-1"><span>Rapport de Sprint 0 : fonctionnalités livrées par rapport au CDC V1, dette technique, socle plancher</span></label>
+        <label><input type="checkbox" id="t-v2-2"><span>Journal des quatre scénarios (charge, incident de sécurité, audit RGPD, panne), une trace écrite par scénario</span></label>
+        <label><input type="checkbox" id="t-v2-3"><span>Réponse à l'appel d'offre d'extension : note de cadrage, moyens humains, chiffrage</span></label>
+        <label><input type="checkbox" id="t-v2-4"><span>Documentation technique qui reflète l'état réel en fin d'année</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <h3>Bloc 3 · Piloter la mise en production et l'évolution</h3>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.1</span><div><h4>Intégration continue</h4><p>RNCP : piloter l'intégration continue dans un environnement Agile et DevOps, avec dépôt partagé, builds et tests automatiques, dans le respect du RGPD et des règles de sécurité.</p></div><span class="st ok"><i></i>Base solide</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D01)</span><p>Preuve d'exécution du pipeline CI (logs de build).</p><span class="label">Existant</span><p><code>test.yml</code> sur les 7 services, mais les échecs de 4 services sont ignorés (<code>continue-on-error</code>) ; <code>devsecops.yaml</code> avec Snyk (dépendances, code front, images Docker) ; <code>deploy.yaml</code> qui démarre chaque service.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c31-1"><span>Retirer les <code>.env</code> suivis par git et changer les valeurs exposées</span></label>
+        <label><input type="checkbox" id="t-c31-2"><span>Supprimer les <code>continue-on-error</code> : un service en échec doit bloquer la CI</span></label>
+        <label><input type="checkbox" id="t-c31-3"><span>Ajouter le lint et le build des deux fronts dans la CI</span></label>
+        <label><input type="checkbox" id="t-c31-4"><span>Protéger la branche principale : pull request obligatoire, CI verte avant fusion</span></label>
+        <label><input type="checkbox" id="t-c31-5"><span>Corriger le <code>package.json</code> racine (chemins vers des fronts supprimés)</span></label>
+        <label><input type="checkbox" id="t-c31-6"><span>Archiver des exécutions comme preuve (liens des runs, captures)</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.2</span><div><h4>Plan de tests itératifs</h4><p>RNCP : organiser des tests unitaires, d'intégration et de sécurité en parallèle du développement, avec suivi des anomalies, des corrections et des performances, conformément aux attentes utilisateurs documentées.</p></div><span class="st mid"><i></i>Partiel</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D02)</span><p>Plan de tests + taux de couverture.</p><span class="label">Existant</span><p>13 fichiers Jest : users (7), gamification (5), iot (1). Couverture mesurée sur users seulement. Scans Snyk. Aucun test sur containers, routes, analytics, gateway et les fronts.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c32-1"><span>Rédiger le plan de tests : périmètre, types, outils, responsables, fréquence</span></label>
+        <label><input type="checkbox" id="t-c32-2"><span>Tests unitaires du 2-opt et des services de containers et routes</span></label>
+        <label><input type="checkbox" id="t-c32-3"><span>Tests d'intégration (Supertest) avec une base de test</span></label>
+        <label><input type="checkbox" id="t-c32-4"><span>Tests front (Vitest) sur les composants et les gardes de rôle</span></label>
+        <label><input type="checkbox" id="t-c32-5"><span>Mesurer et publier la couverture de chaque service</span></label>
+        <label><input type="checkbox" id="t-c32-6"><span>Cahier de recette par rôle (citoyen, agent, manager, admin)</span></label>
+        <label><input type="checkbox" id="t-c32-7"><span>Suivre les anomalies dans GitHub Issues (étiquettes bug et sévérité)</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.3</span><div><h4>Surveillance des mises à jour</h4><p>RNCP : surveiller les automatisations de mise à jour dans des conditions proches de la production, en gardant un contrôle humain et en assurant la stabilité et la sécurité.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D03)</span><p>Tableau de bord de monitoring + journal d'alertes.</p><span class="label">Existant</span><p>Routes <code>/health</code> et <code>/stats</code> sur la gateway, <code>pm2 monit</code>, interfaces Kafka UI et Redis Commander.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c33-1"><span>Exposer des métriques par service : temps de réponse, erreurs, disponibilité</span></label>
+        <label><input type="checkbox" id="t-c33-2"><span>Tableau de bord (Prometheus + Grafana ou équivalent)</span></label>
+        <label><input type="checkbox" id="t-c33-3"><span>Règles d'alerte : service arrêté, taux d'erreur, retard des consommateurs Kafka</span></label>
+        <label><input type="checkbox" id="t-c33-4"><span>Environnement de préproduction proche de la production</span></label>
+        <label><input type="checkbox" id="t-c33-5"><span>Mises à jour de dépendances automatiques (Dependabot ou Renovate), validées par un humain</span></label>
+        <label><input type="checkbox" id="t-c33-6"><span>Tenir un journal des alertes sur l'année</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.4</span><div><h4>Déploiement continu</h4><p>RNCP : une procédure de livraison unique et automatisée pour tous les environnements cibles, sans intervention manuelle, pour livrer souvent et recueillir les retours utilisateurs.</p></div><span class="st mid"><i></i>Partiel</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D04)</span><p>Pipeline CD fonctionnel + procédure de rollback.</p><span class="label">Existant</span><p><code>deploy.yaml</code> applique les migrations Prisma, démarre chaque service et construit les fronts, puis s'arrête sur « Ready for deployment ». Un Dockerfile par service. Aucune URL déployée.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c34-1"><span>Choisir la cible : VPS d'abord, Kubernetes au module Cloud Native</span></label>
+        <label><input type="checkbox" id="t-c34-2"><span>Compose complet : PostgreSQL et les 7 services, en plus de Kafka et Redis</span></label>
+        <label><input type="checkbox" id="t-c34-3"><span>Construire et pousser les images dans un registre, taguées par version</span></label>
+        <label><input type="checkbox" id="t-c34-4"><span>Déployer automatiquement après la CI : préproduction puis production</span></label>
+        <label><input type="checkbox" id="t-c34-5"><span>Écrire et tester la procédure de rollback</span></label>
+        <label><input type="checkbox" id="t-c34-6"><span>Tracer les versions déployées (tags git, releases GitHub)</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.5</span><div><h4>Opérations continues</h4><p>RNCP : optimiser applications et environnements par des opérations continues, avec des alertes sur les anomalies de performance ou d'infrastructure, dans une chaîne d'outils unifiée et collaborative.</p></div><span class="st mid"><i></i>Partiel</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D05)</span><p>Historique des cycles d'amélioration (changelog commenté).</p><span class="label">Existant</span><p>Cache Redis à la gateway, clustering PM2, un benchmark Apache Bench dans <code>docs/performance.md</code>, un simulateur réglable pour la charge IoT.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c35-1"><span>Créer un CHANGELOG commenté : problème observé, correction, effet mesuré</span></label>
+        <label><input type="checkbox" id="t-c35-2"><span>Script de charge reproductible (k6 ou équivalent) à 2 000 puis 5 000 capteurs</span></label>
+        <label><input type="checkbox" id="t-c35-3"><span>Réparer les liaisons : contrat de topics Kafka, consommateur dans containers</span></label>
+        <label><input type="checkbox" id="t-c35-4"><span>Unifier les ports et la configuration de tous les services</span></label>
+        <label><input type="checkbox" id="t-c35-5"><span>Travailler en cycles courts : observer, corriger, mesurer, consigner</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C3.6</span><div><h4>Documentation technique</h4><p>RNCP : manuel d'utilisation et guide en français et en anglais, avec un plan de formation des utilisateurs adapté à des publics variés, y compris les personnes en situation de handicap.</p></div><span class="st mid"><i></i>Partiel</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (UC-D06)</span><p>Documentation bilingue, schémas UML ou BPMN, plan de formation des utilisateurs.</p><span class="label">Existant</span><p>README racine et par service, Swagger sur chaque service, <code>docs/*.md</code> en partie obsolète (Next.js, 3 services), schémas C4, UML et Merise des dossiers BC1 et BC2.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c36-1"><span>Mettre à jour <code>docs/</code> et les README sur l'état réel</span></label>
+        <label><input type="checkbox" id="t-c36-2"><span>Refaire les schémas C4, UML ou BPMN à partir du code</span></label>
+        <label><input type="checkbox" id="t-c36-3"><span>Manuel d'utilisation par rôle</span></label>
+        <label><input type="checkbox" id="t-c36-4"><span>Version anglaise (niveau B2)</span></label>
+        <label><input type="checkbox" id="t-c36-5"><span>Plan de formation des utilisateurs, accessible</span></label>
+        <label><input type="checkbox" id="t-c36-6"><span>Audit d'accessibilité des deux fronts (WCAG 2.1 AA)</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <h3>Bloc 4 · Piloter l'équipe du projet</h3>
+  <p>Rien n'existe encore pour ce bloc : c'est normal, il porte sur l'organisation de cette année. Les dossiers du M1 donnent des points d'appui.</p>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.1</span><div><h4>Définir les compétences nécessaires</h4><p>RNCP : identifier les compétences du projet et les interactions avec les autres équipes, en lien avec les objectifs du client et le cycle de vie du logiciel.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.1)</span><p>Matrice RACI + note sur l'intégration des personnes en situation de handicap.</p><span class="label">Point d'appui</span><p>Composition d'équipe et compétences clés du dossier BC1.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c41-1"><span>Lister les compétences techniques et non techniques par jalon V2</span></label>
+        <label><input type="checkbox" id="t-c41-2"><span>Matrice RACI : audit, exploitation, gestion d'incident, reporting</span></label>
+        <label><input type="checkbox" id="t-c41-3"><span>Décrire les interactions avec les autres équipes et avec la métropole cliente</span></label>
+        <label><input type="checkbox" id="t-c41-4"><span>Note sur l'accès et l'intégration des personnes en situation de handicap</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.2</span><div><h4>Constituer l'équipe</h4><p>RNCP : constituer l'équipe par recrutement et formation interne, avec les RH, en lien avec le cahier des charges.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.2)</span><p>Une ou deux fiches de poste + plan de constitution d'équipe.</p><span class="label">Point d'appui</span><p>Le besoin réel de la V2 : passage à 5 000 capteurs, monitoring, déploiement.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c42-1"><span>Fiche de poste « DevOps Engineer »</span></label>
+        <label><input type="checkbox" id="t-c42-2"><span>Deuxième fiche selon le manque identifié (QA, développeur front…)</span></label>
+        <label><input type="checkbox" id="t-c42-3"><span>Plan combinant recrutement externe et formation interne</span></label>
+        <label><input type="checkbox" id="t-c42-4"><span>Aménagements concrets pour les personnes en situation de handicap</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.3</span><div><h4>Coordonner l'activité</h4><p>RNCP : intégrer les nouveaux membres, répartir tâches et responsabilités, équilibrer la charge, communiquer en français et en anglais.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.3)</span><p>Plan d'intégration du nouveau membre + compte rendu d'un point d'équipe en anglais.</p><span class="label">Point d'appui</span><p>GitHub Projects et l'organisation Scrum du M1 ; cette page comme support d'accueil.</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c43-1"><span>Plan d'intégration d'un stagiaire ou alternant fictif</span></label>
+        <label><input type="checkbox" id="t-c43-2"><span>Tableau de répartition des tâches visible par tous</span></label>
+        <label><input type="checkbox" id="t-c43-3"><span>Organiser la rotation du rôle de Lead</span></label>
+        <label><input type="checkbox" id="t-c43-4"><span>Tenir un point d'équipe en anglais et en faire le compte rendu</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.4</span><div><h4>Accompagner les membres</h4><p>RNCP : des stratégies de communication et de résolution de problèmes adaptées à l'Agile, sur une plateforme collaborative inclusive.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.4)</span><p>Charte de communication + comptes rendus de réunions de résolution de problèmes.</p><span class="label">Point d'appui</span><p>Plan de communication et rituels Scrum du dossier BC1 (Discord, revues de sprint).</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c44-1"><span>Charte : fréquence, canaux, présentiel ou distanciel</span></label>
+        <label><input type="checkbox" id="t-c44-2"><span>Réunions de résolution de problèmes, avec compte rendu</span></label>
+        <label><input type="checkbox" id="t-c44-3"><span>Choisir des outils accessibles à tous les membres</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.5</span><div><h4>Planifier la formation</h4><p>RNCP : planifier la montée en compétences des membres sur les évolutions technologiques et méthodologiques.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.5)</span><p>Plan de formation de l'équipe sur l'année.</p><span class="label">Point d'appui</span><p>Le calendrier des modules M2 (Kubernetes, performance, DevSecOps).</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c45-1"><span>Recenser les besoins : Kubernetes, observabilité, tests de charge</span></label>
+        <label><input type="checkbox" id="t-c45-2"><span>Varier les formats : cours, autoformation guidée, e-learning</span></label>
+        <label><input type="checkbox" id="t-c45-3"><span>Prévoir les aménagements pour les personnes en situation de handicap</span></label>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="comp">
+    <div class="comp-top"><span class="code">C4.6</span><div><h4>Évaluer la performance</h4><p>RNCP : évaluer la performance collective et individuelle selon des référentiels, avec un feedback régulier à double sens, des perspectives d'évolution avec les RH, le bien-être et l'inclusion.</p></div><span class="st no"><i></i>À créer</span></div>
+    <div class="comp-body">
+      <div><span class="label">Livrable (A4.6)</span><p>Grille de performance + un exemple de feedback structuré.</p><span class="label">Point d'appui</span><p>KPI d'équipe du dossier BC1 (vélocité, Definition of Done).</p></div>
+      <div><span class="label">À faire</span><div class="todo">
+        <label><input type="checkbox" id="t-c46-1"><span>Grille de performance simple, adaptée aux profils</span></label>
+        <label><input type="checkbox" id="t-c46-2"><span>Feedback à double sens en fin de chaque rotation de Lead</span></label>
+        <label><input type="checkbox" id="t-c46-3"><span>Amorce de plan de carrière par membre</span></label>
+        <label><input type="checkbox" id="t-c46-4"><span>Suivi du bien-être, pas seulement de la productivité</span></label>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 ─────────────────────────────────────────── -->
+<section class="block" id="refonte">
+  <p class="eyebrow">Perspectives</p>
+  <h2>Pistes de refonte, à discuter</h2>
+  <p class="intro">Une première proposition d'ordre, à revoir ensemble une fois l'inventaire validé. Chaque piste répond à un écart constaté plus haut ou à un livrable V2.</p>
+  <div class="prio">
+    <div class="panel">
+      <span class="label">Sprint 0 · tout de suite</span><h4>Remettre l'existant d'aplomb</h4>
+      <ol>
+        <li><b>Un seul tableau des ports</b>, repris dans chaque <code>.env.example</code> et dans la gateway.</li>
+        <li><b>Un contrat de topics Kafka</b> unique, partagé par les 7 services.</li>
+        <li><b>Déclarer la gamification</b> dans la gateway et brancher le signalement citoyen.</li>
+        <li><b>Retirer les <code>.env</code> suivis</b> et les identifiants des documents.</li>
+        <li><b>Rédiger le rapport de Sprint 0</b> à partir de l'inventaire et des sections « Le M1 », « Les fonctionnalités » et « Dossiers et code ».</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <span class="label">Premier trimestre</span><h4>Relier les services</h4>
+      <ol>
+        <li><b>service-containers consomme <code>container-fill-level</code></b> : la carte reflète les capteurs.</li>
+        <li><b>Client Socket.io</b> dans le front admin pour les alertes en direct.</li>
+        <li><b>Brancher analytics</b> (migrations, puis écrans KPI et prédictions).</li>
+        <li><b>PostgreSQL dans le compose</b>, puis les 7 services : un seul <code>docker compose up</code>.</li>
+        <li><b>Mettre la documentation à jour</b> et la traduire (UC-D06).</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <span class="label">Au fil de l'année</span><h4>Exploiter comme en production</h4>
+      <ol>
+        <li><b>Plan de tests</b> et couverture mesurée sur tous les services (UC-D02).</li>
+        <li><b>Prometheus + Grafana</b> et alertes (UC-D03).</li>
+        <li><b>Déploiement réel</b> avec rollback documenté (UC-D04), puis Kubernetes.</li>
+        <li><b>Test de charge à 5 000 capteurs</b> avec le simulateur (paramètre d'intervalle).</li>
+        <li><b>Changelog commenté</b> à chaque cycle (UC-D05).</li>
+      </ol>
+    </div>
+  </div>
+  <div class="callout"><p><strong>Choix de fond à trancher en équipe :</strong> garder sept services ou en regrouper certains (iot et containers partagent la même donnée « remplissage »), et décider si PostGIS entre enfin dans le projet pour les requêtes de proximité et les zones.</p></div>
+</section>
+
+<!-- 13 ─────────────────────────────────────────── -->
+<section class="block" id="glossaire">
+  <p class="eyebrow">Vocabulaire</p>
+  <h2>Glossaire</h2>
+  <dl class="gloss">
+    <dt>API Gateway</dt><dd>Point d'entrée unique : reçoit toutes les requêtes des fronts et les transmet au bon service.</dd>
+    <dt>Microservice</dt><dd>Petite application autonome avec sa propre base, déployable sans toucher aux autres.</dd>
+    <dt>MQTT</dt><dd>Protocole léger pour objets connectés : un capteur publie sur un « topic », un broker le transmet aux abonnés.</dd>
+    <dt>Kafka</dt><dd>Bus de messages durable : un service publie un événement, d'autres le consomment sans se connaître.</dd>
+    <dt>Topic</dt><dd>Nom du canal sur lequel circulent les messages (MQTT ou Kafka). Deux services doivent utiliser exactement le même nom.</dd>
+    <dt>Prisma</dt><dd>ORM : décrit les tables dans <code>schema.prisma</code>, génère les migrations et le code d'accès à la base.</dd>
+    <dt>PostGIS</dt><dd>Extension géographique de PostgreSQL (distances, polygones, index spatiaux).</dd>
+    <dt>TSP · 2-opt</dt><dd>Problème du voyageur de commerce : trouver l'ordre de passage le plus court. 2-opt améliore un trajet en inversant des portions.</dd>
+    <dt>JWT · RBAC</dt><dd>Jeton signé qui prouve l'identité ; contrôle d'accès selon le rôle.</dd>
+    <dt>Socket.io</dt><dd>Connexion permanente qui permet au serveur de pousser une information au navigateur.</dd>
+    <dt>Choroplèthe</dt><dd>Carte où chaque zone est colorée selon une valeur (remplissage moyen, par exemple).</dd>
+    <dt>RNCP · Bloc</dt><dd>Certification nationale découpée en blocs de compétences, évalués séparément.</dd>
+    <dt>Sprint 0</dt><dd>Première itération de la V2 : audit du V1 et remise à niveau avant toute nouvelle fonctionnalité.</dd>
+    <dt>RTO · RPO</dt><dd>Temps maximal pour redémarrer après une panne ; quantité maximale de données qu'on accepte de perdre.</dd>
+  </dl>
+</section>
+
+<!-- 14 ─────────────────────────────────────────── -->
+<section class="block" id="sources">
+  <p class="eyebrow">D'où viennent ces informations</p>
+  <h2>Sources</h2>
+  <div class="grid g3">
+    <div class="panel"><span class="label">Référentiel et cahiers des charges</span><ul><li>Fiche RNCP 38822, francecompetences.fr</li><li>ECOTRACK_CDC_COMMUN_V1</li><li>ECOTRACK_M1_DEVELOPPEMENT_CDC_FINAL</li><li>ECOTRACK_CDC_V2_M2</li></ul></div>
+    <div class="panel"><span class="label">Blocs 1 et 2 (M1)</span><ul><li>Dossiers EcoTrack_Bloc1 et EcoTrack_Bloc2 (PDF)</li><li>Soutenances BC1 et BC2, versions V5 avec notes</li><li>« Ma préparation », Agile, Audit initial</li></ul></div>
+    <div class="panel"><span class="label">Dépôt ecotrack</span><ul><li>Code des 7 services et des 2 fronts (branche <code>dev</code>)</li><li><code>docker-compose.yml</code>, Makefile, 3 workflows GitHub Actions</li><li>README et dossier <code>docs/</code></li></ul></div>
+  </div>
+  <p class="foot">Version Développement. Les cases de l'inventaire sont mémorisées dans ce navigateur. État du code relevé le 28 octobre 2026. L'inventaire, « Les fonctionnalités » et « Dossiers et code » sont à revérifier après chaque correction.</p>
+</section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var meter = document.getElementById('meter');
+  function update(){
+    var y = window.scrollY + 120, current = 0;
+    sections.forEach(function(s, i){ if (s && s.offsetTop <= y) current = i; });
+    links.forEach(function(a, i){ a.classList.toggle('on', i === current); });
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (meter) meter.style.width = (max > 0 ? Math.min(100, window.scrollY / max * 100) : 0) + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+
+// Inventaire : cases mémorisées dans ce navigateur (localStorage peut être indisponible)
+(function(){
+  var KEY = 'atlas-ecotrack-inventaire';
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#inventaire .todo input[type=checkbox]'));
+  var count = document.getElementById('invCount');
+  var bar = document.getElementById('invBar');
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+  function render(){
+    var done = boxes.filter(function(b){ return b.checked; }).length;
+    count.textContent = done + ' / ' + boxes.length;
+    bar.style.width = (boxes.length ? done / boxes.length * 100 : 0) + '%';
+  }
+  function save(){
+    var state = {};
+    boxes.forEach(function(b){ if (b.checked) state[b.id] = true; });
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  boxes.forEach(function(b){
+    if (saved[b.id]) b.checked = true;
+    b.addEventListener('change', function(){ save(); render(); });
+  });
+  document.getElementById('invReset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; });
+    save(); render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -25,15 +25,16 @@ const initializeRoutesSubscriber = async () => {
   console.log('✅ Routes Subscriber initialisé');
 };
 
-async function handleContainerFillLevel({ containerId, fillPercentage }) {
-  if (!containerId || fillPercentage <= 75) return;
+// Message publié par service-iot : { containerId, fillLevel (0-100 %), temperature, humidity, measuredAt }
+async function handleContainerFillLevel({ containerId, fillLevel }) {
+  if (!containerId || typeof fillLevel !== 'number' || fillLevel <= 75) return;
 
   const existing = await prisma.route.findFirst({
     where: { status: 'planned', containerIds: { has: containerId } },
   });
   if (existing) return;
 
-  const daysOffset = fillPercentage >= 90 ? 1 : 3;
+  const daysOffset = fillLevel >= 90 ? 1 : 3;
   const collectionDate = new Date();
   collectionDate.setDate(collectionDate.getDate() + daysOffset);
 
@@ -45,7 +46,7 @@ async function handleContainerFillLevel({ containerId, fillPercentage }) {
       steps: { create: [{ containerId, stepOrder: 1 }] },
     },
   });
-  console.log(`✅ Route automatique créée (${route.id}) — conteneur ${containerId} à ${fillPercentage}%`);
+  console.log(`✅ Route automatique créée (${route.id}) — conteneur ${containerId} à ${fillLevel}%`);
 }
 
 async function handleContainerStatusChanged({ containerId, newStatus }) {
